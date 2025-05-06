@@ -3,47 +3,91 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import TicketsList from "@/components/tickets/TicketsList";
+import TicketsTable from "@/components/tickets/TicketsTable";
 import SellerCard from "@/components/sellers/SellerCard";
 import { BettingTicket, User } from "@/types";
 import { mockTickets, mockUsers, BETTING_SITES } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, TrendingUp, Award, CheckCircle, Clock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+const BettingSiteLogo = ({ site }: { site: string }) => {
+  // In a real app, we would fetch these from Supabase storage
+  // But for now, we'll use a placeholder with the name
+  return (
+    <div className="betting-card flex items-center justify-center py-6 font-medium text-center">
+      <div className="bg-betting-dark-gray p-2 rounded-lg flex items-center justify-center h-16">
+        <span className="font-bold text-betting-green">{site}</span>
+      </div>
+    </div>
+  );
+};
 
 const Index: React.FC = () => {
   const [featuredTickets, setFeaturedTickets] = useState<BettingTicket[]>([]);
   const [topSellers, setTopSellers] = useState<User[]>([]);
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const { toast } = useToast();
   
   useEffect(() => {
-    // Get non-expired tickets for featured section
-    const now = new Date();
-    const validTickets = mockTickets.filter(
-      (ticket) => new Date(ticket.kickoffTime) > now
-    );
-    setFeaturedTickets(validTickets.slice(0, 3));
+    const fetchTickets = async () => {
+      try {
+        // In production, this would be replaced with actual Supabase query
+        const now = new Date();
+        const validTickets = mockTickets.filter(
+          (ticket) => new Date(ticket.kickoffTime) > now
+        );
+        setFeaturedTickets(validTickets.slice(0, 6));
+      } catch (error) {
+        console.error("Error fetching tickets:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load tickets. Please try again later.",
+          variant: "destructive",
+        });
+      }
+    };
     
-    // Get top sellers
-    const sellers = mockUsers.filter(
-      (user) => user.role === "seller" && user.approved
-    );
-    setTopSellers(sellers.slice(0, 3));
-  }, []);
+    const fetchSellers = async () => {
+      try {
+        // In production, this would be replaced with actual Supabase query
+        const sellers = mockUsers.filter(
+          (user) => user.role === "seller" && user.approved
+        );
+        setTopSellers(sellers.slice(0, 3));
+      } catch (error) {
+        console.error("Error fetching sellers:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load sellers. Please try again later.",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    fetchTickets();
+    fetchSellers();
+  }, [toast]);
 
   return (
     <Layout>
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-betting-black via-betting-dark-gray to-betting-black pt-16 pb-24 px-4">
-        <div className="container mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">
+      {/* Hero Section with enhanced animation */}
+      <section className="bg-gradient-to-br from-betting-black via-betting-dark-gray to-betting-black pt-16 pb-24 px-4 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('/public/bg-pattern.svg')] opacity-5"></div>
+        <div className="container mx-auto text-center relative z-10">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 animate-fade-in">
             South Africa's Premier{" "}
-            <span className="text-betting-green">Betting Code</span>{" "}
+            <span className="text-betting-green bg-clip-text text-transparent bg-gradient-to-r from-betting-green to-teal-500">Betting Code</span>{" "}
             Marketplace
           </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
+          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8 animate-slide-up">
             Join thousands of smart bettors sharing and selling winning predictions across all major South African betting sites.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12 animate-slide-up delay-100">
             <Link to="/tickets">
               <Button className="bg-betting-green hover:bg-betting-green-dark text-white px-8 py-6 text-lg">
                 Browse Tickets
@@ -57,7 +101,7 @@ const Index: React.FC = () => {
           </div>
           
           {/* Search Box */}
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-2xl mx-auto animate-slide-up delay-200">
             <div className="relative">
               <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
               <Input
@@ -70,7 +114,7 @@ const Index: React.FC = () => {
         </div>
       </section>
       
-      {/* Betting Sites Section */}
+      {/* Betting Sites Section with Logos */}
       <section className="py-16 px-4 bg-betting-black">
         <div className="container mx-auto">
           <h2 className="text-xl font-medium mb-8 text-center">
@@ -78,34 +122,46 @@ const Index: React.FC = () => {
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
             {BETTING_SITES.map((site) => (
-              <div
-                key={site}
-                className="betting-card flex items-center justify-center py-6 font-medium text-center"
-              >
-                {site}
-              </div>
+              <BettingSiteLogo key={site} site={site} />
             ))}
           </div>
         </div>
       </section>
       
-      {/* Featured Tickets Section */}
+      {/* Featured Tickets Section with Toggle between Card and Table view */}
       <section className="py-16 px-4 bg-betting-dark-gray">
         <div className="container mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-medium flex items-center">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <div className="flex items-center">
               <TrendingUp className="h-5 w-5 mr-2 text-betting-green" />
-              Featured Tickets
-            </h2>
-            <Link to="/tickets" className="text-betting-green hover:underline">
-              View all tickets
-            </Link>
+              <h2 className="text-2xl font-medium">Featured Tickets</h2>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <Tabs defaultValue="cards" onValueChange={(value) => setViewMode(value as "cards" | "table")}>
+                <TabsList className="bg-betting-black">
+                  <TabsTrigger value="cards">Card View</TabsTrigger>
+                  <TabsTrigger value="table">Table View</TabsTrigger>
+                </TabsList>
+              </Tabs>
+              
+              <Link to="/tickets" className="text-betting-green hover:underline">
+                View all tickets
+              </Link>
+            </div>
           </div>
           
-          <TicketsList
-            tickets={featuredTickets}
-            emptyMessage="No featured tickets available at the moment."
-          />
+          {viewMode === "cards" ? (
+            <TicketsList
+              tickets={featuredTickets}
+              emptyMessage="No featured tickets available at the moment."
+            />
+          ) : (
+            <TicketsTable
+              tickets={featuredTickets}
+              emptyMessage="No featured tickets available at the moment."
+            />
+          )}
         </div>
       </section>
       
@@ -169,7 +225,7 @@ const Index: React.FC = () => {
         </div>
       </section>
       
-      {/* CTA Section */}
+      {/* CTA Section with enhanced design */}
       <section className="py-20 px-4 bg-betting-black">
         <div className="container mx-auto text-center max-w-3xl">
           <h2 className="text-3xl font-bold mb-6">Ready to Win With BetCode ZA?</h2>

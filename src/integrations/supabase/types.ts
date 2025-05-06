@@ -9,16 +9,309 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      bank_details: {
+        Row: {
+          account_holder: string
+          account_number: string
+          account_type: string
+          bank_name: string
+          branch_code: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_holder: string
+          account_number: string
+          account_type: string
+          bank_name: string
+          branch_code: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_holder?: string
+          account_number?: string
+          account_type?: string
+          bank_name?: string
+          branch_code?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_details_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          approved: boolean
+          avatar_url: string | null
+          created_at: string
+          email: string
+          id: string
+          loyalty_points: number | null
+          role: Database["public"]["Enums"]["user_role"]
+          suspended: boolean
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          approved?: boolean
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          id: string
+          loyalty_points?: number | null
+          role: Database["public"]["Enums"]["user_role"]
+          suspended?: boolean
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          approved?: boolean
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          loyalty_points?: number | null
+          role?: Database["public"]["Enums"]["user_role"]
+          suspended?: boolean
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      purchases: {
+        Row: {
+          buyer_id: string
+          id: string
+          is_rated: boolean
+          is_winner: boolean | null
+          price: number
+          purchase_date: string
+          seller_id: string
+          ticket_id: string
+        }
+        Insert: {
+          buyer_id: string
+          id?: string
+          is_rated?: boolean
+          is_winner?: boolean | null
+          price: number
+          purchase_date?: string
+          seller_id: string
+          ticket_id: string
+        }
+        Update: {
+          buyer_id?: string
+          id?: string
+          is_rated?: boolean
+          is_winner?: boolean | null
+          price?: number
+          purchase_date?: string
+          seller_id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchases_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchases_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchases_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ratings: {
+        Row: {
+          buyer_id: string
+          comment: string | null
+          created_at: string
+          id: string
+          score: number
+          seller_id: string
+          ticket_id: string
+        }
+        Insert: {
+          buyer_id: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          score: number
+          seller_id: string
+          ticket_id: string
+        }
+        Update: {
+          buyer_id?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          score?: number
+          seller_id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ratings_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ratings_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ratings_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tickets: {
+        Row: {
+          betting_site: Database["public"]["Enums"]["betting_site"]
+          created_at: string
+          description: string
+          event_results: string | null
+          id: string
+          is_expired: boolean
+          is_free: boolean
+          is_hidden: boolean
+          kickoff_time: string
+          odds: number | null
+          price: number
+          seller_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          betting_site: Database["public"]["Enums"]["betting_site"]
+          created_at?: string
+          description: string
+          event_results?: string | null
+          id?: string
+          is_expired?: boolean
+          is_free?: boolean
+          is_hidden?: boolean
+          kickoff_time: string
+          odds?: number | null
+          price: number
+          seller_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          betting_site?: Database["public"]["Enums"]["betting_site"]
+          created_at?: string
+          description?: string
+          event_results?: string | null
+          id?: string
+          is_expired?: boolean
+          is_free?: boolean
+          is_hidden?: boolean
+          kickoff_time?: string
+          odds?: number | null
+          price?: number
+          seller_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tickets_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      withdrawals: {
+        Row: {
+          amount: number
+          id: string
+          processed_date: string | null
+          request_date: string
+          seller_id: string
+          status: string
+        }
+        Insert: {
+          amount: number
+          id?: string
+          processed_date?: string | null
+          request_date?: string
+          seller_id: string
+          status: string
+        }
+        Update: {
+          amount?: number
+          id?: string
+          processed_date?: string | null
+          request_date?: string
+          seller_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawals_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      betting_site:
+        | "Betway"
+        | "HollywoodBets"
+        | "Supabets"
+        | "Playa"
+        | "10bet"
+        | "Easybet"
+      user_role: "buyer" | "seller" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +426,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      betting_site: [
+        "Betway",
+        "HollywoodBets",
+        "Supabets",
+        "Playa",
+        "10bet",
+        "Easybet",
+      ],
+      user_role: ["buyer", "seller", "admin"],
+    },
   },
 } as const
