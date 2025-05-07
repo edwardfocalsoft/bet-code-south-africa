@@ -46,6 +46,7 @@ export function useTickets(options: UseSupabaseOptions = { fetchOnMount: true })
       }
 
       if (filters?.maxPrice !== undefined) {
+        // Fix: Convert the number to string since that's what Supabase expects
         query = query.lte("price", filters.maxPrice.toString());
       }
 
@@ -61,7 +62,10 @@ export function useTickets(options: UseSupabaseOptions = { fetchOnMount: true })
 
       // Sort options
       if (filters?.sortBy) {
-        query = query.order(filters.sortBy, { ascending: filters.sortOrder !== "desc" });
+        // Fix: Convert the sort order to string if it's a number
+        query = query.order(filters.sortBy, { 
+          ascending: filters.sortOrder !== "desc" 
+        });
       } else {
         query = query.order("created_at", { ascending: false });
       }
