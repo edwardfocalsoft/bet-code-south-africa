@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -46,7 +47,8 @@ export function useTickets(options: UseSupabaseOptions = { fetchOnMount: true })
 
       if (filters?.maxPrice !== undefined) {
         // Convert the number to string since that's what Supabase expects
-        query = query.lte("price", filters.maxPrice.toString());
+        const maxPriceStr = filters.maxPrice.toString();
+        query = query.lte("price", maxPriceStr);
       }
 
       // By default, don't show expired tickets unless specifically asked for
