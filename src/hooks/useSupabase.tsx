@@ -46,7 +46,7 @@ export function useTickets(options: UseSupabaseOptions = { fetchOnMount: true })
       }
 
       if (filters?.maxPrice !== undefined) {
-        query = query.lte("price", filters.maxPrice);
+        query = query.lte("price", filters.maxPrice.toString());
       }
 
       // By default, don't show expired tickets unless specifically asked for

@@ -7,17 +7,17 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
 const AdminDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
   const navigate = useNavigate();
   
   useEffect(() => {
     // Redirect if user is not admin
-    if (user && user.role !== "admin") {
+    if (currentUser && currentUser.role !== "admin") {
       navigate("/");
     }
-  }, [user, navigate]);
+  }, [currentUser, navigate]);
 
-  if (user?.role !== "admin") {
+  if (currentUser?.role !== "admin") {
     return (
       <Layout>
         <div className="container mx-auto py-8">

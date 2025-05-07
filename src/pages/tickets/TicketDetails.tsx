@@ -24,12 +24,12 @@ import { useTicket } from "@/hooks/useSupabase";
 const TicketDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { ticket, loading, error } = useTicket(id);
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
   const { toast } = useToast();
   const [purchasing, setPurchasing] = useState(false);
 
   const handlePurchase = async () => {
-    if (!user) {
+    if (!currentUser) {
       toast({
         title: "Login Required",
         description: "Please log in to purchase tickets.",
@@ -44,7 +44,7 @@ const TicketDetails: React.FC = () => {
       // In production, this would be an actual Supabase insert
       // await supabase.from("purchases").insert({
       //   ticket_id: ticket?.id,
-      //   buyer_id: user.id,
+      //   buyer_id: currentUser.id,
       //   seller_id: ticket?.sellerId,
       //   price: ticket?.price || 0,
       // });
@@ -97,7 +97,7 @@ const TicketDetails: React.FC = () => {
     );
   }
 
-  const isSeller = user?.id === ticket.sellerId;
+  const isSeller = currentUser?.id === ticket.sellerId;
   const isPastKickoff = new Date() > new Date(ticket.kickoffTime);
 
   return (

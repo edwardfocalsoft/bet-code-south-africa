@@ -17,20 +17,20 @@ const Layout: React.FC<LayoutProps> = ({
   requireAuth = false,
   allowedRoles = ["buyer", "seller", "admin"] 
 }) => {
-  const { currentUser: user, loading: isLoading } = useAuth();
+  const { currentUser, loading } = useAuth();
   const navigate = useNavigate();
   
   useEffect(() => {
-    if (!isLoading && requireAuth && !user) {
+    if (!loading && requireAuth && !currentUser) {
       navigate("/login", { replace: true });
     }
     
-    if (!isLoading && user && allowedRoles.length > 0 && user.role && !allowedRoles.includes(user.role)) {
+    if (!loading && currentUser && allowedRoles.length > 0 && currentUser.role && !allowedRoles.includes(currentUser.role)) {
       navigate("/", { replace: true });
     }
-  }, [user, isLoading, requireAuth, allowedRoles, navigate]);
+  }, [currentUser, loading, requireAuth, allowedRoles, navigate]);
 
-  if (isLoading && requireAuth) {
+  if (loading && requireAuth) {
     return (
       <div className="flex flex-col min-h-screen">
         <Navbar />
