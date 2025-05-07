@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -46,7 +45,7 @@ export function useTickets(options: UseSupabaseOptions = { fetchOnMount: true })
       }
 
       if (filters?.maxPrice !== undefined) {
-        // Fix: Convert the number to string since that's what Supabase expects
+        // Convert the number to string since that's what Supabase expects
         query = query.lte("price", filters.maxPrice.toString());
       }
 
@@ -62,8 +61,9 @@ export function useTickets(options: UseSupabaseOptions = { fetchOnMount: true })
 
       // Sort options
       if (filters?.sortBy) {
-        // Fix: Convert the sort order to string if it's a number
-        query = query.order(filters.sortBy, { 
+        // Convert sortBy to string if it's a number
+        const sortByValue = typeof filters.sortBy === 'number' ? filters.sortBy.toString() : filters.sortBy;
+        query = query.order(sortByValue, { 
           ascending: filters.sortOrder !== "desc" 
         });
       } else {
