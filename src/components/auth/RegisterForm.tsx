@@ -43,7 +43,7 @@ const RegisterForm: React.FC = () => {
       if (user) {
         if (role === "seller") {
           // Sellers must wait for approval
-          navigate("/register/confirmation", { state: { role } });
+          navigate("/auth/register/confirmation", { state: { role } });
         } else {
           // Buyers can proceed to dashboard
           navigate("/buyer/dashboard");

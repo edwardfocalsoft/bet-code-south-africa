@@ -1,16 +1,19 @@
+
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User as UserType, UserRole } from "@/types";
 import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 export interface AuthContextType {
   currentUser: UserType | null;
   userRole: UserRole | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<UserType | null>;
   logout: () => Promise<void>;
-  signup: (email: string, password: string, role: UserRole) => Promise<void>;
+  signup: (email: string, password: string, role: UserRole) => Promise<UserType | null>;
+  register: (email: string, password: string, role: UserRole) => Promise<UserType | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,26 +25,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
 
   useEffect(() => {
-    const session = supabase.auth.getSession();
-
-    supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.session?.user) {
-        await fetchUser(session.session.user.id);
+    // Get initial session
+    const getInitialSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      const sessionData = data?.session;
+      
+      if (sessionData?.user) {
+        await fetchUser(sessionData.user.id);
       } else {
-        setCurrentUser(null);
-        setUserRole(null);
         setLoading(false);
       }
-    });
+    };
 
-    if ((session as any)?.data?.session?.user) {
-      fetchUser((session as any)?.data?.session?.user?.id);
-    } else {
-      setLoading(false);
-    }
+    getInitialSession();
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          await fetchUser(session.user.id);
+        } else {
+          setCurrentUser(null);
+          setUserRole(null);
+          setLoading(false);
+        }
+      }
+    );
+
+    // Cleanup subscription
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchUser = async (userId: string) => {
@@ -70,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUserRole(user.role);
     } catch (error: any) {
       console.error("Error fetching user:", error);
-      toast({
+      uiToast({
         title: "Error",
         description: "Failed to load user data.",
         variant: "destructive",
@@ -80,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const signup = async (email: string, password: string, role: UserRole) => {
+  const register = async (email: string, password: string, role: UserRole) => {
     try {
       setLoading(true);
       const { data, error } = await supabase.auth.signUp({
@@ -99,22 +116,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       console.log("Signup data", data);
-      toast({
+      uiToast({
         title: "Success",
         description: "Please check your email to confirm your registration.",
       });
-      navigate("/auth/register/confirmation");
+      
+      if (data.user) {
+        // Create a user object to return
+        const userObj: UserType = {
+          id: data.user.id,
+          email: data.user.email || email,
+          role: role,
+          createdAt: new Date(),
+        };
+        navigate("/auth/register/confirmation");
+        return userObj;
+      }
+      return null;
     } catch (error: any) {
       console.error("Signup error", error);
-      toast({
+      uiToast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
+      return null;
     } finally {
       setLoading(false);
     }
   };
+
+  // Alias signup to register for backward compatibility
+  const signup = register;
 
   const login = async (email: string, password: string) => {
     try {
@@ -129,21 +162,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       if (data?.user) {
-        await fetchUser(data.user.id);
+        // Fetch the user profile
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", data.user.id)
+          .single();
+        
+        if (profileData) {
+          const userObj: UserType = {
+            id: data.user.id,
+            email: data.user.email || email,
+            role: profileData.role,
+            username: profileData.username,
+            createdAt: new Date(profileData.created_at),
+            approved: profileData.approved,
+            suspended: profileData.suspended,
+            loyaltyPoints: profileData.loyalty_points,
+          };
+          
+          setCurrentUser(userObj);
+          setUserRole(profileData.role);
+          
+          uiToast({
+            title: "Success",
+            description: "Logged in successfully.",
+          });
+          
+          return userObj;
+        }
       }
-
-      toast({
-        title: "Success",
-        description: "Logged in successfully.",
-      });
-      navigate("/");
+      return null;
     } catch (error: any) {
       console.error("Login error", error);
-      toast({
+      uiToast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
+      return null;
     } finally {
       setLoading(false);
     }
@@ -157,14 +214,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       setCurrentUser(null);
       setUserRole(null);
-      toast({
+      uiToast({
         title: "Success",
         description: "Logged out successfully.",
       });
       navigate("/auth/login");
     } catch (error: any) {
       console.error("Logout error", error);
-      toast({
+      uiToast({
         title: "Error",
         description: error.message,
         variant: "destructive",
@@ -181,6 +238,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     login,
     logout,
     signup,
+    register,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

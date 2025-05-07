@@ -20,7 +20,7 @@ const LoginForm: React.FC = () => {
     try {
       const user = await login(email, password);
       
-      if (user) {
+      if (user && user.role) {
         // Redirect based on user role
         if (user.role === "admin") {
           navigate("/admin/dashboard");
