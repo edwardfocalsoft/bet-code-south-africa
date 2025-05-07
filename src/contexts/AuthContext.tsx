@@ -1,6 +1,6 @@
 
 import React, { createContext, useState, useEffect, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User as UserType, UserRole } from "@/types";
 import { useToast } from "@/hooks/use-toast";
@@ -25,16 +25,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast: uiToast } = useToast();
 
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
       const { data } = await supabase.auth.getSession();
-      const sessionData = data?.session;
+      const sessionUser = data?.session?.user;
       
-      if (sessionData?.user) {
-        await fetchUser(sessionData.user.id);
+      if (sessionUser) {
+        await fetchUser(sessionUser.id);
       } else {
         setLoading(false);
       }
@@ -218,7 +219,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         title: "Success",
         description: "Logged out successfully.",
       });
-      navigate("/auth/login");
+      
+      // Using window.location for a complete refresh instead of navigate
+      window.location.href = "/auth/login";
     } catch (error: any) {
       console.error("Logout error", error);
       uiToast({
