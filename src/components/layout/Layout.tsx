@@ -17,7 +17,7 @@ const Layout: React.FC<LayoutProps> = ({
   requireAuth = false,
   allowedRoles = ["buyer", "seller", "admin"] 
 }) => {
-  const { user, isLoading } = useAuth();
+  const { currentUser: user, loading: isLoading } = useAuth();
   const navigate = useNavigate();
   
   useEffect(() => {
