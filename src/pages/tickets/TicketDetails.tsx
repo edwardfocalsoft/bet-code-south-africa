@@ -166,7 +166,7 @@ const TicketDetails: React.FC = () => {
                     </div>
                   </div>
                   
-                  {(isSeller || user?.role === "admin") && (
+                  {(isSeller || currentUser?.role === "admin") && (
                     <ShareTicket ticketId={ticket.id} ticketTitle={ticket.title} />
                   )}
                 </div>
@@ -179,7 +179,7 @@ const TicketDetails: React.FC = () => {
                   <div className="bg-betting-light-gray p-4 rounded-lg mt-6 mb-6">
                     <h3 className="mt-0">Ticket Content</h3>
                     <p className="mb-0">
-                      {user ? (
+                      {currentUser ? (
                         "Content will be visible after purchase."
                       ) : (
                         "Please log in and purchase this ticket to view its content."
