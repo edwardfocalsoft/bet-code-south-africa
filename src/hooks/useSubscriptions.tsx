@@ -30,8 +30,9 @@ export function useSubscriptions() {
       setLoading(true);
       setError(null);
 
-      const { data, error } = await supabase
-        .from("subscriptions")
+      // Use generic type as the subscription table isn't in the generated types yet
+      const { data, error: fetchError } = await supabase
+        .from('subscriptions')
         .select(`
           id,
           seller_id,
@@ -39,9 +40,12 @@ export function useSubscriptions() {
           created_at,
           profiles:seller_id (username)
         `)
-        .eq("buyer_id", currentUser.id);
+        .eq("buyer_id", currentUser.id) as {
+          data: any[];
+          error: any;
+        };
 
-      if (error) throw error;
+      if (fetchError) throw fetchError;
 
       const mappedSubscriptions = data.map((sub: any) => ({
         id: sub.id,
@@ -78,12 +82,15 @@ export function useSubscriptions() {
 
       try {
         const { data, error } = await supabase
-          .from("subscriptions")
+          .from('subscriptions')
           .insert({
             seller_id: sellerId,
             buyer_id: currentUser.id,
           })
-          .select();
+          .select() as {
+            data: any[];
+            error: any;
+          };
 
         if (error) throw error;
 
@@ -113,9 +120,11 @@ export function useSubscriptions() {
 
       try {
         const { error } = await supabase
-          .from("subscriptions")
+          .from('subscriptions')
           .delete()
-          .eq("id", subscriptionId);
+          .eq("id", subscriptionId) as {
+            error: any;
+          };
 
         if (error) throw error;
 

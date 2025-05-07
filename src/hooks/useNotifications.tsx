@@ -35,13 +35,17 @@ export function useNotifications() {
       setLoading(true);
       setError(null);
 
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", currentUser.id)
-        .order("created_at", { ascending: false });
+      // Use generic type as the notifications table isn't in the generated types yet
+      const { data, error: fetchError } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false }) as {
+          data: any[];
+          error: any;
+        };
 
-      if (error) throw error;
+      if (fetchError) throw fetchError;
 
       const mappedNotifications = data.map((notification: any) => ({
         id: notification.id,
@@ -75,10 +79,13 @@ export function useNotifications() {
       if (!currentUser) return;
 
       try {
+        // Use generic type as the notifications table isn't in the generated types yet
         const { error } = await supabase
-          .from("notifications")
+          .from('notifications')
           .update({ is_read: true })
-          .eq("id", notificationId);
+          .eq('id', notificationId) as {
+            error: any;
+          };
 
         if (error) throw error;
 
@@ -107,11 +114,14 @@ export function useNotifications() {
     if (!currentUser || notifications.length === 0) return;
 
     try {
+      // Use generic type as the notifications table isn't in the generated types yet
       const { error } = await supabase
-        .from("notifications")
+        .from('notifications')
         .update({ is_read: true })
-        .eq("user_id", currentUser.id)
-        .eq("is_read", false);
+        .eq('user_id', currentUser.id)
+        .eq('is_read', false) as {
+          error: any;
+        };
 
       if (error) throw error;
 

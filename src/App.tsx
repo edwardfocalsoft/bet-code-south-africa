@@ -30,7 +30,7 @@ import AdminWithdrawals from "./pages/admin/Withdrawals";
 import UserSettings from "./pages/user/Settings";
 import Notifications from "./pages/user/Notifications";
 
-import { ThemeProvider } from "@/components/ui/theme-provider";
+import { ThemeProvider } from "./components/ui/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 
