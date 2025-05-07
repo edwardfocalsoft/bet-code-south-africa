@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -12,14 +11,13 @@ import {
   User,
   Clock,
   TrendingUp,
-  Star,
-  Share2 
+  Star
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import ShareTicket from "@/components/tickets/ShareTicket";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { useTicket } from "@/hooks/useSupabase";
+import { useTicket } from "@/hooks/useTicket";
 
 const TicketDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -175,7 +173,6 @@ const TicketDetails: React.FC = () => {
                   <h3>Description</h3>
                   <p>{ticket.description}</p>
                   
-                  {/* This content would only be visible to buyers */}
                   <div className="bg-betting-light-gray p-4 rounded-lg mt-6 mb-6">
                     <h3 className="mt-0">Ticket Content</h3>
                     <p className="mb-0">

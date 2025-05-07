@@ -4,10 +4,11 @@ import Layout from "@/components/layout/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TicketsList from "@/components/tickets/TicketsList";
 import TicketsTable from "@/components/tickets/TicketsTable";
-import { mockTickets } from "@/data/mockData";
+import { useTickets } from "@/hooks/useTickets";
 
 const AllTickets: React.FC = () => {
   const [viewMode, setViewMode] = useState<"cards" | "table">("table");
+  const { tickets, loading } = useTickets();
   
   return (
     <Layout>
@@ -36,12 +37,12 @@ const AllTickets: React.FC = () => {
         
         {viewMode === "cards" ? (
           <TicketsList
-            tickets={mockTickets}
+            tickets={tickets}
             emptyMessage="No tickets available at the moment."
           />
         ) : (
           <TicketsTable
-            tickets={mockTickets}
+            tickets={tickets}
             emptyMessage="No tickets available at the moment."
           />
         )}

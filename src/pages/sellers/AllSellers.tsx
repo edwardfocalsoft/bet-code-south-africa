@@ -2,11 +2,11 @@
 import React from "react";
 import Layout from "@/components/layout/Layout";
 import SellerCard from "@/components/sellers/SellerCard";
-import { mockUsers } from "@/data/mockData";
 import { AlertCircle } from "lucide-react";
+import { useSellers } from "@/hooks/useSellers";
 
 const AllSellers: React.FC = () => {
-  const sellers = mockUsers.filter(user => user.role === "seller" && user.approved);
+  const { sellers, loading } = useSellers();
   
   return (
     <Layout>
@@ -17,7 +17,11 @@ const AllSellers: React.FC = () => {
           Browse our marketplace's verified sellers. These are experts who consistently provide high-quality betting tips and predictions.
         </p>
         
-        {sellers.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <p>Loading sellers...</p>
+          </div>
+        ) : sellers.length === 0 ? (
           <div className="text-center py-12">
             <AlertCircle className="mx-auto h-12 w-12 text-betting-green opacity-50" />
             <p className="mt-4 text-betting-green text-lg">No verified sellers available at the moment.</p>
