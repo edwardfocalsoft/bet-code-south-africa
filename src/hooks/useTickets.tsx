@@ -46,7 +46,7 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true }) 
 
       if (filters?.maxPrice !== undefined) {
         // Convert the number to string since that's what Supabase expects
-        const maxPriceStr = filters.maxPrice.toString();
+        const maxPriceStr = String(filters.maxPrice);
         query = query.lte("price", maxPriceStr);
       }
 
@@ -63,7 +63,7 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true }) 
       // Sort options
       if (filters?.sortBy) {
         // Convert sortBy to string if it's a number
-        const sortByValue = typeof filters.sortBy === 'number' ? filters.sortBy.toString() : filters.sortBy;
+        const sortByValue = typeof filters.sortBy === 'number' ? String(filters.sortBy) : filters.sortBy;
         query = query.order(sortByValue, { 
           ascending: filters.sortOrder !== "desc" 
         });
@@ -81,12 +81,12 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true }) 
         description: ticket.description,
         sellerId: ticket.seller_id,
         sellerUsername: ticket.profiles?.username || "Unknown Seller",
-        price: parseFloat(ticket.price),
+        price: parseFloat(String(ticket.price)),
         isFree: ticket.is_free,
         bettingSite: ticket.betting_site,
         kickoffTime: new Date(ticket.kickoff_time),
         createdAt: new Date(ticket.created_at),
-        odds: ticket.odds ? parseFloat(ticket.odds) : undefined,
+        odds: ticket.odds ? parseFloat(String(ticket.odds)) : undefined,
         isHidden: ticket.is_hidden,
         isExpired: ticket.is_expired,
         eventResults: ticket.event_results,

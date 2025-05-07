@@ -1,7 +1,7 @@
 
-import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,154 +10,146 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useAuth } from "@/contexts/AuthContext";
-import { User, LogIn, Menu, Bell, Star, CircleUser } from "lucide-react";
+import { User } from "lucide-react";
+import Logo from "./Logo";
+import NotificationDropdown from "./NotificationDropdown";
 
-const Navbar: React.FC = () => {
-  const { currentUser, logout } = useAuth();
-  const navigate = useNavigate();
+export default function Navbar() {
+  const { currentUser, logout, userRole } = useAuth();
 
-  const handleLogout = () => {
-    logout();
-    navigate("/");
-  };
-
-  const getLoyaltyBadge = (points: number) => {
-    if (points >= 500) return "🏆 Elite";
-    if (points >= 200) return "⭐ Gold";
-    if (points >= 100) return "🥈 Silver";
-    return "🥉 Bronze";
-  };
-
-  const getDashboardLink = () => {
-    if (!currentUser) return "/login";
-    
-    if (currentUser.role === "admin") return "/admin/dashboard";
-    if (currentUser.role === "seller") return "/seller/dashboard";
-    return "/buyer/dashboard";
+  const handleLogout = async () => {
+    await logout();
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-betting-black border-b border-betting-light-gray">
-      <div className="container flex h-16 items-center justify-between">
+    <header className="bg-betting-black border-b border-betting-light-gray">
+      <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-6">
-          <Link to="/" className="text-betting-green text-xl font-bold flex items-center">
-            <span className="text-betting-accent">Bet</span>Code<span className="text-xs text-muted-foreground ml-1">ZA</span>
-          </Link>
-          
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            <Link to="/" className="text-muted-foreground hover:text-white transition-colors">
+          <Logo />
+          <nav className="hidden md:flex items-center gap-6">
+            <Link
+              to="/"
+              className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
+            >
               Home
             </Link>
-            <Link to="/tickets" className="text-muted-foreground hover:text-white transition-colors">
+            <Link
+              to="/tickets"
+              className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
+            >
               Tickets
             </Link>
-            <Link to="/sellers" className="text-muted-foreground hover:text-white transition-colors">
-              Top Sellers
-            </Link>
-            <Link to="/how-it-works" className="text-muted-foreground hover:text-white transition-colors">
-              How It Works
+            <Link
+              to="/sellers"
+              className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
+            >
+              Sellers
             </Link>
           </nav>
         </div>
-        
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           {currentUser ? (
             <>
-              <Link to="/notifications" className="mr-2 relative">
-                <Bell className="h-5 w-5 text-muted-foreground hover:text-white transition-colors" />
-                <span className="absolute -top-1 -right-1 bg-betting-accent text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                  3
-                </span>
-              </Link>
-              
+              <NotificationDropdown />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-2">
-                    <CircleUser className="h-5 w-5" />
-                    <span className="hidden md:inline">{currentUser.username || currentUser.email}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full"
+                    aria-label="User menu"
+                  >
+                    <User className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-betting-dark-gray border-betting-light-gray">
+                <DropdownMenuContent align="end">
                   <DropdownMenuLabel>
-                    <div className="font-normal text-xs text-muted-foreground">Signed in as</div>
-                    <div className="font-medium">{currentUser.email}</div>
+                    {currentUser.email}
+                    <div className="text-xs font-normal text-muted-foreground">
+                      {userRole && userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+                    </div>
                   </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
                   
-                  {currentUser.role === "buyer" && currentUser.loyaltyPoints !== undefined && (
+                  {userRole === "buyer" && (
                     <>
-                      <DropdownMenuSeparator className="bg-betting-light-gray" />
-                      <DropdownMenuItem className="flex justify-between cursor-default">
-                        <span>Loyalty Points</span>
-                        <span className="font-medium">{currentUser.loyaltyPoints}</span>
+                      <DropdownMenuItem>
+                        <Link to="/buyer/dashboard" className="w-full">Dashboard</Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="flex justify-between cursor-default">
-                        <span>Status</span>
-                        <span className="font-medium">{getLoyaltyBadge(currentUser.loyaltyPoints)}</span>
+                      <DropdownMenuItem>
+                        <Link to="/buyer/purchases" className="w-full">My Purchases</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link to="/buyer/profile" className="w-full">Profile</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link to="/notifications" className="w-full">Notifications</Link>
                       </DropdownMenuItem>
                     </>
                   )}
                   
-                  <DropdownMenuSeparator className="bg-betting-light-gray" />
+                  {userRole === "seller" && (
+                    <>
+                      <DropdownMenuItem>
+                        <Link to="/seller/dashboard" className="w-full">Dashboard</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link to="/seller/tickets" className="w-full">My Tickets</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link to="/seller/profile" className="w-full">Profile</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link to="/seller/withdrawals" className="w-full">Withdrawals</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link to="/notifications" className="w-full">Notifications</Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   
-                  <Link to={getDashboardLink()}>
-                    <DropdownMenuItem>Dashboard</DropdownMenuItem>
-                  </Link>
-                  <Link to="/profile">
-                    <DropdownMenuItem>Profile Settings</DropdownMenuItem>
-                  </Link>
-                  <Link to="/purchases">
-                    <DropdownMenuItem>My Purchases</DropdownMenuItem>
-                  </Link>
+                  {userRole === "admin" && (
+                    <>
+                      <DropdownMenuItem>
+                        <Link to="/admin/dashboard" className="w-full">Dashboard</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link to="/admin/tickets" className="w-full">Manage Tickets</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link to="/admin/sellers" className="w-full">Manage Sellers</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link to="/admin/withdrawals" className="w-full">Withdrawals</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link to="/notifications" className="w-full">Notifications</Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   
-                  <DropdownMenuSeparator className="bg-betting-light-gray" />
-                  
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <Link to="/user/settings" className="w-full">Settings</Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout}>
-                    <LogIn className="h-4 w-4 mr-2 rotate-180" />
-                    <span>Log out</span>
+                    Logout
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </>
           ) : (
             <>
-              <Link to="/login">
-                <Button variant="ghost" size="sm" className="text-muted-foreground">
-                  <LogIn className="h-4 w-4 mr-2" />
-                  <span>Login</span>
-                </Button>
-              </Link>
-              <Link to="/register">
-                <Button size="sm" className="bg-betting-green hover:bg-betting-green-dark">Sign up</Button>
-              </Link>
+              <Button variant="outline" asChild>
+                <Link to="/auth/login">Login</Link>
+              </Button>
+              <Button asChild className="bg-betting-green hover:bg-betting-green-dark">
+                <Link to="/auth/register">Register</Link>
+              </Button>
             </>
           )}
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild className="md:hidden">
-              <Button variant="ghost" size="icon" className="ml-1">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40 bg-betting-dark-gray border-betting-light-gray md:hidden">
-              <Link to="/">
-                <DropdownMenuItem>Home</DropdownMenuItem>
-              </Link>
-              <Link to="/tickets">
-                <DropdownMenuItem>Tickets</DropdownMenuItem>
-              </Link>
-              <Link to="/sellers">
-                <DropdownMenuItem>Top Sellers</DropdownMenuItem>
-              </Link>
-              <Link to="/how-it-works">
-                <DropdownMenuItem>How It Works</DropdownMenuItem>
-              </Link>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
     </header>
   );
-};
-
-export default Navbar;
+}
