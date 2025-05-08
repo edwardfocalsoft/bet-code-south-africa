@@ -5,8 +5,10 @@ export interface AuthContextType {
   currentUser: User | null;
   userRole: UserRole | null;
   loading: boolean;
+  isAdmin: boolean;
   login: (email: string, password: string) => Promise<User | null>;
   logout: () => Promise<void>;
   signup: (email: string, password: string, role: UserRole) => Promise<User | null>;
   register: (email: string, password: string, role: UserRole) => Promise<User | null>;
+  checkRouteAccess: (allowedRoles: UserRole[]) => boolean;
 }

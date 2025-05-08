@@ -1,17 +1,24 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { useAuth } from "@/contexts/auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Users, Ticket, BadgeDollarSign, UserCheck } from "lucide-react";
+import { AlertCircle, Users, Ticket, BadgeDollarSign, UserCheck, TrendingUp, ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface DashboardStats {
   totalUsers: number;
   pendingApprovals: number;
   activeTickets: number;
   totalWithdrawals: number;
+  recentActivity: {
+    type: string;
+    message: string;
+    timestamp: Date;
+  }[];
 }
 
 const AdminDashboard: React.FC = () => {
@@ -69,11 +76,15 @@ const AdminDashboard: React.FC = () => {
         
         const totalWithdrawals = withdrawalsData.reduce((sum, item) => sum + parseFloat(item.amount.toString()), 0);
         
+        // Fetch recent activity (combining recent sellers, tickets and withdrawals)
+        const recentActivity = await fetchRecentActivity();
+        
         setStats({
           totalUsers: totalUsers || 0,
           pendingApprovals: pendingApprovals || 0,
           activeTickets: activeTickets || 0,
-          totalWithdrawals: totalWithdrawals || 0
+          totalWithdrawals: totalWithdrawals || 0,
+          recentActivity
         });
       } catch (error: any) {
         console.error("Error fetching dashboard stats:", error);
@@ -83,8 +94,102 @@ const AdminDashboard: React.FC = () => {
       }
     };
 
+    const fetchRecentActivity = async () => {
+      const activity = [];
+      
+      // Fetch recent seller registrations
+      const { data: recentSellers } = await supabase
+        .from("profiles")
+        .select("username, email, created_at, role")
+        .eq("role", "seller")
+        .order("created_at", { ascending: false })
+        .limit(3);
+        
+      if (recentSellers) {
+        for (const seller of recentSellers) {
+          activity.push({
+            type: "seller_registered",
+            message: `New seller registered: ${seller.username || seller.email}`,
+            timestamp: new Date(seller.created_at)
+          });
+        }
+      }
+      
+      // Fetch recent tickets
+      const { data: recentTickets } = await supabase
+        .from("tickets")
+        .select("title, created_at")
+        .order("created_at", { ascending: false })
+        .limit(3);
+        
+      if (recentTickets) {
+        for (const ticket of recentTickets) {
+          activity.push({
+            type: "ticket_created",
+            message: `New ticket created: ${ticket.title}`,
+            timestamp: new Date(ticket.created_at)
+          });
+        }
+      }
+      
+      // Fetch recent withdrawals
+      const { data: recentWithdrawals } = await supabase
+        .from("withdrawals")
+        .select("amount, request_date, status")
+        .order("request_date", { ascending: false })
+        .limit(3);
+        
+      if (recentWithdrawals) {
+        for (const withdrawal of recentWithdrawals) {
+          activity.push({
+            type: "withdrawal_requested",
+            message: `Withdrawal requested: R${parseFloat(withdrawal.amount.toString()).toFixed(2)} (${withdrawal.status})`,
+            timestamp: new Date(withdrawal.request_date)
+          });
+        }
+      }
+      
+      // Sort by timestamp, most recent first
+      return activity.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()).slice(0, 5);
+    };
+
     if (currentUser?.role === "admin") {
       fetchDashboardStats();
+      
+      // Set up real-time listeners for dashboard updates
+      const profilesChannel = supabase
+        .channel('profiles-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'profiles' },
+          () => fetchDashboardStats()
+        )
+        .subscribe();
+      
+      const ticketsChannel = supabase
+        .channel('tickets-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'tickets' },
+          () => fetchDashboardStats()
+        )
+        .subscribe();
+        
+      const withdrawalsChannel = supabase
+        .channel('withdrawals-changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'withdrawals' },
+          () => fetchDashboardStats()
+        )
+        .subscribe();
+      
+      // Clean up the subscriptions when component unmounts
+      return () => {
+        supabase.removeChannel(profilesChannel);
+        supabase.removeChannel(ticketsChannel);
+        supabase.removeChannel(withdrawalsChannel);
+      };
     }
   }, [currentUser]);
 
@@ -118,86 +223,167 @@ const AdminDashboard: React.FC = () => {
         )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="betting-card p-6">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="font-medium text-lg">Total Users</h3>
-              <Users className="h-5 w-5 text-betting-green" />
-            </div>
-            {loading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <p className="text-3xl font-bold text-betting-green">{stats?.totalUsers || 0}</p>
-            )}
-          </div>
+          <Card className="betting-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="font-medium text-lg flex items-center justify-between">
+                <span>Total Users</span>
+                <Users className="h-5 w-5 text-betting-green" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                <p className="text-3xl font-bold text-betting-green">{stats?.totalUsers || 0}</p>
+              )}
+              <div className="flex items-center mt-2 text-xs text-muted-foreground">
+                <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
+                <span className="text-green-500">Growing</span>
+              </div>
+            </CardContent>
+          </Card>
           
-          <div className="betting-card p-6">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="font-medium text-lg">Pending Approvals</h3>
-              <UserCheck className="h-5 w-5 text-betting-accent" />
-            </div>
-            {loading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <Link to="/admin/sellers" className="text-3xl font-bold text-betting-accent hover:underline">
-                {stats?.pendingApprovals || 0}
-              </Link>
-            )}
-          </div>
+          <Card className="betting-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="font-medium text-lg flex items-center justify-between">
+                <span>Pending Approvals</span>
+                <UserCheck className="h-5 w-5 text-betting-accent" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                <Link to="/admin/sellers" className="text-3xl font-bold text-betting-accent hover:underline">
+                  {stats?.pendingApprovals || 0}
+                </Link>
+              )}
+              {stats?.pendingApprovals ? (
+                <p className="mt-2 text-xs text-amber-400">Requires attention</p>
+              ) : (
+                <p className="mt-2 text-xs text-muted-foreground">No pending approvals</p>
+              )}
+            </CardContent>
+          </Card>
           
-          <div className="betting-card p-6">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="font-medium text-lg">Active Tickets</h3>
-              <Ticket className="h-5 w-5 text-betting-green" />
-            </div>
-            {loading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <Link to="/admin/tickets" className="text-3xl font-bold text-betting-green hover:underline">
-                {stats?.activeTickets || 0}
-              </Link>
-            )}
-          </div>
+          <Card className="betting-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="font-medium text-lg flex items-center justify-between">
+                <span>Active Tickets</span>
+                <Ticket className="h-5 w-5 text-betting-green" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                <Link to="/admin/tickets" className="text-3xl font-bold text-betting-green hover:underline">
+                  {stats?.activeTickets || 0}
+                </Link>
+              )}
+            </CardContent>
+          </Card>
           
-          <div className="betting-card p-6">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="font-medium text-lg">Pending Withdrawals</h3>
-              <BadgeDollarSign className="h-5 w-5 text-betting-accent" />
-            </div>
-            {loading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              <Link to="/admin/withdrawals" className="text-3xl font-bold text-betting-accent hover:underline">
-                R {stats?.totalWithdrawals.toFixed(2) || "0.00"}
-              </Link>
-            )}
-          </div>
+          <Card className="betting-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="font-medium text-lg flex items-center justify-between">
+                <span>Pending Withdrawals</span>
+                <BadgeDollarSign className="h-5 w-5 text-betting-accent" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <Skeleton className="h-8 w-16" />
+              ) : (
+                <Link to="/admin/withdrawals" className="text-3xl font-bold text-betting-accent hover:underline">
+                  R {stats?.totalWithdrawals.toFixed(2) || "0.00"}
+                </Link>
+              )}
+            </CardContent>
+          </Card>
         </div>
         
-        <div className="betting-card p-6 mb-8">
-          <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link 
-              to="/admin/sellers" 
-              className="bg-betting-dark-gray hover:bg-betting-light-gray transition-colors p-4 rounded-lg flex items-center justify-center gap-2"
-            >
-              <UserCheck className="h-5 w-5" />
-              Manage Sellers
-            </Link>
-            <Link 
-              to="/admin/tickets" 
-              className="bg-betting-dark-gray hover:bg-betting-light-gray transition-colors p-4 rounded-lg flex items-center justify-center gap-2"
-            >
-              <Ticket className="h-5 w-5" />
-              Manage Tickets
-            </Link>
-            <Link 
-              to="/admin/withdrawals" 
-              className="bg-betting-dark-gray hover:bg-betting-light-gray transition-colors p-4 rounded-lg flex items-center justify-center gap-2"
-            >
-              <BadgeDollarSign className="h-5 w-5" />
-              Process Withdrawals
-            </Link>
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <Card className="betting-card lg:col-span-1">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold">Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 gap-4">
+                <Link 
+                  to="/admin/sellers" 
+                  className="bg-betting-dark-gray hover:bg-betting-light-gray transition-colors p-4 rounded-lg flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="h-5 w-5" />
+                    <span>Manage Sellers</span>
+                  </div>
+                  <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+                <Link 
+                  to="/admin/tickets" 
+                  className="bg-betting-dark-gray hover:bg-betting-light-gray transition-colors p-4 rounded-lg flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    <Ticket className="h-5 w-5" />
+                    <span>Manage Tickets</span>
+                  </div>
+                  <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+                <Link 
+                  to="/admin/withdrawals" 
+                  className="bg-betting-dark-gray hover:bg-betting-light-gray transition-colors p-4 rounded-lg flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    <BadgeDollarSign className="h-5 w-5" />
+                    <span>Process Withdrawals</span>
+                  </div>
+                  <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="betting-card lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold">Recent Activity</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex gap-4">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div className="space-y-2 flex-1">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-3 w-3/4" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : stats?.recentActivity && stats.recentActivity.length > 0 ? (
+                <div className="space-y-4">
+                  {stats.recentActivity.map((activity, index) => (
+                    <div key={index} className="flex items-start gap-3 px-2 py-1 rounded-md transition-colors hover:bg-betting-dark-gray">
+                      {activity.type.includes('seller') && <UserCheck className="h-5 w-5 text-betting-accent" />}
+                      {activity.type.includes('ticket') && <Ticket className="h-5 w-5 text-betting-green" />}
+                      {activity.type.includes('withdrawal') && <BadgeDollarSign className="h-5 w-5 text-betting-accent" />}
+                      <div>
+                        <p className="text-sm">{activity.message}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {activity.timestamp.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center py-6 text-muted-foreground">
+                  No recent activity to display.
+                </p>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </Layout>

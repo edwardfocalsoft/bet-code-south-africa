@@ -12,6 +12,7 @@ export const useAuthProvider = (): AuthContextType => {
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast: uiToast } = useToast();
@@ -27,6 +28,7 @@ export const useAuthProvider = (): AuthContextType => {
         if (userProfile) {
           setCurrentUser(userProfile);
           setUserRole(userProfile.role);
+          setIsAdmin(userProfile.role === 'admin');
         }
       }
       setLoading(false);
@@ -42,10 +44,12 @@ export const useAuthProvider = (): AuthContextType => {
           if (userProfile) {
             setCurrentUser(userProfile);
             setUserRole(userProfile.role);
+            setIsAdmin(userProfile.role === 'admin');
           }
         } else {
           setCurrentUser(null);
           setUserRole(null);
+          setIsAdmin(false);
         }
         setLoading(false);
       }
@@ -138,11 +142,21 @@ export const useAuthProvider = (): AuthContextType => {
         if (userProfile) {
           setCurrentUser(userProfile);
           setUserRole(userProfile.role);
+          setIsAdmin(userProfile.role === 'admin');
           
           uiToast({
             title: "Success",
             description: "Logged in successfully.",
           });
+          
+          // Redirect based on user role
+          if (userProfile.role === 'admin') {
+            navigate('/admin/dashboard');
+          } else if (userProfile.role === 'seller') {
+            navigate('/seller/dashboard');
+          } else {
+            navigate('/buyer/dashboard');
+          }
           
           return userProfile;
         }
@@ -171,6 +185,8 @@ export const useAuthProvider = (): AuthContextType => {
 
       setCurrentUser(null);
       setUserRole(null);
+      setIsAdmin(false);
+      
       uiToast({
         title: "Success",
         description: "Logged out successfully.",
@@ -190,13 +206,21 @@ export const useAuthProvider = (): AuthContextType => {
     }
   };
 
+  // Check if user has access to a specific route based on role
+  const checkRouteAccess = (allowedRoles: UserRole[]): boolean => {
+    if (!currentUser || !userRole) return false;
+    return allowedRoles.includes(userRole);
+  };
+
   return {
     currentUser,
     userRole,
     loading,
+    isAdmin,
     login,
     logout,
     signup,
     register,
+    checkRouteAccess
   };
 };
