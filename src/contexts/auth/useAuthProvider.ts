@@ -118,14 +118,18 @@ export const useAuthProvider = (): AuthContextType => {
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
+      // Clean up any existing auth state
       cleanupAuthState();
       
       try {
+        // Try to sign out before signing in to ensure a clean state
         await supabase.auth.signOut({ scope: 'global' });
       } catch (err) {
         // Continue even if this fails
+        console.log("Pre-signout failed, continuing", err);
       }
       
+      // Use signInWithPassword with error handling
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
@@ -136,39 +140,62 @@ export const useAuthProvider = (): AuthContextType => {
       }
 
       if (data?.user) {
-        // Fetch the user profile
-        const userProfile = await fetchUserProfile(data.user.id);
-        
-        if (userProfile) {
-          setCurrentUser(userProfile);
-          setUserRole(userProfile.role);
-          setIsAdmin(userProfile.role === 'admin');
+        try {
+          // Fetch the user profile with additional error handling
+          const userProfile = await fetchUserProfile(data.user.id);
           
-          uiToast({
-            title: "Success",
-            description: "Logged in successfully.",
-          });
-          
-          // Redirect based on user role
-          if (userProfile.role === 'admin') {
-            navigate('/admin/dashboard');
-          } else if (userProfile.role === 'seller') {
-            navigate('/seller/dashboard');
+          if (userProfile) {
+            setCurrentUser(userProfile);
+            setUserRole(userProfile.role);
+            setIsAdmin(userProfile.role === 'admin');
+            
+            uiToast({
+              title: "Success",
+              description: "Logged in successfully.",
+            });
+            
+            // Redirect based on user role
+            if (userProfile.role === 'admin') {
+              window.location.href = '/admin/dashboard';
+              return userProfile;
+            } else if (userProfile.role === 'seller') {
+              window.location.href = '/seller/dashboard';
+              return userProfile;
+            } else {
+              window.location.href = '/buyer/dashboard';
+              return userProfile;
+            }
           } else {
-            navigate('/buyer/dashboard');
+            throw new Error("Could not fetch user profile");
           }
-          
-          return userProfile;
+        } catch (profileError: any) {
+          console.error("Profile fetch error", profileError);
+          uiToast({
+            title: "Error",
+            description: "Error loading user profile. Please try again.",
+            variant: "destructive",
+          });
+          // Try to clean up the failed login
+          await supabase.auth.signOut();
+          cleanupAuthState();
+          return null;
         }
       }
       return null;
     } catch (error: any) {
       console.error("Login error", error);
+      
+      let errorMessage = error.message;
+      if (errorMessage.includes("Database error") || errorMessage.includes("querying schema")) {
+        errorMessage = "Authentication service temporarily unavailable. Please try again later.";
+      }
+      
       uiToast({
-        title: "Error",
-        description: error.message,
+        title: "Login Failed",
+        description: errorMessage,
         variant: "destructive",
       });
+      
       return null;
     } finally {
       setLoading(false);
