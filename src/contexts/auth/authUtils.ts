@@ -1,8 +1,8 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { UserType, UserRole } from "@/types";
+import { User, UserRole } from "@/types";
 
-export const fetchUserProfile = async (userId: string): Promise<UserType | null> => {
+export const fetchUserProfile = async (userId: string): Promise<User | null> => {
   try {
     const { data: user, error } = await supabase
       .from("profiles")

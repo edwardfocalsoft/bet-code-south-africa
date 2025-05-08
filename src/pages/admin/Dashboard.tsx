@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -68,7 +67,7 @@ const AdminDashboard: React.FC = () => {
           
         if (withdrawalsError) throw withdrawalsError;
         
-        const totalWithdrawals = withdrawalsData.reduce((sum, item) => sum + parseFloat(item.amount), 0);
+        const totalWithdrawals = withdrawalsData.reduce((sum, item) => sum + parseFloat(item.amount.toString()), 0);
         
         setStats({
           totalUsers: totalUsers || 0,
