@@ -25,7 +25,19 @@ export const fetchUserProfile = async (userId: string): Promise<UserType | null>
       return null;
     }
     
-    return data as UserType;
+    // Transform the Supabase data format to our User type format
+    const user: UserType = {
+      id: data.id,
+      email: data.email,
+      role: data.role,
+      username: data.username,
+      createdAt: new Date(data.created_at),
+      approved: data.approved,
+      suspended: data.suspended,
+      loyaltyPoints: data.loyalty_points
+    };
+    
+    return user;
   } catch (error) {
     console.error("Exception when fetching user profile:", error);
     return null;
