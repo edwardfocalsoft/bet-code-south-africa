@@ -118,7 +118,7 @@ export const useAuthProvider = (): AuthContextType => {
   // Alias signup to register for backward compatibility
   const signup = register;
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<UserType | null> => {
     try {
       setLoading(true);
       // Clean up any existing auth state
@@ -145,7 +145,7 @@ export const useAuthProvider = (): AuthContextType => {
       if (data?.user) {
         try {
           // Use setTimeout to prevent deadlocks
-          return await new Promise((resolve, reject) => {
+          return await new Promise<UserType | null>((resolve, reject) => {
             setTimeout(async () => {
               try {
                 // Fetch the user profile with additional error handling
