@@ -1,11 +1,9 @@
 
 import type { Config } from "tailwindcss";
-import { shadcnPreset } from "./lib/shadcn/preset";
 import { fontFamily } from "tailwindcss/defaultTheme";
 import animatePlugin from "tailwindcss-animate";
 
 const config = {
-  presets: [shadcnPreset],
   darkMode: ["class"],
   content: [
     "./pages/**/*.{ts,tsx}",
