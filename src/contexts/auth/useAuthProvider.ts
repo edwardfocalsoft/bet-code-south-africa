@@ -40,12 +40,15 @@ export const useAuthProvider = (): AuthContextType => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session?.user) {
-          const userProfile = await fetchUserProfile(session.user.id);
-          if (userProfile) {
-            setCurrentUser(userProfile);
-            setUserRole(userProfile.role);
-            setIsAdmin(userProfile.role === 'admin');
-          }
+          // Use setTimeout to avoid potential auth deadlocks
+          setTimeout(async () => {
+            const userProfile = await fetchUserProfile(session.user.id);
+            if (userProfile) {
+              setCurrentUser(userProfile);
+              setUserRole(userProfile.role);
+              setIsAdmin(userProfile.role === 'admin');
+            }
+          }, 0);
         } else {
           setCurrentUser(null);
           setUserRole(null);
@@ -141,33 +144,45 @@ export const useAuthProvider = (): AuthContextType => {
 
       if (data?.user) {
         try {
-          // Fetch the user profile with additional error handling
-          const userProfile = await fetchUserProfile(data.user.id);
-          
-          if (userProfile) {
-            setCurrentUser(userProfile);
-            setUserRole(userProfile.role);
-            setIsAdmin(userProfile.role === 'admin');
-            
-            uiToast({
-              title: "Success",
-              description: "Logged in successfully.",
-            });
-            
-            // Redirect based on user role
-            if (userProfile.role === 'admin') {
-              window.location.href = '/admin/dashboard';
-              return userProfile;
-            } else if (userProfile.role === 'seller') {
-              window.location.href = '/seller/dashboard';
-              return userProfile;
-            } else {
-              window.location.href = '/buyer/dashboard';
-              return userProfile;
-            }
-          } else {
-            throw new Error("Could not fetch user profile");
-          }
+          // Use setTimeout to prevent deadlocks
+          return await new Promise((resolve, reject) => {
+            setTimeout(async () => {
+              try {
+                // Fetch the user profile with additional error handling
+                const userProfile = await fetchUserProfile(data.user.id);
+                
+                if (userProfile) {
+                  setCurrentUser(userProfile);
+                  setUserRole(userProfile.role);
+                  setIsAdmin(userProfile.role === 'admin');
+                  
+                  toast.success("Logged in successfully.");
+                  
+                  // Redirect based on user role
+                  if (userProfile.role === 'admin') {
+                    window.location.href = '/admin/dashboard';
+                    resolve(userProfile);
+                  } else if (userProfile.role === 'seller') {
+                    window.location.href = '/seller/dashboard';
+                    resolve(userProfile);
+                  } else {
+                    window.location.href = '/buyer/dashboard';
+                    resolve(userProfile);
+                  }
+                } else {
+                  reject(new Error("Could not fetch user profile"));
+                }
+              } catch (profileError: any) {
+                console.error("Profile fetch error", profileError);
+                toast.error("Error loading user profile. Please try again.");
+                
+                // Try to clean up the failed login
+                await supabase.auth.signOut();
+                cleanupAuthState();
+                reject(profileError);
+              }
+            }, 0);
+          });
         } catch (profileError: any) {
           console.error("Profile fetch error", profileError);
           uiToast({
@@ -185,18 +200,30 @@ export const useAuthProvider = (): AuthContextType => {
     } catch (error: any) {
       console.error("Login error", error);
       
-      let errorMessage = error.message;
-      if (errorMessage.includes("Database error") || errorMessage.includes("querying schema")) {
+      let errorMessage = error.message || "Authentication failed.";
+      
+      // Check for service unavailability
+      if (
+        errorMessage.includes("Database error") || 
+        errorMessage.includes("querying schema") || 
+        errorMessage.includes("temporarily unavailable") ||
+        error.code === "unexpected_failure"
+      ) {
         errorMessage = "Authentication service temporarily unavailable. Please try again later.";
+        uiToast({
+          title: "Service Unavailable",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      } else {
+        uiToast({
+          title: "Login Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
       }
       
-      uiToast({
-        title: "Login Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      
-      return null;
+      throw error;
     } finally {
       setLoading(false);
     }

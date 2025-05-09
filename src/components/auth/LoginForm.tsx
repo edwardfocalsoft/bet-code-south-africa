@@ -49,7 +49,6 @@ const LoginForm: React.FC = () => {
       
       if (!user) {
         // Login failed but no error was thrown
-        // Error toast is already shown in the login function
         console.log("Login failed with no specific error");
       }
       // Navigation is handled in the login function
@@ -64,18 +63,14 @@ const LoginForm: React.FC = () => {
       if (
         error.message?.includes("Database error") || 
         error.message?.includes("querying schema") ||
-        error.message?.includes("temporarily unavailable")
+        error.message?.includes("temporarily unavailable") ||
+        error.code === "unexpected_failure"
       ) {
         setIsServiceDown(true);
         setErrorMessage("Authentication service is temporarily unavailable. Please try again in a few minutes.");
-        toast.error("Service Unavailable", {
-          description: "Our authentication service is temporarily down. Please try again later.",
-        });
+        // Don't show toast as it's already shown in the login function
       } else {
         setErrorMessage(error.message || "Login failed. Please try again.");
-        toast.error("Login failed", {
-          description: error.message || "Please check your credentials and try again.",
-        });
       }
     } finally {
       setIsLoading(false);
