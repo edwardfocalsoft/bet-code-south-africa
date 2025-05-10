@@ -158,16 +158,23 @@ export const useAuthProvider = (): AuthContextType => {
                   
                   toast.success("Logged in successfully.");
                   
-                  // Redirect based on user role
-                  if (userProfile.role === 'admin') {
-                    window.location.href = '/admin/dashboard';
-                    resolve(userProfile);
-                  } else if (userProfile.role === 'seller') {
-                    window.location.href = '/seller/dashboard';
+                  // Check if user has a username set
+                  if (!userProfile.username) {
+                    // Redirect to profile setup
+                    navigate('/auth/profile-setup');
                     resolve(userProfile);
                   } else {
-                    window.location.href = '/buyer/dashboard';
-                    resolve(userProfile);
+                    // Redirect based on user role
+                    if (userProfile.role === 'admin') {
+                      navigate('/admin/dashboard');
+                      resolve(userProfile);
+                    } else if (userProfile.role === 'seller') {
+                      navigate('/seller/dashboard');
+                      resolve(userProfile);
+                    } else {
+                      navigate('/buyer/dashboard');
+                      resolve(userProfile);
+                    }
                   }
                 } else {
                   reject(new Error("Could not fetch user profile"));
@@ -246,8 +253,8 @@ export const useAuthProvider = (): AuthContextType => {
         description: "Logged out successfully.",
       });
       
-      // Using window.location for a complete refresh instead of navigate
-      window.location.href = "/auth/login";
+      // Using navigate for a cleaner UX
+      navigate('/auth/login');
     } catch (error: any) {
       console.error("Logout error", error);
       uiToast({

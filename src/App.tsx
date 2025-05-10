@@ -35,6 +35,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 
 import { AuthProvider } from "./contexts/auth";
+import ProfileSetup from "./pages/auth/ProfileSetup";
 
 function App() {
   return (
@@ -47,6 +48,7 @@ function App() {
           <Route path="/auth/register" element={<Register />} />
           <Route path="/auth/register/confirmation" element={<RegisterConfirmation />} />
           <Route path="/auth/login" element={<Login />} />
+          <Route path="/auth/profile-setup" element={<ProfileSetup />} />
           
           {/* Ticket Routes */}
           <Route path="/tickets" element={<AllTickets />} />
