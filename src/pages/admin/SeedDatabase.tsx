@@ -4,10 +4,25 @@ import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Database } from "lucide-react";
+import { ArrowLeft, Database, Copy } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { toast } from "sonner";
 
 const SeedDatabase: React.FC = () => {
+  const adminSql = `-- Insert admin user
+INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, recovery_sent_at, last_sign_in_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, email_change, email_change_token_new, recovery_token)
+VALUES
+  ('00000000-0000-0000-0000-000000000000', '6102564c-9981-45d1-a773-7dff8ef27fd1', 'authenticated', 'authenticated', 'admin@bettickets.com', '$2a$10$CvXACY1DNDxDumqj5Dn4XeSMQwakYSZZnW2.9eRqjK3YYQUFhXQJa', '2023-01-01 00:00:00+00', null, '2023-01-01 00:00:00+00', '{"provider": "email", "providers": ["email"]}', '{"role": "admin"}', '2023-01-01 00:00:00+00', '2023-01-01 00:00:00+00', '', null, '', '');
+
+-- Update the profile to be an admin
+INSERT INTO public.profiles (id, email, role, approved)
+VALUES ('6102564c-9981-45d1-a773-7dff8ef27fd1', 'admin@bettickets.com', 'admin', true);`;
+
+  const handleCopySQL = () => {
+    navigator.clipboard.writeText(adminSql);
+    toast.success("SQL copied to clipboard!");
+  };
+
   return (
     <Layout>
       <div className="container max-w-3xl mx-auto py-12 px-4">
@@ -44,15 +59,17 @@ const SeedDatabase: React.FC = () => {
                 <li>Go to your Supabase project dashboard</li>
                 <li>Navigate to the SQL Editor</li>
                 <li>Create a new query and paste the following SQL:</li>
-                <div className="bg-black/50 p-4 rounded-md font-mono text-xs overflow-x-auto">
-                  {`-- Insert admin user
-INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, recovery_sent_at, last_sign_in_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, email_change, email_change_token_new, recovery_token)
-VALUES
-  ('00000000-0000-0000-0000-000000000000', '6102564c-9981-45d1-a773-7dff8ef27fd1', 'authenticated', 'authenticated', 'admin@bettickets.com', '$2a$10$CvXACY1DNDxDumqj5Dn4XeSMQwakYSZZnW2.9eRqjK3YYQUFhXQJa', '2023-01-01 00:00:00+00', null, '2023-01-01 00:00:00+00', '{"provider": "email", "providers": ["email"]}', '{"role": "admin"}', '2023-01-01 00:00:00+00', '2023-01-01 00:00:00+00', '', null, '', '');
-
--- Update the profile to be an admin
-INSERT INTO public.profiles (id, email, role, approved)
-VALUES ('6102564c-9981-45d1-a773-7dff8ef27fd1', 'admin@bettickets.com', 'admin', true);`}
+                <div className="bg-black/50 p-4 rounded-md relative">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="absolute top-2 right-2"
+                    onClick={handleCopySQL}
+                  >
+                    <Copy className="h-4 w-4 mr-1" />
+                    Copy
+                  </Button>
+                  <pre className="font-mono text-xs overflow-x-auto whitespace-pre-wrap">{adminSql}</pre>
                 </div>
                 <li>Run the SQL query</li>
                 <li>Return to the login page and try logging in with the admin credentials</li>

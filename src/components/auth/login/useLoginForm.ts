@@ -73,6 +73,10 @@ export const useLoginForm = () => {
       
       if (!user) {
         console.log("Login returned no user but no error was thrown");
+        if (isAdminLogin) {
+          setNeedsSeeding(true);
+          setErrorMessage("Admin account not found. The database might need seeding.");
+        }
       }
       // Navigation is handled in the login function
     } catch (error: any) {
@@ -92,9 +96,14 @@ export const useLoginForm = () => {
         error.message?.includes("NULL to string") ||
         error.code === "unexpected_failure";
       
-      if (isAdminCredentials && isDatabaseIssue) {
+      if (isAdminCredentials && (isDatabaseIssue || error.message?.includes("not found"))) {
         setNeedsSeeding(true);
         setErrorMessage("Admin account not found. The database might need seeding.");
+        
+        // Automatically navigate to the seeding page for admin
+        setTimeout(() => {
+          navigate("/admin/seed-database");
+        }, 1000);
       } else if (isDatabaseIssue) {
         setIsServiceDown(true);
         setErrorMessage("Authentication service is temporarily unavailable. Please try again in a few minutes.");

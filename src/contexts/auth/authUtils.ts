@@ -59,15 +59,16 @@ export const fetchUserProfile = async (userId: string): Promise<UserType | null>
     const profileRow = profileData[0];
     
     // Transform the Supabase data format to our User type format
+    // Handle null values that might cause TypeScript errors
     const user: UserType = {
       id: profileRow.id,
-      email: profileRow.email,
-      role: profileRow.role,
+      email: profileRow.email || "",
+      role: profileRow.role || "buyer",
       username: profileRow.username || undefined,
-      createdAt: new Date(profileRow.created_at),
-      approved: profileRow.approved,
-      suspended: profileRow.suspended,
-      loyaltyPoints: profileRow.loyalty_points
+      createdAt: profileRow.created_at ? new Date(profileRow.created_at) : new Date(),
+      approved: Boolean(profileRow.approved),
+      suspended: Boolean(profileRow.suspended),
+      loyaltyPoints: profileRow.loyalty_points || 0
     };
     
     return user;
