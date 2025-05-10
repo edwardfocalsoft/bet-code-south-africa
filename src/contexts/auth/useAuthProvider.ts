@@ -17,36 +17,25 @@ export const useAuthProvider = (): AuthContextType => {
   const location = useLocation();
   const { toast: uiToast } = useToast();
 
+  // Initial session check and auth state listener setup
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      const sessionUser = data?.session?.user;
-      
-      if (sessionUser) {
-        const userProfile = await fetchUserProfile(sessionUser.id);
-        if (userProfile) {
-          setCurrentUser(userProfile);
-          setUserRole(userProfile.role);
-          setIsAdmin(userProfile.role === 'admin');
-        }
-      }
-      setLoading(false);
-    };
-
-    getInitialSession();
-
-    // Set up auth state listener
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (session?.user) {
           // Use setTimeout to avoid potential auth deadlocks
           setTimeout(async () => {
-            const userProfile = await fetchUserProfile(session.user.id);
-            if (userProfile) {
-              setCurrentUser(userProfile);
-              setUserRole(userProfile.role);
-              setIsAdmin(userProfile.role === 'admin');
+            try {
+              const userProfile = await fetchUserProfile(session.user.id);
+              if (userProfile) {
+                setCurrentUser(userProfile);
+                setUserRole(userProfile.role);
+                setIsAdmin(userProfile.role === 'admin');
+              } else {
+                console.log("No user profile found for", session.user.id);
+              }
+            } catch (error) {
+              console.error("Profile fetch error in auth listener:", error);
             }
           }, 0);
         } else {
@@ -57,6 +46,29 @@ export const useAuthProvider = (): AuthContextType => {
         setLoading(false);
       }
     );
+
+    // THEN check for existing session
+    const getInitialSession = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        const sessionUser = data?.session?.user;
+        
+        if (sessionUser) {
+          const userProfile = await fetchUserProfile(sessionUser.id);
+          if (userProfile) {
+            setCurrentUser(userProfile);
+            setUserRole(userProfile.role);
+            setIsAdmin(userProfile.role === 'admin');
+          }
+        }
+      } catch (error) {
+        console.error("Error getting initial session:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getInitialSession();
 
     // Cleanup subscription
     return () => {
@@ -124,15 +136,15 @@ export const useAuthProvider = (): AuthContextType => {
       // Clean up any existing auth state
       cleanupAuthState();
       
+      // Try to sign out before signing in to ensure a clean state
       try {
-        // Try to sign out before signing in to ensure a clean state
         await supabase.auth.signOut({ scope: 'global' });
       } catch (err) {
         // Continue even if this fails
         console.log("Pre-signout failed, continuing", err);
       }
       
-      // Use signInWithPassword with error handling
+      // Use signInWithPassword with improved error handling
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
@@ -143,64 +155,48 @@ export const useAuthProvider = (): AuthContextType => {
       }
 
       if (data?.user) {
+        // Fetch user profile
         try {
-          // Use setTimeout to prevent deadlocks
-          return await new Promise<UserType | null>((resolve, reject) => {
-            setTimeout(async () => {
-              try {
-                // Fetch the user profile with additional error handling
-                const userProfile = await fetchUserProfile(data.user.id);
-                
-                if (userProfile) {
-                  setCurrentUser(userProfile);
-                  setUserRole(userProfile.role);
-                  setIsAdmin(userProfile.role === 'admin');
-                  
-                  toast.success("Logged in successfully.");
-                  
-                  // Check if user has a username set
-                  if (!userProfile.username) {
-                    // Redirect to profile setup
-                    navigate('/auth/profile-setup');
-                    resolve(userProfile);
-                  } else {
-                    // Redirect based on user role
-                    if (userProfile.role === 'admin') {
-                      navigate('/admin/dashboard');
-                      resolve(userProfile);
-                    } else if (userProfile.role === 'seller') {
-                      navigate('/seller/dashboard');
-                      resolve(userProfile);
-                    } else {
-                      navigate('/buyer/dashboard');
-                      resolve(userProfile);
-                    }
-                  }
-                } else {
-                  reject(new Error("Could not fetch user profile"));
-                }
-              } catch (profileError: any) {
-                console.error("Profile fetch error", profileError);
-                toast.error("Error loading user profile. Please try again.");
-                
-                // Try to clean up the failed login
-                await supabase.auth.signOut();
-                cleanupAuthState();
-                reject(profileError);
+          const userProfile = await fetchUserProfile(data.user.id);
+          
+          if (userProfile) {
+            setCurrentUser(userProfile);
+            setUserRole(userProfile.role);
+            setIsAdmin(userProfile.role === 'admin');
+            
+            toast.success("Logged in successfully.");
+            
+            // Check if user has a username set
+            if (!userProfile.username) {
+              // Redirect to profile setup
+              navigate('/auth/profile-setup');
+              return userProfile;
+            } else {
+              // Redirect based on user role
+              if (userProfile.role === 'admin') {
+                navigate('/admin/dashboard');
+              } else if (userProfile.role === 'seller') {
+                navigate('/seller/dashboard');
+              } else {
+                navigate('/buyer/dashboard');
               }
-            }, 0);
-          });
+              return userProfile;
+            }
+          } else {
+            // No profile found
+            toast.error("User profile not found. Please contact support.");
+            await supabase.auth.signOut();
+            cleanupAuthState();
+            return null;
+          }
         } catch (profileError: any) {
           console.error("Profile fetch error", profileError);
-          uiToast({
-            title: "Error",
-            description: "Error loading user profile. Please try again.",
-            variant: "destructive",
-          });
+          toast.error("Error loading user profile. Please try again.");
+          
           // Try to clean up the failed login
           await supabase.auth.signOut();
           cleanupAuthState();
-          return null;
+          throw new Error("Could not fetch user profile");
         }
       }
       return null;

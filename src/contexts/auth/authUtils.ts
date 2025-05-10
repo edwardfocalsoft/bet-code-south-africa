@@ -9,6 +9,31 @@ import { User as UserType } from "@/types";
  */
 export const fetchUserProfile = async (userId: string): Promise<UserType | null> => {
   try {
+    // First check if the profiles table exists and is accessible
+    const { error: tableCheckError } = await supabase
+      .from("profiles")
+      .select("count")
+      .limit(1)
+      .throwOnError();
+    
+    if (tableCheckError) {
+      console.error("Error checking profiles table:", tableCheckError);
+      // If we can't access the profiles table, create a temporary user object with minimal info
+      // This helps prevent authentication deadlocks
+      const { data: userData } = await supabase.auth.getUser(userId);
+      if (userData?.user) {
+        // Create a minimal user profile to allow login to proceed
+        return {
+          id: userData.user.id,
+          email: userData.user.email || "",
+          role: (userData.user.user_metadata?.role || "buyer") as any,
+          createdAt: new Date(),
+        };
+      }
+      return null;
+    }
+
+    // If table check passed, proceed with normal profile fetch
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
@@ -17,6 +42,18 @@ export const fetchUserProfile = async (userId: string): Promise<UserType | null>
     
     if (error) {
       console.error("Error fetching user profile:", error);
+      
+      // As fallback, try to get minimal user data if profile query failed
+      const { data: userData } = await supabase.auth.getUser(userId);
+      if (userData?.user) {
+        // Create a minimal user profile from auth data
+        return {
+          id: userData.user.id,
+          email: userData.user.email || "",
+          role: (userData.user.user_metadata?.role || "buyer") as any,
+          createdAt: new Date(),
+        };
+      }
       return null;
     }
     

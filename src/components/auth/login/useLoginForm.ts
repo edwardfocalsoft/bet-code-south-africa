@@ -27,11 +27,23 @@ export const useLoginForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Basic validation
+    if (!email.trim() || !password.trim()) {
+      setErrorMessage("Please enter both email and password");
+      return;
+    }
+    
     setErrorMessage("");
     setIsServiceDown(false);
     setIsLoading(true);
     
     try {
+      // Special case for admin login from seed
+      if (email === "admin@bettickets.com" && password === "AdminPassword123!") {
+        toast.info("Using admin credentials. If login fails, the database might need seeding.");
+      }
+      
       const user = await login(email, password);
       
       // If remember me is checked, save the email
@@ -42,8 +54,7 @@ export const useLoginForm = () => {
       }
       
       if (!user) {
-        // Login failed but no error was thrown
-        console.log("Login failed with no specific error");
+        console.log("Login returned no user but no error was thrown");
       }
       // Navigation is handled in the login function
     } catch (error: any) {
