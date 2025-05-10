@@ -9,6 +9,8 @@ import RememberMeOption from "./login/RememberMeOption";
 import LoginButton from "./login/LoginButton";
 import ServiceDownMessage from "./login/ServiceDownMessage";
 import RegisterLink from "./login/RegisterLink";
+import { Button } from "@/components/ui/button";
+import { Database } from "lucide-react";
 
 const LoginForm: React.FC = () => {
   const {
@@ -24,6 +26,8 @@ const LoginForm: React.FC = () => {
     rememberMe,
     setRememberMe,
     formShake,
+    needsSeeding,
+    handleSeedDatabase,
     handleSubmit,
     handleKeyDown
   } = useLoginForm();
@@ -74,6 +78,24 @@ const LoginForm: React.FC = () => {
         isLoading={isLoading} 
         isDisabled={isFormDisabled} 
       />
+      
+      {needsSeeding && (
+        <div className="p-4 border border-yellow-500 bg-yellow-500/10 rounded-md">
+          <p className="text-sm text-yellow-600 mb-3">
+            It looks like the admin account is not set up yet. The database might need seeding.
+            Please follow the instructions in supabase/seed.js to create the admin account.
+          </p>
+          <Button 
+            type="button" 
+            onClick={handleSeedDatabase}
+            className="w-full bg-yellow-600 hover:bg-yellow-700"
+            disabled={isLoading}
+          >
+            <Database className="h-4 w-4 mr-2" />
+            View Seeding Instructions
+          </Button>
+        </div>
+      )}
       
       <ServiceDownMessage isServiceDown={isServiceDown} />
       

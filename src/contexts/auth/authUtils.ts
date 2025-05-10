@@ -33,15 +33,14 @@ export const fetchUserProfile = async (userId: string): Promise<UserType | null>
       return null;
     }
 
-    // If table check passed, proceed with normal profile fetch
-    const { data, error } = await supabase
+    // Try to get user profile directly without using .single()
+    const { data: profileData, error: profileError } = await supabase
       .from("profiles")
       .select("*")
-      .eq("id", userId)
-      .single();
+      .eq("id", userId);
     
-    if (error) {
-      console.error("Error fetching user profile:", error);
+    if (profileError || !profileData || profileData.length === 0) {
+      console.error("Error fetching user profile or profile not found:", profileError);
       
       // As fallback, try to get minimal user data if profile query failed
       const { data: userData } = await supabase.auth.getUser(userId);
@@ -57,21 +56,18 @@ export const fetchUserProfile = async (userId: string): Promise<UserType | null>
       return null;
     }
     
-    if (!data) {
-      console.error("No user profile found for ID:", userId);
-      return null;
-    }
+    const profileRow = profileData[0];
     
     // Transform the Supabase data format to our User type format
     const user: UserType = {
-      id: data.id,
-      email: data.email,
-      role: data.role,
-      username: data.username,
-      createdAt: new Date(data.created_at),
-      approved: data.approved,
-      suspended: data.suspended,
-      loyaltyPoints: data.loyalty_points
+      id: profileRow.id,
+      email: profileRow.email,
+      role: profileRow.role,
+      username: profileRow.username || undefined,
+      createdAt: new Date(profileRow.created_at),
+      approved: profileRow.approved,
+      suspended: profileRow.suspended,
+      loyaltyPoints: profileRow.loyalty_points
     };
     
     return user;

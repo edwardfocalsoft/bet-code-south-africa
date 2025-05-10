@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export const useLoginForm = () => {
   const [email, setEmail] = useState("");
@@ -12,7 +13,9 @@ export const useLoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [formShake, setFormShake] = useState(false);
+  const [needsSeeding, setNeedsSeeding] = useState(false);
   const { login } = useAuth();
+  const navigate = useNavigate();
 
   // Load saved email from localStorage if remember me was used
   useEffect(() => {
@@ -25,6 +28,18 @@ export const useLoginForm = () => {
 
   const toggleShowPassword = () => setShowPassword(!showPassword);
 
+  const handleSeedDatabase = async () => {
+    setIsLoading(true);
+    try {
+      // Navigate to the seed confirmation page
+      navigate("/admin/seed-database");
+    } catch (error) {
+      console.error("Navigation error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -36,11 +51,14 @@ export const useLoginForm = () => {
     
     setErrorMessage("");
     setIsServiceDown(false);
+    setNeedsSeeding(false);
     setIsLoading(true);
     
     try {
       // Special case for admin login from seed
-      if (email === "admin@bettickets.com" && password === "AdminPassword123!") {
+      const isAdminLogin = email === "admin@bettickets.com" && password === "AdminPassword123!";
+      
+      if (isAdminLogin) {
         toast.info("Using admin credentials. If login fails, the database might need seeding.");
       }
       
@@ -64,13 +82,20 @@ export const useLoginForm = () => {
       setFormShake(true);
       setTimeout(() => setFormShake(false), 500);
       
-      // Check for service unavailability
-      if (
+      // Check if this is an admin seeding issue
+      const isAdminCredentials = email === "admin@bettickets.com" && password === "AdminPassword123!";
+      const isDatabaseIssue = 
         error.message?.includes("Database error") || 
         error.message?.includes("querying schema") ||
         error.message?.includes("temporarily unavailable") ||
-        error.code === "unexpected_failure"
-      ) {
+        error.message?.includes("Scan error") ||
+        error.message?.includes("NULL to string") ||
+        error.code === "unexpected_failure";
+      
+      if (isAdminCredentials && isDatabaseIssue) {
+        setNeedsSeeding(true);
+        setErrorMessage("Admin account not found. The database might need seeding.");
+      } else if (isDatabaseIssue) {
         setIsServiceDown(true);
         setErrorMessage("Authentication service is temporarily unavailable. Please try again in a few minutes.");
         // Don't show toast as it's already shown in the login function
@@ -101,6 +126,8 @@ export const useLoginForm = () => {
     rememberMe,
     setRememberMe,
     formShake,
+    needsSeeding,
+    handleSeedDatabase,
     handleSubmit,
     handleKeyDown
   };

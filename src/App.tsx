@@ -26,6 +26,7 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminTickets from "./pages/admin/Tickets";
 import AdminSellers from "./pages/admin/Sellers";
 import AdminWithdrawals from "./pages/admin/Withdrawals";
+import SeedDatabase from "./pages/admin/SeedDatabase";
 
 import UserSettings from "./pages/user/Settings";
 import Notifications from "./pages/user/Notifications";
@@ -75,6 +76,7 @@ function App() {
           <Route path="/admin/tickets" element={<AdminTickets />} />
           <Route path="/admin/sellers" element={<AdminSellers />} />
           <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
+          <Route path="/admin/seed-database" element={<SeedDatabase />} />
           
           {/* User Routes */}
           <Route path="/user/settings" element={<UserSettings />} />

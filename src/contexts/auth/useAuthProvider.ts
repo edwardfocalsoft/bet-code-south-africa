@@ -136,6 +136,9 @@ export const useAuthProvider = (): AuthContextType => {
       // Clean up any existing auth state
       cleanupAuthState();
       
+      // Check if we're attempting to login with the admin credentials
+      const isAdminLogin = email === "admin@bettickets.com" && password === "AdminPassword123!";
+      
       // Try to sign out before signing in to ensure a clean state
       try {
         await supabase.auth.signOut({ scope: 'global' });
@@ -184,14 +187,25 @@ export const useAuthProvider = (): AuthContextType => {
             }
           } else {
             // No profile found
-            toast.error("User profile not found. Please contact support.");
+            if (isAdminLogin) {
+              toast.error("Admin account not found. Database might need seeding.");
+              navigate('/admin/seed-database');
+            } else {
+              toast.error("User profile not found. Please contact support.");
+            }
             await supabase.auth.signOut();
             cleanupAuthState();
             return null;
           }
         } catch (profileError: any) {
           console.error("Profile fetch error", profileError);
-          toast.error("Error loading user profile. Please try again.");
+          
+          if (isAdminLogin) {
+            toast.error("Admin account not set up. Database might need seeding.");
+            navigate('/admin/seed-database');
+          } else {
+            toast.error("Error loading user profile. Please try again.");
+          }
           
           // Try to clean up the failed login
           await supabase.auth.signOut();
@@ -203,6 +217,7 @@ export const useAuthProvider = (): AuthContextType => {
     } catch (error: any) {
       console.error("Login error", error);
       
+      const isAdminLogin = email === "admin@bettickets.com" && password === "AdminPassword123!";
       let errorMessage = error.message || "Authentication failed.";
       
       // Check for service unavailability
@@ -213,6 +228,12 @@ export const useAuthProvider = (): AuthContextType => {
         error.code === "unexpected_failure"
       ) {
         errorMessage = "Authentication service temporarily unavailable. Please try again later.";
+        
+        if (isAdminLogin) {
+          navigate('/admin/seed-database');
+          errorMessage = "Admin account not set up or database error occurred. Database might need seeding.";
+        }
+        
         uiToast({
           title: "Service Unavailable",
           description: errorMessage,
