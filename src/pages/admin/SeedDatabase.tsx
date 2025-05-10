@@ -24,7 +24,7 @@ const SeedDatabase: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <Alert variant="warning" className="bg-yellow-500/10 border-yellow-500/50">
+            <Alert variant="destructive" className="bg-yellow-500/10 border-yellow-500/50">
               <Database className="h-4 w-4" />
               <AlertTitle>Database Needs Seeding</AlertTitle>
               <AlertDescription>
