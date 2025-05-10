@@ -1,14 +1,13 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, User, Mail, AlertCircle, BadgeCheck, Bank } from "lucide-react";
+import { Loader2, User, Mail, AlertCircle, BadgeCheck, BadgeDollarSign } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -389,7 +388,7 @@ const SellerProfile: React.FC = () => {
             <Card className="betting-card mt-6">
               <CardHeader>
                 <div className="flex items-center gap-2">
-                  <Bank className="h-5 w-5 text-betting-green" />
+                  <BadgeDollarSign className="h-5 w-5 text-betting-green" />
                   <CardTitle className="text-lg">Bank Account Details</CardTitle>
                 </div>
                 <CardDescription>
