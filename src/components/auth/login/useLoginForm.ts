@@ -56,10 +56,10 @@ export const useLoginForm = () => {
     
     try {
       // Special case for admin login from seed
-      const isAdminLogin = email === "admin@bettickets.com" && password === "AdminPassword123!";
+      const isAdminLogin = email.toLowerCase() === "admin@bettickets.com";
       
       if (isAdminLogin) {
-        toast.info("Using admin credentials. If login fails, the database might need seeding.");
+        console.log("Attempting admin login...");
       }
       
       const user = await login(email, password);
@@ -75,7 +75,8 @@ export const useLoginForm = () => {
         console.log("Login returned no user but no error was thrown");
         if (isAdminLogin) {
           setNeedsSeeding(true);
-          setErrorMessage("Admin account not found. The database might need seeding.");
+          setErrorMessage("Admin account not found or incorrectly set up. The database might need seeding.");
+          navigate("/admin/seed-database");
         }
       }
       // Navigation is handled in the login function
@@ -87,7 +88,7 @@ export const useLoginForm = () => {
       setTimeout(() => setFormShake(false), 500);
       
       // Check if this is an admin seeding issue
-      const isAdminCredentials = email === "admin@bettickets.com" && password === "AdminPassword123!";
+      const isAdminCredentials = email.toLowerCase() === "admin@bettickets.com";
       const isDatabaseIssue = 
         error.message?.includes("Database error") || 
         error.message?.includes("querying schema") ||
@@ -96,9 +97,9 @@ export const useLoginForm = () => {
         error.message?.includes("NULL to string") ||
         error.code === "unexpected_failure";
       
-      if (isAdminCredentials && (isDatabaseIssue || error.message?.includes("not found"))) {
+      if (isAdminCredentials && (isDatabaseIssue || error.message?.includes("not found") || error.message?.includes("not match"))) {
         setNeedsSeeding(true);
-        setErrorMessage("Admin account not found. The database might need seeding.");
+        setErrorMessage("Admin account not found or incorrectly set up. The database might need seeding.");
         
         // Automatically navigate to the seeding page for admin
         setTimeout(() => {
@@ -107,7 +108,6 @@ export const useLoginForm = () => {
       } else if (isDatabaseIssue) {
         setIsServiceDown(true);
         setErrorMessage("Authentication service is temporarily unavailable. Please try again in a few minutes.");
-        // Don't show toast as it's already shown in the login function
       } else {
         setErrorMessage(error.message || "Login failed. Please try again.");
       }

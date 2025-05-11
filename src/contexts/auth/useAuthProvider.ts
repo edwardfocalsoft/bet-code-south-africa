@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User as UserType, UserRole } from "@/types";
@@ -31,25 +31,34 @@ export const useAuthProvider = (): AuthContextType => {
                 setCurrentUser(userProfile);
                 setUserRole(userProfile.role);
                 setIsAdmin(userProfile.role === 'admin');
+
+                // Special handling for admin users
+                if (userProfile.role === 'admin' && location.pathname === '/auth/login') {
+                  navigate('/admin/dashboard');
+                }
               } else {
                 console.log("No user profile found for", session.user.id);
               }
             } catch (error) {
               console.error("Profile fetch error in auth listener:", error);
+            } finally {
+              setLoading(false);
             }
           }, 0);
         } else {
           setCurrentUser(null);
           setUserRole(null);
           setIsAdmin(false);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
     // THEN check for existing session
     const getInitialSession = async () => {
       try {
+        setLoading(true);
+        
         const { data } = await supabase.auth.getSession();
         const sessionUser = data?.session?.user;
         
@@ -74,7 +83,7 @@ export const useAuthProvider = (): AuthContextType => {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate, location.pathname]);
 
   const register = async (email: string, password: string, role: UserRole) => {
     try {
@@ -137,7 +146,7 @@ export const useAuthProvider = (): AuthContextType => {
       cleanupAuthState();
       
       // Check if we're attempting to login with the admin credentials
-      const isAdminLogin = email === "admin@bettickets.com" && password === "AdminPassword123!";
+      const isAdminLogin = email.toLowerCase() === "admin@bettickets.com";
       
       // Try to sign out before signing in to ensure a clean state
       try {
@@ -217,35 +226,30 @@ export const useAuthProvider = (): AuthContextType => {
     } catch (error: any) {
       console.error("Login error", error);
       
-      const isAdminLogin = email === "admin@bettickets.com" && password === "AdminPassword123!";
+      const isAdminLogin = email.toLowerCase() === "admin@bettickets.com";
       let errorMessage = error.message || "Authentication failed.";
       
-      // Check for service unavailability
+      // Check for service unavailability or admin seeding issues
       if (
         errorMessage.includes("Database error") || 
         errorMessage.includes("querying schema") || 
         errorMessage.includes("temporarily unavailable") ||
+        errorMessage.includes("not match") && isAdminLogin ||
         error.code === "unexpected_failure"
       ) {
-        errorMessage = "Authentication service temporarily unavailable. Please try again later.";
-        
         if (isAdminLogin) {
-          navigate('/admin/seed-database');
           errorMessage = "Admin account not set up or database error occurred. Database might need seeding.";
+          navigate('/admin/seed-database');
+        } else {
+          errorMessage = "Authentication service temporarily unavailable. Please try again later.";
         }
-        
-        uiToast({
-          title: "Service Unavailable",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      } else {
-        uiToast({
-          title: "Login Failed",
-          description: errorMessage,
-          variant: "destructive",
-        });
       }
+      
+      uiToast({
+        title: "Login Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
       
       throw error;
     } finally {

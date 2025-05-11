@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 
 interface Subscription {
   id: string;
@@ -40,10 +40,7 @@ export function useSubscriptions() {
           created_at,
           profiles:seller_id (username)
         `)
-        .eq("buyer_id", currentUser.id) as {
-          data: any[];
-          error: any;
-        };
+        .eq("buyer_id", currentUser.id);
 
       if (fetchError) throw fetchError;
 
@@ -87,10 +84,7 @@ export function useSubscriptions() {
             seller_id: sellerId,
             buyer_id: currentUser.id,
           })
-          .select() as {
-            data: any[];
-            error: any;
-          };
+          .select();
 
         if (error) throw error;
 
@@ -122,9 +116,7 @@ export function useSubscriptions() {
         const { error } = await supabase
           .from('subscriptions')
           .delete()
-          .eq("id", subscriptionId) as {
-            error: any;
-          };
+          .eq("id", subscriptionId);
 
         if (error) throw error;
 

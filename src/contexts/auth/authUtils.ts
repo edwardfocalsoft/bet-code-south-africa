@@ -68,7 +68,8 @@ export const fetchUserProfile = async (userId: string): Promise<UserType | null>
       createdAt: profileRow.created_at ? new Date(profileRow.created_at) : new Date(),
       approved: Boolean(profileRow.approved),
       suspended: Boolean(profileRow.suspended),
-      loyaltyPoints: profileRow.loyalty_points || 0
+      loyaltyPoints: profileRow.loyalty_points || 0,
+      avatar_url: profileRow.avatar_url || undefined
     };
     
     return user;

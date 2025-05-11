@@ -12,33 +12,65 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const SeedDatabase: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("create");
 
-  const createAdminSql = `-- Insert admin user
+  // Updated SQL with better error handling and conditional logic
+  const createAdminSql = `-- Insert admin user with ON CONFLICT DO NOTHING to prevent duplicate errors
 INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, recovery_sent_at, last_sign_in_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, email_change, email_change_token_new, recovery_token)
 VALUES
-  ('00000000-0000-0000-0000-000000000000', '6102564c-9981-45d1-a773-7dff8ef27fd1', 'authenticated', 'authenticated', 'admin@bettickets.com', '$2a$10$CvXACY1DNDxDumqj5Dn4XeSMQwakYSZZnW2.9eRqjK3YYQUFhXQJa', '2023-01-01 00:00:00+00', null, '2023-01-01 00:00:00+00', '{"provider": "email", "providers": ["email"]}', '{"role": "admin"}', '2023-01-01 00:00:00+00', '2023-01-01 00:00:00+00', '', null, '', '');
+  ('00000000-0000-0000-0000-000000000000', '6102564c-9981-45d1-a773-7dff8ef27fd1', 'authenticated', 'authenticated', 'admin@bettickets.com', '$2a$10$CvXACY1DNDxDumqj5Dn4XeSMQwakYSZZnW2.9eRqjK3YYQUFhXQJa', '2023-01-01 00:00:00+00', null, '2023-01-01 00:00:00+00', '{"provider": "email", "providers": ["email"]}', '{"role": "admin"}', '2023-01-01 00:00:00+00', '2023-01-01 00:00:00+00', '', null, '', '')
+ON CONFLICT (id) DO NOTHING;
 
--- Update the profile to be an admin
+-- Update or create the admin profile
 INSERT INTO public.profiles (id, email, role, approved)
-VALUES ('6102564c-9981-45d1-a773-7dff8ef27fd1', 'admin@bettickets.com', 'admin', true);`;
+VALUES ('6102564c-9981-45d1-a773-7dff8ef27fd1', 'admin@bettickets.com', 'admin', true)
+ON CONFLICT (id) DO UPDATE SET 
+  role = 'admin',
+  approved = true,
+  email = 'admin@bettickets.com';`;
 
-  const fixAdminSql = `-- Fix the admin account - first update the profile if it exists
+  // Significantly improved fix SQL to handle all potential issues
+  const fixAdminSql = `-- Comprehensive fix for the admin account
+
+-- First, ensure the user exists in auth.users
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM auth.users WHERE id = '6102564c-9981-45d1-a773-7dff8ef27fd1') THEN
+    INSERT INTO auth.users 
+      (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, last_sign_in_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
+    VALUES
+      ('00000000-0000-0000-0000-000000000000', '6102564c-9981-45d1-a773-7dff8ef27fd1', 'authenticated', 'authenticated', 'admin@bettickets.com', '$2a$10$CvXACY1DNDxDumqj5Dn4XeSMQwakYSZZnW2.9eRqjK3YYQUFhXQJa', '2023-01-01 00:00:00+00', '2023-01-01 00:00:00+00', '{"provider": "email", "providers": ["email"]}', '{"role": "admin"}', '2023-01-01 00:00:00+00', '2023-01-01 00:00:00+00');
+  ELSE
+    -- Update existing user if needed
+    UPDATE auth.users 
+    SET 
+      raw_user_meta_data = '{"role": "admin"}',
+      email = 'admin@bettickets.com',
+      encrypted_password = '$2a$10$CvXACY1DNDxDumqj5Dn4XeSMQwakYSZZnW2.9eRqjK3YYQUFhXQJa'
+    WHERE id = '6102564c-9981-45d1-a773-7dff8ef27fd1';
+  END IF;
+END $$;
+
+-- Now ensure the profile exists and is correct
+INSERT INTO public.profiles (id, email, role, approved)
+VALUES ('6102564c-9981-45d1-a773-7dff8ef27fd1', 'admin@bettickets.com', 'admin', true)
+ON CONFLICT (id) DO UPDATE SET 
+  email = 'admin@bettickets.com',
+  role = 'admin',
+  approved = true,
+  suspended = false;
+
+-- Remove any other profiles that might be using admin@bettickets.com to avoid conflicts
 UPDATE public.profiles 
-SET role = 'admin', approved = true 
-WHERE id = '6102564c-9981-45d1-a773-7dff8ef27fd1';
+SET email = email || '.duplicate'
+WHERE email = 'admin@bettickets.com' AND id != '6102564c-9981-45d1-a773-7dff8ef27fd1';`;
 
--- If profile doesn't exist, create it
-INSERT INTO public.profiles (id, email, role, approved)
-SELECT '6102564c-9981-45d1-a773-7dff8ef27fd1', 'admin@bettickets.com', 'admin'::user_role, true
-WHERE NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = '6102564c-9981-45d1-a773-7dff8ef27fd1');
+  // Improved delete SQL using proper cascade and cleanup
+  const deleteAdminSql = `-- Safe deletion of admin account that handles dependencies
+-- First delete the profile (less critical)
+DELETE FROM public.profiles WHERE id = '6102564c-9981-45d1-a773-7dff8ef27fd1';
 
--- Fix user metadata if needed
-UPDATE auth.users
-SET raw_user_meta_data = '{"role": "admin"}'
-WHERE id = '6102564c-9981-45d1-a773-7dff8ef27fd1';`;
-
-  const deleteAdminSql = `-- Use the Supabase admin function to delete the user
--- This must be run from the SQL editor with admin privileges
-SELECT supabase_admin.delete_user('6102564c-9981-45d1-a773-7dff8ef27fd1');`;
+-- Then use the proper Supabase function to delete the user
+-- This handles all auth tables properly
+SELECT supabase_auth.delete_user('6102564c-9981-45d1-a773-7dff8ef27fd1', true);`;
 
   const handleCopySQL = (sql: string, type: string) => {
     navigator.clipboard.writeText(sql);
