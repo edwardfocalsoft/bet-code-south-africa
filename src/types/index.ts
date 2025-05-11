@@ -19,6 +19,7 @@ export interface User {
   suspended?: boolean;
   loyaltyPoints?: number;
   bankDetails?: BankDetails;
+  avatar_url?: string;
 }
 
 export interface BankDetails {

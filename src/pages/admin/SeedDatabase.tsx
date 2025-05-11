@@ -1,16 +1,20 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { ArrowLeft, Database, Copy, RefreshCw } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Database, Copy, RefreshCw, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
 
 const SeedDatabase: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("create");
+  const [isLoading, setIsLoading] = useState(false);
+  const [testResult, setTestResult] = useState<"success" | "failure" | null>(null);
+  const navigate = useNavigate();
 
   // Updated SQL with better error handling and conditional logic
   const createAdminSql = `-- Insert admin user with ON CONFLICT DO NOTHING to prevent duplicate errors
@@ -63,19 +67,89 @@ UPDATE public.profiles
 SET email = email || '.duplicate'
 WHERE email = 'admin@bettickets.com' AND id != '6102564c-9981-45d1-a773-7dff8ef27fd1';`;
 
-  // Improved delete SQL using proper cascade and cleanup
+  // Corrected delete SQL that won't use the non-existent supabase_auth schema
   const deleteAdminSql = `-- Safe deletion of admin account that handles dependencies
 -- First delete the profile (less critical)
 DELETE FROM public.profiles WHERE id = '6102564c-9981-45d1-a773-7dff8ef27fd1';
 
--- Then use the proper Supabase function to delete the user
--- This handles all auth tables properly
-SELECT supabase_auth.delete_user('6102564c-9981-45d1-a773-7dff8ef27fd1', true);`;
+-- Then delete the user from auth.users table
+DELETE FROM auth.users WHERE id = '6102564c-9981-45d1-a773-7dff8ef27fd1';`;
 
   const handleCopySQL = (sql: string, type: string) => {
     navigator.clipboard.writeText(sql);
     toast.success(`${type} SQL copied to clipboard!`);
   };
+
+  const handleTestAdminConnection = async () => {
+    setIsLoading(true);
+    setTestResult(null);
+    
+    try {
+      // Clear any existing auth state first
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      // Try to sign out first to ensure clean state
+      await supabase.auth.signOut({ scope: 'global' });
+      
+      // Attempt to sign in with admin credentials
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: 'admin@bettickets.com',
+        password: 'AdminPassword123!'
+      });
+      
+      if (error) {
+        console.error("Admin login test failed:", error);
+        setTestResult("failure");
+        toast.error("Admin login test failed: " + error.message);
+      } else if (data?.user) {
+        console.log("Admin login test successful:", data.user);
+        setTestResult("success");
+        toast.success("Admin login test successful! Redirecting to admin dashboard...");
+        
+        // Give the toast time to be seen before redirecting
+        setTimeout(() => {
+          navigate('/admin/dashboard');
+        }, 1500);
+      }
+    } catch (err: any) {
+      console.error("Admin login test error:", err);
+      setTestResult("failure");
+      toast.error("Admin login test error: " + err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Attempt to detect if admin account might already exist
+  useEffect(() => {
+    const checkForAdmin = async () => {
+      try {
+        // Try to sign in with admin credentials
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: 'admin@bettickets.com',
+          password: 'AdminPassword123!'
+        });
+        
+        if (!error && data?.user) {
+          // Admin exists and password works!
+          setTestResult("success");
+          setActiveTab("fix"); // Set to fix tab as that's most likely to be useful
+        }
+        
+        // Always sign out after this check
+        await supabase.auth.signOut();
+      } catch (err) {
+        // Silent failure is fine here, we're just checking
+        console.log("Admin check failed silently:", err);
+      }
+    };
+    
+    checkForAdmin();
+  }, []);
 
   return (
     <Layout>
@@ -139,7 +213,7 @@ SELECT supabase_auth.delete_user('6102564c-9981-45d1-a773-7dff8ef27fd1', true);`
                       <pre className="font-mono text-xs overflow-x-auto whitespace-pre-wrap">{createAdminSql}</pre>
                     </div>
                     <li>Run the SQL query</li>
-                    <li>Return to the login page and try logging in with the admin credentials</li>
+                    <li>Test the admin account with the button below:</li>
                   </ol>
                 </div>
               </TabsContent>
@@ -164,7 +238,7 @@ SELECT supabase_auth.delete_user('6102564c-9981-45d1-a773-7dff8ef27fd1', true);`
                   
                   <ol className="list-decimal pl-6 space-y-3">
                     <li>Run the SQL query in your Supabase SQL Editor</li>
-                    <li>Return to the login page and try logging in with the admin credentials</li>
+                    <li>Test the admin account with the button below:</li>
                   </ol>
                 </div>
               </TabsContent>
@@ -199,8 +273,42 @@ SELECT supabase_auth.delete_user('6102564c-9981-45d1-a773-7dff8ef27fd1', true);`
               </TabsContent>
             </Tabs>
             
-            <div className="flex justify-center mt-6">
-              <Button asChild className="bg-betting-green hover:bg-betting-green-dark">
+            <div className="flex flex-col gap-4 items-center mt-6">
+              <Button 
+                onClick={handleTestAdminConnection}
+                disabled={isLoading}
+                className={`w-full ${
+                  testResult === "success" 
+                    ? "bg-green-600 hover:bg-green-700" 
+                    : testResult === "failure"
+                    ? "bg-red-600 hover:bg-red-700"
+                    : "bg-betting-green hover:bg-betting-green-dark"
+                }`}
+              >
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Testing Admin Connection...
+                  </>
+                ) : testResult === "success" ? (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Admin Connection Successful! Click to continue
+                  </>
+                ) : testResult === "failure" ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Admin Connection Failed - Try Again
+                  </>
+                ) : (
+                  <>
+                    <Database className="h-4 w-4 mr-2" />
+                    Test Admin Connection
+                  </>
+                )}
+              </Button>
+              
+              <Button asChild variant="outline" className="w-full">
                 <Link to="/auth/login">
                   Return to Login
                 </Link>

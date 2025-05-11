@@ -97,14 +97,15 @@ export const useLoginForm = () => {
         error.message?.includes("NULL to string") ||
         error.code === "unexpected_failure";
       
-      if (isAdminCredentials && (isDatabaseIssue || error.message?.includes("not found") || error.message?.includes("not match"))) {
+      if (isAdminCredentials) {
+        console.log("Admin login attempt failed, redirecting to seeding page");
         setNeedsSeeding(true);
         setErrorMessage("Admin account not found or incorrectly set up. The database might need seeding.");
         
         // Automatically navigate to the seeding page for admin
         setTimeout(() => {
           navigate("/admin/seed-database");
-        }, 1000);
+        }, 800);
       } else if (isDatabaseIssue) {
         setIsServiceDown(true);
         setErrorMessage("Authentication service is temporarily unavailable. Please try again in a few minutes.");

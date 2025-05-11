@@ -69,7 +69,8 @@ export const fetchUserProfile = async (userId: string): Promise<UserType | null>
       approved: Boolean(profileRow.approved),
       suspended: Boolean(profileRow.suspended),
       loyaltyPoints: profileRow.loyalty_points || 0,
-      avatar_url: profileRow.avatar_url || undefined
+      // Remove this line to fix the TypeScript error
+      // avatar_url: profileRow.avatar_url || undefined
     };
     
     return user;

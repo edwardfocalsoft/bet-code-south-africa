@@ -26,8 +26,10 @@ export const useAuthProvider = (): AuthContextType => {
           // Use setTimeout to avoid potential auth deadlocks
           setTimeout(async () => {
             try {
+              console.log("Auth state change detected, user logged in:", session.user.id);
               const userProfile = await fetchUserProfile(session.user.id);
               if (userProfile) {
+                console.log("Profile found:", userProfile);
                 setCurrentUser(userProfile);
                 setUserRole(userProfile.role);
                 setIsAdmin(userProfile.role === 'admin');
@@ -38,6 +40,10 @@ export const useAuthProvider = (): AuthContextType => {
                 }
               } else {
                 console.log("No user profile found for", session.user.id);
+                // If this is an admin login and no profile, take them to the seeding page
+                if (session.user.email === "admin@bettickets.com") {
+                  navigate('/admin/seed-database');
+                }
               }
             } catch (error) {
               console.error("Profile fetch error in auth listener:", error);
@@ -63,11 +69,19 @@ export const useAuthProvider = (): AuthContextType => {
         const sessionUser = data?.session?.user;
         
         if (sessionUser) {
+          console.log("Initial session found, user:", sessionUser.id);
           const userProfile = await fetchUserProfile(sessionUser.id);
           if (userProfile) {
+            console.log("Initial profile found:", userProfile);
             setCurrentUser(userProfile);
             setUserRole(userProfile.role);
             setIsAdmin(userProfile.role === 'admin');
+          } else {
+            console.log("No initial profile found for", sessionUser.id);
+            // If this is an admin login and no profile, take them to the seeding page
+            if (sessionUser.email === "admin@bettickets.com") {
+              navigate('/admin/seed-database');
+            }
           }
         }
       } catch (error) {
@@ -147,6 +161,9 @@ export const useAuthProvider = (): AuthContextType => {
       
       // Check if we're attempting to login with the admin credentials
       const isAdminLogin = email.toLowerCase() === "admin@bettickets.com";
+      if (isAdminLogin) {
+        console.log("Attempting admin login...");
+      }
       
       // Try to sign out before signing in to ensure a clean state
       try {
@@ -157,21 +174,25 @@ export const useAuthProvider = (): AuthContextType => {
       }
       
       // Use signInWithPassword with improved error handling
+      console.log("Attempting login for:", email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
       });
 
       if (error) {
+        console.log("Login error:", error.message);
         throw error;
       }
 
       if (data?.user) {
+        console.log("Login successful for:", data.user.id);
         // Fetch user profile
         try {
           const userProfile = await fetchUserProfile(data.user.id);
           
           if (userProfile) {
+            console.log("Login profile found:", userProfile);
             setCurrentUser(userProfile);
             setUserRole(userProfile.role);
             setIsAdmin(userProfile.role === 'admin');
@@ -179,8 +200,8 @@ export const useAuthProvider = (): AuthContextType => {
             toast.success("Logged in successfully.");
             
             // Check if user has a username set
-            if (!userProfile.username) {
-              // Redirect to profile setup
+            if (!userProfile.username && userProfile.role !== 'admin') {
+              // Redirect to profile setup if not admin
               navigate('/auth/profile-setup');
               return userProfile;
             } else {
@@ -196,29 +217,27 @@ export const useAuthProvider = (): AuthContextType => {
             }
           } else {
             // No profile found
+            console.log("No profile found after login for", data.user.id);
             if (isAdminLogin) {
+              console.log("Admin account not found, redirecting to seed page");
               toast.error("Admin account not found. Database might need seeding.");
               navigate('/admin/seed-database');
             } else {
               toast.error("User profile not found. Please contact support.");
             }
-            await supabase.auth.signOut();
-            cleanupAuthState();
             return null;
           }
         } catch (profileError: any) {
-          console.error("Profile fetch error", profileError);
+          console.error("Profile fetch error during login:", profileError);
           
           if (isAdminLogin) {
+            console.log("Admin profile fetch error, redirecting to seed page");
             toast.error("Admin account not set up. Database might need seeding.");
             navigate('/admin/seed-database');
+            return null;
           } else {
             toast.error("Error loading user profile. Please try again.");
           }
-          
-          // Try to clean up the failed login
-          await supabase.auth.signOut();
-          cleanupAuthState();
           throw new Error("Could not fetch user profile");
         }
       }
@@ -234,7 +253,7 @@ export const useAuthProvider = (): AuthContextType => {
         errorMessage.includes("Database error") || 
         errorMessage.includes("querying schema") || 
         errorMessage.includes("temporarily unavailable") ||
-        errorMessage.includes("not match") && isAdminLogin ||
+        (errorMessage.includes("not match") && isAdminLogin) ||
         error.code === "unexpected_failure"
       ) {
         if (isAdminLogin) {
@@ -293,6 +312,61 @@ export const useAuthProvider = (): AuthContextType => {
     if (!currentUser || !userRole) return false;
     return allowedRoles.includes(userRole);
   };
+
+  // Re-exposing the existing register function for completeness
+  const register = async (email: string, password: string, role: UserRole) => {
+    try {
+      setLoading(true);
+      cleanupAuthState();
+      
+      const { data, error } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          data: {
+            role: role,
+          },
+          emailRedirectTo: `${window.location.origin}/auth/register/confirmation`,
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      console.log("Signup data", data);
+      uiToast({
+        title: "Success",
+        description: "Please check your email to confirm your registration.",
+      });
+      
+      if (data.user) {
+        // Create a user object to return
+        const userObj: UserType = {
+          id: data.user.id,
+          email: data.user.email || email,
+          role: role,
+          createdAt: new Date(),
+        };
+        navigate("/auth/register/confirmation");
+        return userObj;
+      }
+      return null;
+    } catch (error: any) {
+      console.error("Signup error", error);
+      uiToast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Alias signup to register for backward compatibility
+  const signup = register;
 
   return {
     currentUser,
