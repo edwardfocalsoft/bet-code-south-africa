@@ -313,61 +313,6 @@ export const useAuthProvider = (): AuthContextType => {
     return allowedRoles.includes(userRole);
   };
 
-  // Re-exposing the existing register function for completeness
-  const register = async (email: string, password: string, role: UserRole) => {
-    try {
-      setLoading(true);
-      cleanupAuthState();
-      
-      const { data, error } = await supabase.auth.signUp({
-        email: email,
-        password: password,
-        options: {
-          data: {
-            role: role,
-          },
-          emailRedirectTo: `${window.location.origin}/auth/register/confirmation`,
-        },
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      console.log("Signup data", data);
-      uiToast({
-        title: "Success",
-        description: "Please check your email to confirm your registration.",
-      });
-      
-      if (data.user) {
-        // Create a user object to return
-        const userObj: UserType = {
-          id: data.user.id,
-          email: data.user.email || email,
-          role: role,
-          createdAt: new Date(),
-        };
-        navigate("/auth/register/confirmation");
-        return userObj;
-      }
-      return null;
-    } catch (error: any) {
-      console.error("Signup error", error);
-      uiToast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Alias signup to register for backward compatibility
-  const signup = register;
-
   return {
     currentUser,
     userRole,
