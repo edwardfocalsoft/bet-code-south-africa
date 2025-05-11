@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import Layout from "@/components/layout/Layout";
 import { useToast } from "@/hooks/use-toast";
@@ -76,19 +75,28 @@ const AdminSellers: React.FC = () => {
 
   const handleApproval = async (sellerId: string, approve: boolean) => {
     try {
-      const { error: updateError } = await supabase
+      console.log(`Setting seller ${sellerId} approval status to: ${approve}`);
+      
+      // Update the seller's approval status
+      const { error: updateError, data } = await supabase
         .from("profiles")
         .update({ approved: approve })
-        .eq("id", sellerId);
+        .eq("id", sellerId)
+        .select();
         
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error("Error in Supabase update:", updateError);
+        throw updateError;
+      }
+      
+      console.log("Update response:", data);
       
       toast({
         title: "Success",
         description: `Seller ${approve ? "approved" : "rejected"} successfully.`,
-        variant: approve ? "default" : "destructive",
       });
       
+      // Immediately refresh the list to reflect the changes
       fetchSellers(activeTab);
     } catch (error: any) {
       console.error("Error updating seller:", error);
@@ -105,7 +113,8 @@ const AdminSellers: React.FC = () => {
       const { error: updateError } = await supabase
         .from("profiles")
         .update({ suspended: suspend })
-        .eq("id", sellerId);
+        .eq("id", sellerId)
+        .select();
         
       if (updateError) throw updateError;
       
@@ -115,6 +124,7 @@ const AdminSellers: React.FC = () => {
         variant: suspend ? "destructive" : "default",
       });
       
+      // Immediately refresh the list
       fetchSellers(activeTab);
     } catch (error: any) {
       console.error("Error updating seller:", error);
