@@ -182,6 +182,17 @@ export const useAuthProvider = (): AuthContextType => {
 
       if (error) {
         console.log("Login error:", error.message);
+        
+        // Special handling for admin schema issues
+        if (isAdminLogin && (error.message.includes("Database error") || 
+                             error.message.includes("querying schema") ||
+                             error.message.includes("email_change"))) {
+          console.log("Detected database schema issue with admin login, redirecting to seed page");
+          toast.error("Admin account needs database schema fixes. Redirecting to seeding page.");
+          navigate('/admin/seed-database');
+          throw error;
+        }
+        
         throw error;
       }
 
@@ -253,11 +264,12 @@ export const useAuthProvider = (): AuthContextType => {
         errorMessage.includes("Database error") || 
         errorMessage.includes("querying schema") || 
         errorMessage.includes("temporarily unavailable") ||
+        errorMessage.includes("email_change") ||
         (errorMessage.includes("not match") && isAdminLogin) ||
         error.code === "unexpected_failure"
       ) {
         if (isAdminLogin) {
-          errorMessage = "Admin account not set up or database error occurred. Database might need seeding.";
+          errorMessage = "Admin account not set up or database schema issue. Redirecting to seeding page.";
           navigate('/admin/seed-database');
         } else {
           errorMessage = "Authentication service temporarily unavailable. Please try again later.";
