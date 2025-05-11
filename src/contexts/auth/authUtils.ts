@@ -30,6 +30,48 @@ export const fetchUserProfile = async (userId: string): Promise<UserType | null>
   try {
     console.log("Fetching profile for user:", userId);
     
+    // First check if this is the admin user via raw auth query
+    const { data: userData, error: userError } = await supabase.auth
+      .admin.getUserById(userId);
+      
+    if (userData?.user && userData.user.email === "admin@bettickets.com") {
+      console.log("Admin user detected via email check");
+      
+      // Query profiles table to see if admin exists there
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (profileData) {
+        console.log("Admin profile found in profiles table:", profileData);
+        // Return the profile data
+        return {
+          id: profileData.id,
+          email: profileData.email,
+          role: profileData.role as UserRole,
+          username: profileData.username || undefined,
+          createdAt: new Date(profileData.created_at),
+          approved: profileData.approved,
+          suspended: profileData.suspended,
+          loyaltyPoints: profileData.loyalty_points || 0,
+          avatar_url: profileData.avatar_url || undefined
+        };
+      } else {
+        // Create an admin user object if not in profiles
+        console.log("Creating admin user object as no profile found");
+        return {
+          id: userId,
+          email: "admin@bettickets.com",
+          role: "admin" as UserRole,
+          createdAt: new Date(),
+          approved: true
+        };
+      }
+    }
+    
+    // For regular users, query the profiles table
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -64,6 +106,20 @@ export const fetchUserProfile = async (userId: string): Promise<UserType | null>
     return userProfile;
   } catch (error) {
     console.error("Exception fetching user profile:", error);
+    
+    // Special handling for admin@bettickets.com
+    if (userId === "21a911ea-b5af-4f00-b55e-ef0079031767" || 
+        (await supabase.auth.getUser()).data?.user?.email === "admin@bettickets.com") {
+      console.log("Falling back to hardcoded admin user");
+      return {
+        id: userId,
+        email: "admin@bettickets.com",
+        role: "admin" as UserRole,
+        createdAt: new Date(),
+        approved: true
+      };
+    }
+    
     return null;
   }
 };

@@ -27,6 +27,30 @@ export const useAuthProvider = (): AuthContextType => {
           setTimeout(async () => {
             try {
               console.log("Auth state change detected, user logged in:", session.user.id);
+              console.log("User email:", session.user.email);
+              
+              // Special handling for admin users via email check
+              if (session.user.email === "admin@bettickets.com") {
+                console.log("Admin user detected via email! Setting admin role directly.");
+                const adminUser: UserType = {
+                  id: session.user.id,
+                  email: session.user.email,
+                  role: 'admin',
+                  createdAt: new Date(),
+                  approved: true
+                };
+                setCurrentUser(adminUser);
+                setUserRole('admin');
+                setIsAdmin(true);
+                
+                // Navigate admin to admin dashboard if they're on the login page
+                if (location.pathname === '/auth/login') {
+                  navigate('/admin/dashboard');
+                }
+                setLoading(false);
+                return;
+              }
+              
               const userProfile = await fetchUserProfile(session.user.id);
               if (userProfile) {
                 console.log("Profile found:", userProfile);
@@ -70,6 +94,25 @@ export const useAuthProvider = (): AuthContextType => {
         
         if (sessionUser) {
           console.log("Initial session found, user:", sessionUser.id);
+          console.log("User email:", sessionUser.email);
+          
+          // Special handling for admin users via email check
+          if (sessionUser.email === "admin@bettickets.com") {
+            console.log("Admin user detected via email! Setting admin role directly.");
+            const adminUser: UserType = {
+              id: sessionUser.id,
+              email: sessionUser.email,
+              role: 'admin',
+              createdAt: new Date(),
+              approved: true
+            };
+            setCurrentUser(adminUser);
+            setUserRole('admin');
+            setIsAdmin(true);
+            setLoading(false);
+            return;
+          }
+          
           const userProfile = await fetchUserProfile(sessionUser.id);
           if (userProfile) {
             console.log("Initial profile found:", userProfile);
@@ -198,7 +241,28 @@ export const useAuthProvider = (): AuthContextType => {
 
       if (data?.user) {
         console.log("Login successful for:", data.user.id);
-        // Fetch user profile
+        
+        // Special handling for admin via email
+        if (isAdminLogin) {
+          console.log("Admin login successful via email check!");
+          const adminUser: UserType = {
+            id: data.user.id,
+            email: data.user.email || email,
+            role: 'admin',
+            createdAt: new Date(),
+            approved: true
+          };
+          
+          setCurrentUser(adminUser);
+          setUserRole('admin');
+          setIsAdmin(true);
+          
+          toast.success("Admin logged in successfully.");
+          navigate('/admin/dashboard');
+          return adminUser;
+        }
+        
+        // Fetch user profile for non-admin users
         try {
           const userProfile = await fetchUserProfile(data.user.id);
           
