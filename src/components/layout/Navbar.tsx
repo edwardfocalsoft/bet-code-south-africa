@@ -138,6 +138,12 @@ export default function Navbar() {
                       Sellers
                     </Link>
                     <Link
+                      to="/admin/buyers"
+                      className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
+                    >
+                      Buyers
+                    </Link>
+                    <Link
                       to="/admin/withdrawals"
                       className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
                     >
@@ -219,6 +225,9 @@ export default function Navbar() {
                       </DropdownMenuItem>
                       <DropdownMenuItem>
                         <Link to="/admin/sellers" className="w-full">Manage Sellers</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link to="/admin/buyers" className="w-full">Manage Buyers</Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem>
                         <Link to="/admin/withdrawals" className="w-full">Withdrawals</Link>

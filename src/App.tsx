@@ -26,6 +26,7 @@ import SellerWithdrawals from "./pages/seller/Withdrawals";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminTickets from "./pages/admin/Tickets";
 import AdminSellers from "./pages/admin/Sellers";
+import AdminBuyers from "./pages/admin/Buyers";
 import AdminWithdrawals from "./pages/admin/Withdrawals";
 import SeedDatabase from "./pages/admin/SeedDatabase";
 
@@ -95,6 +96,7 @@ function App() {
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/tickets" element={<AdminTickets />} />
           <Route path="/admin/sellers" element={<AdminSellers />} />
+          <Route path="/admin/buyers" element={<AdminBuyers />} />
           <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
           <Route path="/admin/seed-database" element={<SeedDatabase />} />
           
