@@ -5,6 +5,17 @@ import { useToast } from "@/hooks/use-toast";
 import { BettingTicket } from "@/types";
 import { useAuth } from "@/contexts/auth";
 
+interface FilterOptions {
+  bettingSite?: string;
+  isFree?: boolean;
+  maxPrice?: number;
+  showExpired?: boolean;
+  sellerId?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  showHidden?: boolean;
+}
+
 interface UseTicketsOptions {
   fetchOnMount?: boolean;
   filterExpired?: boolean;
@@ -18,10 +29,16 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
   const { toast } = useToast();
   const { currentUser } = useAuth();
 
-  const fetchTickets = useCallback(async (filters?: any) => {
+  // Add filter states
+  const [filters, setFilters] = useState<FilterOptions>({});
+
+  const fetchTickets = useCallback(async (filterOptions?: FilterOptions) => {
     try {
       setLoading(true);
       setError(null);
+
+      // Merge the passed filters with the state filters
+      const mergedFilters = { ...filters, ...filterOptions };
 
       let query = supabase.from("tickets").select(`
         id,
@@ -40,43 +57,44 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
         profiles:seller_id (username)
       `);
 
-      if (filters?.bettingSite) {
-        query = query.eq("betting_site", filters.bettingSite);
+      if (mergedFilters?.bettingSite) {
+        query = query.eq("betting_site", mergedFilters.bettingSite);
       }
 
-      if (filters?.isFree !== undefined) {
-        query = query.eq("is_free", filters.isFree);
+      if (mergedFilters?.isFree !== undefined) {
+        query = query.eq("is_free", mergedFilters.isFree);
       }
 
-      if (filters?.maxPrice !== undefined) {
+      if (mergedFilters?.maxPrice !== undefined) {
         // Convert the number to string since that's what Supabase expects
-        const maxPriceStr = String(filters.maxPrice);
+        const maxPriceStr = String(mergedFilters.maxPrice);
         query = query.lte("price", maxPriceStr);
       }
 
       // Filter expired tickets based on role
       if (options.role === "buyer" && options.filterExpired !== false) {
+        // For buyers, ALWAYS hide expired tickets unless explicitly requested
         query = query.eq("is_expired", false);
-      } else if (filters?.showExpired !== undefined) {
-        query = query.eq("is_expired", filters.showExpired);
+      } else if (mergedFilters?.showExpired !== undefined) {
+        query = query.eq("is_expired", mergedFilters.showExpired);
       }
 
       // For sellers, we want to show their expired tickets when requested
-      if (options.role === "seller" && filters?.sellerId) {
-        query = query.eq("seller_id", filters.sellerId);
+      if (options.role === "seller" && mergedFilters?.sellerId) {
+        query = query.eq("seller_id", mergedFilters.sellerId);
       }
 
       // By default, don't show hidden tickets
-      if (filters?.showHidden !== true) {
+      if (mergedFilters?.showHidden !== true) {
         query = query.eq("is_hidden", false);
       }
 
       // Sort options
-      if (filters?.sortBy) {
+      if (mergedFilters?.sortBy) {
         // Convert sortBy to string if it's a number
-        const sortByValue = typeof filters.sortBy === 'number' ? String(filters.sortBy) : filters.sortBy;
+        const sortByValue = typeof mergedFilters.sortBy === 'number' ? String(mergedFilters.sortBy) : mergedFilters.sortBy;
         query = query.order(sortByValue, { 
-          ascending: filters.sortOrder !== "desc" 
+          ascending: mergedFilters.sortOrder !== "desc" 
         });
       } else {
         query = query.order("created_at", { ascending: false });
@@ -115,7 +133,7 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
     } finally {
       setLoading(false);
     }
-  }, [toast, options.role, options.filterExpired]);
+  }, [toast, options.role, options.filterExpired, filters]);
 
   useEffect(() => {
     if (options.fetchOnMount) {
@@ -128,5 +146,21 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
     }
   }, [options.fetchOnMount, fetchTickets, options.role, currentUser]);
 
-  return { tickets, loading, error, fetchTickets };
+  // Update filters and refetch
+  const updateFilters = useCallback((newFilters: FilterOptions) => {
+    setFilters(prevFilters => {
+      const updatedFilters = { ...prevFilters, ...newFilters };
+      fetchTickets(updatedFilters);
+      return updatedFilters;
+    });
+  }, [fetchTickets]);
+
+  return { 
+    tickets, 
+    loading, 
+    error, 
+    fetchTickets,
+    filters,
+    updateFilters
+  };
 }
