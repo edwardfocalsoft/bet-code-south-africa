@@ -1,11 +1,8 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
 import AllTickets from './pages/tickets/AllTickets';
 import TicketDetails from './pages/tickets/TicketDetails';
-import SellerProfile from './pages/sellers/SellerProfile';
 import UserSettings from './pages/user/Settings';
 import UserWallet from './pages/user/Wallet';
 import BuyerPurchases from './pages/buyer/Purchases';
@@ -14,10 +11,16 @@ import CreateTicket from './pages/seller/CreateTicket';
 import SellerTickets from './pages/seller/Tickets';
 import AdminDashboard from './pages/admin/Dashboard';
 import Cases from './pages/admin/Cases';
-import Users from './pages/admin/Users';
 import PaymentSuccess from "./pages/payment/Success";
 import PaymentCancel from "./pages/payment/Cancel";
 import PaymentSettings from "./pages/admin/PaymentSettings";
+
+// Import statements that need correction
+import Home from './pages/Index'; // Changed from './pages/Home'
+import Login from './pages/auth/Login'; // Changed from './pages/Login'
+import Register from './pages/auth/Register'; // Changed from './pages/Register'
+import SellerProfile from './pages/sellers/SellerPublicProfile'; // Changed from './pages/sellers/SellerProfile'
+import Users from './pages/admin/Buyers'; // Changed from './pages/admin/Users'
 
 const App: React.FC = () => {
   return (
@@ -46,11 +49,11 @@ const App: React.FC = () => {
         <Route path="/admin/cases" element={<Cases />} />
         <Route path="/admin/users" element={<Users />} />
         
-        {/* Add new payment routes */}
+        {/* Payment routes */}
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/cancel" element={<PaymentCancel />} />
         
-        {/* Add admin payment settings route */}
+        {/* Admin payment settings route */}
         <Route path="/admin/payment-settings" element={<PaymentSettings />} />
       </Routes>
     </BrowserRouter>
