@@ -59,15 +59,15 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
   };
 
   return (
-    <Card className="betting-card lg:col-span-2">
+    <Card className="betting-card h-full lg:col-span-2">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>Performance Overview</span>
           <GrowthIndicator />
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="h-[300px]">
+      <CardContent className="pb-6">
+        <div style={{ height: "300px", width: "100%" }}>
           {loading ? (
             <div className="w-full h-full flex items-center justify-center bg-betting-dark-gray/20 rounded-md">
               <p className="text-muted-foreground">Loading chart data...</p>

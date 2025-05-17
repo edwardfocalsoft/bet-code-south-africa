@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import AllTickets from './pages/tickets/AllTickets';
@@ -53,6 +52,7 @@ const App: React.FC = () => {
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/user/cases" element={<UserCasesPage />} />
           <Route path="/user/cases/:id" element={<CaseDetailsPage />} />
+          <Route path="/cases" element={<UserCasesPage />} />
           
           {/* Buyer Routes */}
           <Route path="/buyer/dashboard" element={<BuyerDashboard />} />

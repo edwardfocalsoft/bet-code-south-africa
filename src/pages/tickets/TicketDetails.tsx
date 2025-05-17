@@ -33,12 +33,13 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { useWallet } from "@/hooks/useWallet";
+import { toast } from "sonner";
 
 const TicketDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { ticket, seller, loading, error, purchaseLoading, alreadyPurchased, purchaseTicket } = useTicket(id);
   const { currentUser } = useAuth();
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const { initiatePayment, loading: paymentLoading } = usePayFast();
   const { creditBalance } = useWallet();
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
@@ -147,11 +148,10 @@ const TicketDetails: React.FC = () => {
 
   const handlePurchase = async () => {
     if (!currentUser) {
-      toast({
-        title: "Login Required",
-        description: "Please log in to purchase tickets.",
-        variant: "destructive",
+      toast.error("Please log in to purchase tickets", {
+        description: "You need to be logged in to purchase tickets."
       });
+      navigate("/auth/login");
       return;
     }
 
@@ -180,14 +180,38 @@ const TicketDetails: React.FC = () => {
     setProcessingPurchase(true);
     
     try {
-      await purchaseTicket();
-      setPurchaseDialogOpen(false);
+      if (paymentMethod === 'credit') {
+        // Use credit balance
+        await purchaseTicket();
+        setPurchaseDialogOpen(false);
+      } else {
+        // Use PayFast
+        console.log("Initiating PayFast payment");
+        const result = await initiatePayment({
+          ticketId: id || "",
+          ticketTitle: ticket.title,
+          amount: ticket.price,
+          buyerId: currentUser.id,
+          sellerId: ticket.seller_id,
+          useCredit: false
+        });
+
+        if (!result) {
+          throw new Error("Failed to initiate payment");
+        }
+
+        if (result.paymentUrl) {
+          // Open in the same tab
+          window.location.href = result.paymentUrl;
+        } else if (result.testMode) {
+          toast.success("Test mode payment successful!");
+          setPurchaseDialogOpen(false);
+        }
+      }
     } catch (error: any) {
       console.error("Purchase error:", error);
-      toast({
-        title: "Purchase Failed",
-        description: "There was an error processing your purchase. Please try again.",
-        variant: "destructive",
+      toast.error("Purchase Failed", {
+        description: error.message || "There was an error processing your purchase. Please try again."
       });
     } finally {
       setProcessingPurchase(false);
@@ -423,8 +447,8 @@ const TicketDetails: React.FC = () => {
                 ) : (
                   <div className="space-y-4">
                     {similarTickets.map(similarTicket => {
-                      const ticketDate = new Date(similarTicket.kickoffTime);
-                      const isValidDate = isValid(ticketDate);
+                      const ticketDate = similarTicket.kickoffTime ? new Date(similarTicket.kickoffTime) : null;
+                      const isValidDate = ticketDate && isValid(ticketDate);
 
                       return (
                         <div key={similarTicket.id} className="border-b border-betting-light-gray last:border-b-0 pb-3 last:pb-0">
@@ -436,8 +460,8 @@ const TicketDetails: React.FC = () => {
                           </Link>
                           <div className="flex justify-between text-sm">
                             <span className="text-muted-foreground">
-                              {isValidDate 
-                                ? format(ticketDate, "MMM d, yyyy") 
+                              {isValidDate
+                                ? format(ticketDate!, "MMM d, yyyy") 
                                 : "Date not available"}
                             </span>
                             <span className="font-medium">
@@ -497,7 +521,7 @@ const TicketDetails: React.FC = () => {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="h-4 w-4 rounded-full flex items-center justify-center">
+                        <div className="h-4 w-4 rounded-full flex items-center justify-center border border-gray-400">
                           {paymentMethod === 'credit' && (
                             <div className="h-2 w-2 rounded-full bg-betting-green" />
                           )}
@@ -526,7 +550,7 @@ const TicketDetails: React.FC = () => {
                     onClick={() => setPaymentMethod('payfast')}
                   >
                     <div className="flex items-center gap-2">
-                      <div className="h-4 w-4 rounded-full flex items-center justify-center">
+                      <div className="h-4 w-4 rounded-full flex items-center justify-center border border-gray-400">
                         {paymentMethod === 'payfast' && (
                           <div className="h-2 w-2 rounded-full bg-betting-green" />
                         )}

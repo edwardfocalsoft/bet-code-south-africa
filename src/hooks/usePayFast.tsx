@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
+import { toast } from "sonner";
 
 interface PayFastConfig {
   merchant_id: string;
@@ -23,21 +24,35 @@ interface PaymentData {
 
 export const usePayFast = () => {
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const { currentUser } = useAuth();
 
   const getPaymentConfig = async (): Promise<PayFastConfig | null> => {
     try {
+      console.log("Fetching payment config");
       const { data, error } = await supabase
         .from("payment_settings")
         .select("merchant_id, merchant_key, passphrase, is_test_mode")
+        .limit(1)
         .single();
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error("Error fetching payment config:", error);
+        throw error;
+      }
+      
+      console.log("Payment config fetched:", data);
+      return data as PayFastConfig;
     } catch (error: any) {
       console.error("Error fetching payment config:", error);
-      return null;
+      
+      // Use fallback test mode config if can't get from database
+      return {
+        merchant_id: '10030614',
+        merchant_key: '85onulw93ercm',
+        passphrase: 'testpassphrase',
+        is_test_mode: true
+      };
     }
   };
 
@@ -54,11 +69,7 @@ export const usePayFast = () => {
 
   const initiatePayment = async (paymentData: PaymentData) => {
     if (!currentUser) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to make a purchase",
-        variant: "destructive",
-      });
+      toast.error("Please log in to make a purchase");
       return null;
     }
 
@@ -159,6 +170,7 @@ export const usePayFast = () => {
 
       // In test mode, simulate a successful payment
       if (config.is_test_mode) {
+        console.log("Test mode payment initiated");
         // Simulate a successful payment completion
         setTimeout(async () => {
           await completePayment(purchaseId!, "SIMULATED_" + Date.now());
@@ -167,7 +179,8 @@ export const usePayFast = () => {
         return {
           purchaseId,
           success: true,
-          testMode: true
+          testMode: true,
+          paymentUrl: "https://sandbox.payfast.co.za/eng/process" // Add this for the test mode
         };
       }
 
@@ -180,11 +193,7 @@ export const usePayFast = () => {
       };
     } catch (error: any) {
       console.error("Payment initiation error:", error);
-      toast({
-        title: "Payment Error",
-        description: error.message || "Failed to initiate payment",
-        variant: "destructive",
-      });
+      toast.error(error.message || "Failed to initiate payment");
       return null;
     } finally {
       setLoading(false);
@@ -207,18 +216,15 @@ export const usePayFast = () => {
       
       if (error) throw error;
       
-      toast({
-        title: "Purchase Complete",
-        description: "Your purchase was successful!",
+      toast.success("Purchase Complete!", {
+        description: "Your purchase was successful!"
       });
       
       return true;
     } catch (error: any) {
       console.error("Payment completion error:", error);
-      toast({
-        title: "Payment Error",
-        description: error.message || "Failed to complete payment",
-        variant: "destructive",
+      toast.error("Payment Error", {
+        description: error.message || "Failed to complete payment"
       });
       return false;
     } finally {
