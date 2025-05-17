@@ -86,7 +86,7 @@ const UserWallet: React.FC = () => {
                   <div>
                     <p className="text-sm text-muted-foreground">Available Balance</p>
                     <h3 className="text-3xl font-bold">
-                      R {creditBalance !== null ? creditBalance.toFixed(2) : "0.00"}
+                      R {creditBalance.toFixed(2)}
                     </h3>
                   </div>
                 </div>
