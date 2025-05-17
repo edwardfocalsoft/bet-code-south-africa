@@ -39,7 +39,7 @@ export const useSellerDashboard = (currentUser: User | null) => {
           .eq('seller_id', currentUser.id);
           
         if (salesError) throw salesError;
-        const totalSales = salesData?.reduce((sum, item) => sum + parseFloat(String(item.price)), 0) || 0;
+        const totalSales = salesData?.reduce((sum, item) => sum + parseFloat(String(item.price || 0)), 0) || 0;
         
         // Get tickets sold count
         const { count: ticketsCount, error: ticketsError } = await supabase
@@ -67,7 +67,10 @@ export const useSellerDashboard = (currentUser: User | null) => {
         if (bankError) throw bankError;
         
         // Calculate win rate
-        const winRate = ticketsCount && ticketsCount > 0 ? ((winningCount || 0) / ticketsCount) * 100 : 0;
+        let winRate = 0;
+        if (ticketsCount && ticketsCount > 0 && winningCount !== null) {
+          winRate = (winningCount / ticketsCount) * 100;
+        }
         
         // Get monthly growth data (compare current month's sales to previous month)
         const now = new Date();
@@ -94,13 +97,19 @@ export const useSellerDashboard = (currentUser: User | null) => {
           
         if (prevMonthError) throw prevMonthError;
         
-        const currentMonthSales = currentMonthData?.reduce((sum, item) => sum + parseFloat(String(item.price)), 0) || 0;
-        const prevMonthSales = prevMonthData?.reduce((sum, item) => sum + parseFloat(String(item.price)), 0) || 0;
+        const currentMonthSales = currentMonthData?.reduce((sum, item) => 
+          sum + parseFloat(String(item.price || 0)), 0) || 0;
+          
+        const prevMonthSales = prevMonthData?.reduce((sum, item) => 
+          sum + parseFloat(String(item.price || 0)), 0) || 0;
         
         // Calculate monthly growth percentage
-        const monthlyGrowth = prevMonthSales > 0 
-          ? ((currentMonthSales - prevMonthSales) / prevMonthSales) * 100
-          : currentMonthSales > 0 ? 100 : 0;
+        let monthlyGrowth = 0;
+        if (prevMonthSales > 0) {
+          monthlyGrowth = ((currentMonthSales - prevMonthSales) / prevMonthSales) * 100;
+        } else if (currentMonthSales > 0) {
+          monthlyGrowth = 100;
+        }
         
         setDashboardData({
           totalSales: totalSales,

@@ -70,6 +70,14 @@ const BuyerDashboard: React.FC = () => {
     fetchDashboardData();
   }, [currentUser]);
 
+  // Calculate win rate safely
+  const calculateWinRate = () => {
+    if (!dashboardData.ticketsPurchased || dashboardData.ticketsPurchased === 0) {
+      return "0";
+    }
+    return Math.round((dashboardData.winningTickets / dashboardData.ticketsPurchased) * 100).toString();
+  };
+
   return (
     <Layout requireAuth={true} allowedRoles={["buyer", "admin"]}>
       <div className="container mx-auto py-8">
@@ -108,7 +116,7 @@ const BuyerDashboard: React.FC = () => {
                     <p className="text-3xl font-bold">{dashboardData.winningTickets}</p>
                     {dashboardData.ticketsPurchased > 0 && (
                       <p className="text-xs text-green-500">
-                        {Math.round((dashboardData.winningTickets / dashboardData.ticketsPurchased) * 100)}% win rate
+                        {calculateWinRate()}% win rate
                       </p>
                     )}
                   </div>
