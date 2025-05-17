@@ -12,7 +12,7 @@ interface TicketCardProps {
 }
 
 const TicketCard: React.FC<TicketCardProps> = ({ ticket, purchased = false }) => {
-  const isExpired = new Date(ticket.kickoffTime) < new Date();
+  const isExpired = ticket.isExpired || new Date(ticket.kickoffTime) < new Date();
   const isPaid = !ticket.isFree;
   
   const timeUntilKickoff = formatDistanceToNow(new Date(ticket.kickoffTime), {
@@ -86,7 +86,10 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, purchased = false }) =>
       <div className="flex justify-between items-center">
         <Link
           to={`/tickets/${ticket.id}`}
-          className="betting-button-primary text-sm"
+          className={cn(
+            "betting-button-primary text-sm",
+            isExpired && !purchased && "opacity-50 pointer-events-none"
+          )}
         >
           {purchased ? "View Details" : isPaid && !purchased ? "Buy Now" : "View Details"}
         </Link>
@@ -94,7 +97,7 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, purchased = false }) =>
         {isPaid && !purchased && (
           <div className="flex items-center text-muted-foreground">
             <Lock className="h-4 w-4 mr-1" />
-            <span className="text-xs">Locked</span>
+            <span className="text-xs">{isExpired ? "Expired" : "Locked"}</span>
           </div>
         )}
       </div>

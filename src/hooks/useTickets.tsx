@@ -3,16 +3,20 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { BettingTicket } from "@/types";
+import { useAuth } from "@/contexts/auth";
 
 interface UseTicketsOptions {
   fetchOnMount?: boolean;
+  filterExpired?: boolean;
+  role?: "buyer" | "seller";
 }
 
-export function useTickets(options: UseTicketsOptions = { fetchOnMount: true }) {
+export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, filterExpired: true, role: "buyer" }) {
   const [tickets, setTickets] = useState<BettingTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { currentUser } = useAuth();
 
   const fetchTickets = useCallback(async (filters?: any) => {
     try {
@@ -50,9 +54,16 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true }) 
         query = query.lte("price", maxPriceStr);
       }
 
-      // By default, don't show expired tickets unless specifically asked for
-      if (filters?.showExpired !== true) {
+      // Filter expired tickets based on role
+      if (options.role === "buyer" && options.filterExpired !== false) {
         query = query.eq("is_expired", false);
+      } else if (filters?.showExpired !== undefined) {
+        query = query.eq("is_expired", filters.showExpired);
+      }
+
+      // For sellers, we want to show their expired tickets when requested
+      if (options.role === "seller" && filters?.sellerId) {
+        query = query.eq("seller_id", filters.sellerId);
       }
 
       // By default, don't show hidden tickets
@@ -104,13 +115,18 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true }) 
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, options.role, options.filterExpired]);
 
   useEffect(() => {
     if (options.fetchOnMount) {
-      fetchTickets();
+      // Pass additional seller ID filter if in seller mode
+      if (options.role === "seller" && currentUser) {
+        fetchTickets({ sellerId: currentUser.id });
+      } else {
+        fetchTickets();
+      }
     }
-  }, [options.fetchOnMount, fetchTickets]);
+  }, [options.fetchOnMount, fetchTickets, options.role, currentUser]);
 
   return { tickets, loading, error, fetchTickets };
 }

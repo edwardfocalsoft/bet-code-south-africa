@@ -45,7 +45,7 @@ const BuyerPurchases = () => {
       try {
         setLoading(true);
         
-        // Fetch purchases with ticket and seller information
+        // Fix: Specify the exact column to join with in the profiles table
         const { data, error } = await supabase
           .from('purchases')
           .select(`
@@ -55,7 +55,7 @@ const BuyerPurchases = () => {
             is_winner,
             ticket_id,
             tickets:ticket_id (title),
-            sellers:seller_id (username)
+            seller:seller_id (username)
           `)
           .eq('buyer_id', currentUser.id)
           .order('purchase_date', { ascending: false });
@@ -76,7 +76,7 @@ const BuyerPurchases = () => {
           id: item.id,
           ticketId: item.ticket_id,
           title: item.tickets?.title || "Unknown Ticket",
-          seller: item.sellers ? String(item.sellers.username || "Unknown Seller") : "Unknown Seller",
+          seller: item.seller?.username || "Unknown Seller",
           purchaseDate: item.purchase_date,
           amount: parseFloat(String(item.price)),
           status: item.is_winner === null ? "pending" : item.is_winner ? "win" : "loss"
