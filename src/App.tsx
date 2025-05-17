@@ -108,7 +108,7 @@ function App() {
           
           {/* User Routes */}
           <Route path="/user/settings" element={<UserSettings />} />
-          <Route path="/user/notifications" element={<Notifications />} />
+          <Route path="/notifications" element={<Notifications />} /> {/* Fixed path */}
           <Route path="/user/wallet" element={<UserWallet />} />
           <Route path="/user/report-issue/:ticketId/:purchaseId" element={<ReportIssue />} />
           <Route path="/user/cases" element={<CasesPage />} />
