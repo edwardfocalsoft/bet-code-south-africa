@@ -34,7 +34,7 @@ export const useSellerDashboard = (currentUser: User | null) => {
           .eq('seller_id', currentUser.id);
           
         if (salesError) throw salesError;
-        const totalSales = salesData?.reduce((sum, item) => sum + parseFloat(item.price), 0) || 0;
+        const totalSales = salesData?.reduce((sum, item) => sum + parseFloat(String(item.price)), 0) || 0;
         
         // Get tickets sold count
         const { count: ticketsCount, error: ticketsError } = await supabase
@@ -62,7 +62,7 @@ export const useSellerDashboard = (currentUser: User | null) => {
         if (bankError) throw bankError;
         
         // Calculate win rate
-        const winRate = ticketsCount ? (winningCount! / ticketsCount) * 100 : 0;
+        const winRate = ticketsCount ? (winningCount || 0) / ticketsCount * 100 : 0;
         
         setDashboardData({
           totalSales: totalSales,
