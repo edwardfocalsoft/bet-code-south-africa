@@ -42,7 +42,7 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
       
       console.log("Fetching buyers - started");
 
-      // Get total count first for pagination - only buyers
+      // Get total count first for pagination - only buyers with role "buyer"
       const { count, error: countError } = await supabase
         .from("profiles")
         .select("*", { count: "exact" })
@@ -54,7 +54,7 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
         setTotalCount(count);
       }
 
-      // Calculate new buyers in the last 30 days
+      // Calculate new buyers in the last 30 days - only buyers with role "buyer"
       const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
       const { count: newBuyersCount, error: newBuyersError } = await supabase
         .from("profiles")
@@ -80,7 +80,7 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
         totalProcessedAmount: totalAmount
       });
 
-      // Build the query for buyers with filters
+      // Build the query for buyers with filters - only buyers with role "buyer"
       let query = supabase
         .from("profiles")
         .select("*")
