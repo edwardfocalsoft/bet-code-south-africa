@@ -76,7 +76,7 @@ const BuyerPurchases = () => {
           id: item.id,
           ticketId: item.ticket_id,
           title: item.tickets?.title || "Unknown Ticket",
-          seller: item.sellers?.username || "Unknown Seller",
+          seller: item.sellers ? String(item.sellers.username || "Unknown Seller") : "Unknown Seller",
           purchaseDate: item.purchase_date,
           amount: parseFloat(String(item.price)),
           status: item.is_winner === null ? "pending" : item.is_winner ? "win" : "loss"
