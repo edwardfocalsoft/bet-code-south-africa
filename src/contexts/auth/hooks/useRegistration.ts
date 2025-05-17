@@ -18,8 +18,12 @@ export const useRegistration = () => {
       // First cleanup any existing auth state
       cleanupAuthState();
       
-      // Validate email format using regex pattern
+      // Log the email for debugging
+      console.log("Registration attempt with email:", email);
+      
+      // Validate email format using improved validation
       if (!validateEmail(email)) {
+        console.error("Email validation failed for:", email);
         throw new Error("Please enter a valid email address");
       }
       
@@ -27,7 +31,7 @@ export const useRegistration = () => {
       
       // Create account without any redirects to avoid auth state issues
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim(), // Ensure no whitespace
+        email: email.trim().toLowerCase(), // Ensure no whitespace and lowercase
         password,
         options: {
           // Avoid anything that might interfere with signup flow
