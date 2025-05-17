@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { usePaymentSettings } from "@/hooks/usePaymentSettings";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,9 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, Save, CreditCard } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/auth";
 
 const PaymentSettings: React.FC = () => {
   const { settings, loading, updateSettings } = usePaymentSettings();
+  const { userRole } = useAuth();
+  const navigate = useNavigate();
+  
   const [formData, setFormData] = useState({
     merchant_id: "",
     merchant_key: "",
@@ -21,14 +26,21 @@ const PaymentSettings: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [formLoaded, setFormLoaded] = useState(false);
 
+  useEffect(() => {
+    // Redirect if not admin
+    if (userRole && userRole !== "admin") {
+      navigate("/");
+    }
+  }, [userRole, navigate]);
+
   // Update form when settings are loaded
-  React.useEffect(() => {
+  useEffect(() => {
     if (settings && !formLoaded) {
       setFormData({
-        merchant_id: settings.merchant_id,
-        merchant_key: settings.merchant_key,
-        passphrase: settings.passphrase,
-        is_test_mode: settings.is_test_mode
+        merchant_id: settings.merchant_id || "",
+        merchant_key: settings.merchant_key || "",
+        passphrase: settings.passphrase || "",
+        is_test_mode: settings.is_test_mode !== undefined ? settings.is_test_mode : true
       });
       setFormLoaded(true);
     }
@@ -51,6 +63,13 @@ const PaymentSettings: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
+    
+    // Validate the form
+    if (!formData.merchant_id || !formData.merchant_key || !formData.passphrase) {
+      alert("Please fill in all required fields");
+      setIsSaving(false);
+      return;
+    }
     
     await updateSettings(formData);
     

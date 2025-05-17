@@ -11,6 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Save, CreditCard } from "lucide-react";
 import { usePaymentSettings } from "@/hooks/usePaymentSettings";
+import { Switch } from "@/components/ui/switch";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const UserSettings: React.FC = () => {
   const { currentUser, userRole } = useAuth();
@@ -40,10 +42,10 @@ const UserSettings: React.FC = () => {
   useEffect(() => {
     if (settings && userRole === "admin") {
       setPaymentFormData({
-        merchant_id: settings.merchant_id,
-        merchant_key: settings.merchant_key,
-        passphrase: settings.passphrase,
-        is_test_mode: settings.is_test_mode
+        merchant_id: settings.merchant_id || "",
+        merchant_key: settings.merchant_key || "",
+        passphrase: settings.passphrase || "",
+        is_test_mode: settings.is_test_mode !== undefined ? settings.is_test_mode : true
       });
     }
   }, [settings, userRole]);
@@ -114,16 +116,34 @@ const UserSettings: React.FC = () => {
   };
 
   const handlePaymentSettingsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setPaymentFormData({
       ...paymentFormData,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: value
+    });
+  };
+
+  const handleToggleTestMode = (checked: boolean) => {
+    setPaymentFormData({
+      ...paymentFormData,
+      is_test_mode: checked
     });
   };
 
   const updatePaymentSettings = async () => {
     setLoading(true);
-    const success = await updateSettings(paymentFormData);
+    // Validate before submitting
+    if (!paymentFormData.merchant_id || !paymentFormData.merchant_key || !paymentFormData.passphrase) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+    
+    await updateSettings(paymentFormData);
     setLoading(false);
   };
 
@@ -296,6 +316,14 @@ const UserSettings: React.FC = () => {
                     </div>
                   ) : (
                     <>
+                      {paymentFormData.is_test_mode && (
+                        <Alert className="bg-yellow-900/20 text-yellow-300 border border-yellow-900">
+                          <AlertTitle>Test Mode Active</AlertTitle>
+                          <AlertDescription>
+                            Payment gateway is in test mode. No real transactions will be processed.
+                          </AlertDescription>
+                        </Alert>
+                      )}
                       <div className="space-y-2">
                         <Label htmlFor="merchant_id">Merchant ID</Label>
                         <Input
@@ -305,6 +333,7 @@ const UserSettings: React.FC = () => {
                           onChange={handlePaymentSettingsChange}
                           placeholder="Enter PayFast merchant ID"
                           className="bg-betting-light-gray border-betting-light-gray focus:border-betting-green"
+                          required
                         />
                       </div>
                       
@@ -317,6 +346,7 @@ const UserSettings: React.FC = () => {
                           onChange={handlePaymentSettingsChange}
                           placeholder="Enter PayFast merchant key"
                           className="bg-betting-light-gray border-betting-light-gray focus:border-betting-green"
+                          required
                         />
                       </div>
                       
@@ -330,17 +360,15 @@ const UserSettings: React.FC = () => {
                           onChange={handlePaymentSettingsChange}
                           placeholder="Enter PayFast passphrase"
                           className="bg-betting-light-gray border-betting-light-gray focus:border-betting-green"
+                          required
                         />
                       </div>
                       
                       <div className="flex items-center space-x-2 pt-4">
-                        <input
-                          type="checkbox"
+                        <Switch
                           id="is_test_mode"
-                          name="is_test_mode"
                           checked={paymentFormData.is_test_mode}
-                          onChange={handlePaymentSettingsChange}
-                          className="h-4 w-4"
+                          onCheckedChange={handleToggleTestMode}
                         />
                         <Label htmlFor="is_test_mode">Enable Test Mode</Label>
                       </div>

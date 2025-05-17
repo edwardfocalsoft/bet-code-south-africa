@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -48,7 +47,7 @@ export const usePaymentSettings = () => {
             updated_at: new Date().toISOString()
           };
           
-          setSettings(defaultSettings as PaymentSettings);
+          await createInitialSettings(defaultSettings);
           return;
         }
         throw error;
@@ -67,8 +66,34 @@ export const usePaymentSettings = () => {
     }
   };
 
+  const createInitialSettings = async (initialSettings: Omit<PaymentSettings, 'id'>) => {
+    try {
+      const { data, error } = await supabase
+        .from("payment_settings")
+        .insert(initialSettings)
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      setSettings(data);
+      toast({
+        title: "Settings Created",
+        description: "Default payment settings have been created.",
+      });
+      
+    } catch (error: any) {
+      console.error("Error creating initial payment settings:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create payment settings",
+        variant: "destructive",
+      });
+    }
+  };
+
   const updateSettings = async (updatedSettings: Partial<PaymentSettings>) => {
-    if (!isAdmin || !settings?.id) {
+    if (!isAdmin) {
       toast({
         title: "Permission Denied",
         description: "Only admins can update payment settings",
@@ -79,6 +104,22 @@ export const usePaymentSettings = () => {
 
     try {
       setLoading(true);
+
+      // If we don't have existing settings yet, create them
+      if (!settings?.id) {
+        const initialSettings = {
+          merchant_id: updatedSettings.merchant_id || "10000100",
+          merchant_key: updatedSettings.merchant_key || "pb8iz6kkctyzm",
+          passphrase: updatedSettings.passphrase || "TestPayFastPassphrase",
+          is_test_mode: updatedSettings.is_test_mode !== undefined ? updatedSettings.is_test_mode : true,
+          updated_at: new Date().toISOString()
+        };
+        
+        await createInitialSettings(initialSettings);
+        return true;
+      }
+
+      // Otherwise update existing settings
       const { error } = await supabase
         .from("payment_settings")
         .update({
