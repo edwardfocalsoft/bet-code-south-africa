@@ -10,23 +10,33 @@ export const useCases = () => {
   const [isLoading, setIsLoading] = useState(false);
   const isAdmin = userRole === 'admin';
 
-  // Get user cases
+  // Get user cases with support for userId filter for admin
   const { data: userCases, refetch: refetchCases } = useQuery({
     queryKey: ['user-cases', currentUser?.id],
-    queryFn: async () => {
+    queryFn: async ({ queryKey }) => {
       if (!currentUser) return [];
+      
+      // Extract any params from querystring
+      const urlParams = new URLSearchParams(window.location.search);
+      const filterUserId = urlParams.get('userId');
       
       let query = supabase
         .from('cases')
         .select(`
           *,
+          profiles:user_id(username, email),
           purchases(*),
           tickets(*)
         `)
         .order('created_at', { ascending: false });
       
-      // If admin, get all cases, otherwise filter by user_id
-      if (!isAdmin) {
+      // If admin, get all cases, or filter by user_id if provided in URL
+      if (isAdmin) {
+        if (filterUserId) {
+          query = query.eq('user_id', filterUserId);
+        }
+      } else {
+        // Non-admin users can only see their own cases
         query = query.eq('user_id', currentUser.id);
       }
       

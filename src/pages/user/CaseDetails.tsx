@@ -1,136 +1,210 @@
 
 import React, { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
-import { format } from "date-fns";
+import { useNavigate, useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
-import { useCases } from "@/hooks/useCases";
-import { useAuth } from "@/contexts/auth";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import {
-  Loader2,
-  ArrowLeft,
-  Ticket,
-  Clock,
-  MessageSquare,
+import { format } from "date-fns";
+import { useCases } from "@/hooks/useCases";
+import { useAuth } from "@/contexts/auth";
+import { 
+  ChevronLeft, 
+  Loader2, 
+  Send, 
+  AlertCircle, 
   RefreshCw,
+  CheckCircle,
+  Clock,
+  XCircle,
+  User
 } from "lucide-react";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription, 
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
+
+interface CaseReply {
+  id: string;
+  case_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  profiles: {
+    username?: string;
+    role: string;
+    avatar_url?: string;
+  };
+}
+
+interface CaseDetail {
+  id: string;
+  case_number: string;
+  title: string;
+  description: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  ticket_id: string;
+  purchase_id: string;
+  tickets: any;
+  purchases: any;
+  replies: CaseReply[];
+}
 
 const CaseDetailsPage: React.FC = () => {
   const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
+  const { currentUser, userRole } = useAuth();
   const { 
     fetchCaseDetails, 
     addReply, 
     updateCaseStatus, 
-    processRefund, 
-    isLoading 
+    processRefund,
+    isLoading: casesLoading 
   } = useCases();
-  const { userRole } = useAuth();
   
-  const [caseDetails, setCaseDetails] = useState<any>(null);
+  const [caseDetails, setCaseDetails] = useState<CaseDetail | null>(null);
   const [replyContent, setReplyContent] = useState("");
-  const [loadingCase, setLoadingCase] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [status, setStatus] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+
+  const isAdmin = userRole === 'admin';
   
-  const isAdmin = userRole === "admin";
+  // Check if refund param is present in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const showRefundOption = urlParams.get('refund') === 'true';
+
+  useEffect(() => {
+    if (showRefundOption) {
+      setRefundDialogOpen(true);
+    }
+  }, [showRefundOption]);
 
   useEffect(() => {
     const loadCaseDetails = async () => {
       if (!caseId) return;
-      
-      setLoadingCase(true);
-      const details = await fetchCaseDetails(caseId);
-      setCaseDetails(details);
-      
-      if (details) {
-        setStatus(details.status);
+
+      try {
+        setLoading(true);
+        setError(null);
+        const details = await fetchCaseDetails(caseId);
+        
+        if (!details) {
+          setError("Case not found");
+          return;
+        }
+        
+        setCaseDetails(details);
+      } catch (err: any) {
+        console.error("Error fetching case details:", err);
+        setError(err.message || "Failed to load case details");
+      } finally {
+        setLoading(false);
       }
-      
-      setLoadingCase(false);
     };
-    
+
     loadCaseDetails();
   }, [caseId, fetchCaseDetails]);
 
-  const handleSendReply = async () => {
-    if (!caseId || !replyContent.trim()) return;
-    
-    setSubmitting(true);
-    const result = await addReply(caseId, replyContent.trim());
-    
-    if (result) {
-      // Refresh case details
-      const updatedCase = await fetchCaseDetails(caseId);
-      setCaseDetails(updatedCase);
-      setReplyContent("");
+  const handleSubmitReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replyContent.trim() || !caseId) return;
+
+    setIsSubmitting(true);
+    try {
+      const result = await addReply(caseId, replyContent);
+      if (result) {
+        // Refresh case details to show the new reply
+        const updatedDetails = await fetchCaseDetails(caseId);
+        setCaseDetails(updatedDetails);
+        setReplyContent("");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setSubmitting(false);
   };
 
-  const handleStatusUpdate = async (newStatus: string) => {
-    if (!caseId || newStatus === caseDetails?.status) return;
+  const handleStatusChange = async (newStatus: string) => {
+    if (!caseId) return;
     
-    setSubmitting(true);
-    const success = await updateCaseStatus(caseId, newStatus);
-    
-    if (success) {
-      // Refresh case details
-      const updatedCase = await fetchCaseDetails(caseId);
-      setCaseDetails(updatedCase);
-      setStatus(newStatus);
+    try {
+      setIsSubmitting(true);
+      const success = await updateCaseStatus(caseId, newStatus);
+      if (success && caseDetails) {
+        // Update the local state
+        setCaseDetails({
+          ...caseDetails,
+          status: newStatus
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setSubmitting(false);
   };
 
   const handleRefund = async () => {
     if (!caseId || !caseDetails) return;
     
     const { purchases } = caseDetails;
-    if (!purchases || purchases.length === 0) return;
+    if (!purchases || purchases.length === 0) {
+      setError("Purchase information not found");
+      return;
+    }
     
     const purchase = purchases[0];
     
-    setSubmitting(true);
-    const success = await processRefund(
-      caseId,
-      purchase.id,
-      purchase.buyer_id,
-      purchase.seller_id,
-      purchase.price
-    );
-    
-    if (success) {
-      // Refresh case details
-      const updatedCase = await fetchCaseDetails(caseId);
-      setCaseDetails(updatedCase);
-      setStatus("refunded");
+    try {
+      setIsSubmitting(true);
+      const success = await processRefund(
+        caseId,
+        purchase.id,
+        purchase.buyer_id,
+        purchase.seller_id,
+        parseFloat(purchase.price)
+      );
+      
+      if (success) {
+        // Reload case details
+        const updatedDetails = await fetchCaseDetails(caseId);
+        setCaseDetails(updatedDetails);
+        setRefundDialogOpen(false);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setSubmitting(false);
   };
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase()) {
       case "open":
         return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
       case "in_progress":
@@ -147,265 +221,289 @@ const CaseDetailsPage: React.FC = () => {
     }
   };
 
-  if (loadingCase) {
-    return (
-      <Layout>
-        <div className="container mx-auto py-12 text-center">
-          <Loader2 className="h-12 w-12 mx-auto animate-spin text-betting-green" />
-          <p className="mt-4 text-muted-foreground">Loading case details...</p>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (!caseDetails) {
-    return (
-      <Layout>
-        <div className="container mx-auto py-12 text-center">
-          <p className="text-xl font-bold mb-4">Case not found</p>
-          <Button onClick={() => navigate("/user/cases")} variant="default">
-            Back to Cases
-          </Button>
-        </div>
-      </Layout>
-    );
-  }
-
-  const ticket = caseDetails.tickets?.[0];
-  const purchase = caseDetails.purchases?.[0];
+  const getStatusIcon = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "open":
+        return <Clock className="h-4 w-4" />;
+      case "in_progress":
+      case "in progress":
+        return <Loader2 className="h-4 w-4" />;
+      case "resolved":
+        return <CheckCircle className="h-4 w-4" />;
+      case "refunded":
+        return <RefreshCw className="h-4 w-4" />;
+      case "closed":
+        return <XCircle className="h-4 w-4" />;
+      default:
+        return <Clock className="h-4 w-4" />;
+    }
+  };
 
   return (
-    <Layout>
+    <Layout requireAuth={true}>
       <div className="container mx-auto py-8 px-4">
-        <div className="mb-6">
-          <Link to="/user/cases" className="text-betting-green hover:underline flex items-center gap-1 text-sm">
-            <ArrowLeft className="h-4 w-4" />
-            Back to All Cases
-          </Link>
-        </div>
-        
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-3xl font-bold">{caseDetails.title}</h1>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-muted-foreground">Case #{caseDetails.case_number}</span>
-              <span className="text-muted-foreground">•</span>
-              <Badge variant="outline" className={getStatusColor(caseDetails.status)}>
-                {caseDetails.status.charAt(0).toUpperCase() + caseDetails.status.slice(1)}
-              </Badge>
-            </div>
-          </div>
-          
-          {isAdmin && caseDetails.status !== "refunded" && (
-            <div className="flex items-center gap-3">
-              <Select value={status} onValueChange={(value) => handleStatusUpdate(value)}>
-                <SelectTrigger className="w-[180px] bg-betting-light-gray border-betting-light-gray">
-                  <SelectValue placeholder="Update Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="open">Open</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="resolved">Resolved</SelectItem>
-                  <SelectItem value="closed">Closed</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              {(caseDetails.status === "open" || caseDetails.status === "in_progress") && (
-                <Button 
-                  onClick={handleRefund}
-                  disabled={submitting}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Process Refund
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
+        <Breadcrumb className="mb-6">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href={isAdmin ? "/admin/cases" : "/user/cases"}>
+                <ChevronLeft className="inline-block mr-1 h-4 w-4" />
+                Back to cases
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            {caseDetails && (
+              <>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <span>{caseDetails.case_number}</span>
+                </BreadcrumbItem>
+              </>
+            )}
+          </BreadcrumbList>
+        </Breadcrumb>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <Card className="betting-card mb-6">
-              <CardHeader>
-                <CardTitle>Issue Description</CardTitle>
-                <CardDescription>
-                  Reported on {format(new Date(caseDetails.created_at), "PPP p")}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="prose prose-invert max-w-none">
-                <p>{caseDetails.description}</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="betting-card mb-6">
-              <CardHeader>
-                <CardTitle>Case History</CardTitle>
-                <CardDescription>
-                  Conversation history for this case
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {caseDetails.replies && caseDetails.replies.length > 0 ? (
-                  caseDetails.replies.map((reply: any) => (
-                    <div 
-                      key={reply.id}
-                      className="p-4 rounded-lg bg-betting-light-gray/30 border border-betting-light-gray"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="h-8 w-8 rounded-full bg-betting-green/20 flex items-center justify-center">
-                            {reply.profiles?.username?.charAt(0).toUpperCase() || "U"}
-                          </div>
-                          <div>
-                            <p className="font-medium">
-                              {reply.profiles?.username || "User"}
-                              {reply.profiles?.role === "admin" && (
-                                <Badge variant="outline" className="ml-2 bg-red-500/10 text-red-500 border-red-500/20">
-                                  Admin
-                                </Badge>
-                              )}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {format(new Date(reply.created_at), "PPP p")}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      <p className="text-sm mt-2">{reply.content}</p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-6">
-                    <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-muted-foreground">No replies yet</p>
-                  </div>
-                )}
-              </CardContent>
-              
-              {caseDetails.status !== "closed" && caseDetails.status !== "refunded" && (
-                <>
-                  <CardHeader className="pt-0">
-                    <CardTitle>Reply to Case</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Textarea
-                      placeholder="Type your reply..."
-                      className="bg-betting-light-gray border-betting-light-gray mb-4"
-                      rows={4}
-                      value={replyContent}
-                      onChange={(e) => setReplyContent(e.target.value)}
-                    />
-                    <Button 
-                      onClick={handleSendReply}
-                      disabled={!replyContent.trim() || submitting}
-                      className="bg-betting-green hover:bg-betting-green-dark"
-                    >
-                      {submitting ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Sending...
-                        </>
-                      ) : (
-                        "Send Reply"
-                      )}
-                    </Button>
-                  </CardContent>
-                </>
-              )}
-            </Card>
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-betting-green" />
           </div>
-          
-          <div className="lg:col-span-1">
-            <Card className="betting-card mb-6">
-              <CardHeader>
-                <CardTitle>Related Ticket</CardTitle>
+        ) : caseDetails ? (
+          <div className="space-y-6">
+            <Card className="betting-card">
+              <CardHeader className="pb-2">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                  <div>
+                    <CardTitle className="text-2xl">{caseDetails.title}</CardTitle>
+                    <CardDescription>
+                      Case #{caseDetails.case_number} • Opened {format(new Date(caseDetails.created_at), "PPP")}
+                    </CardDescription>
+                  </div>
+                  <Badge 
+                    variant="outline" 
+                    className={`flex items-center gap-1 px-3 py-1 ${getStatusColor(caseDetails.status)}`}
+                  >
+                    {getStatusIcon(caseDetails.status)}
+                    <span>{caseDetails.status.charAt(0).toUpperCase() + caseDetails.status.slice(1).replace('_', ' ')}</span>
+                  </Badge>
+                </div>
               </CardHeader>
               <CardContent>
-                {ticket ? (
+                <div className="space-y-4">
+                  <div className="p-4 bg-betting-dark-gray/30 rounded-md">
+                    <p className="whitespace-pre-wrap">{caseDetails.description}</p>
+                  </div>
+                  
+                  {isAdmin && (caseDetails.status !== 'refunded' && caseDetails.status !== 'closed') && (
+                    <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-700">
+                      {caseDetails.status === 'open' && (
+                        <Button 
+                          variant="outline" 
+                          className="bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20"
+                          onClick={() => handleStatusChange('in_progress')}
+                          disabled={isSubmitting}
+                        >
+                          Start Processing
+                        </Button>
+                      )}
+                      
+                      {caseDetails.status === 'in_progress' && (
+                        <Button 
+                          variant="outline" 
+                          className="bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500/20"
+                          onClick={() => handleStatusChange('resolved')}
+                          disabled={isSubmitting}
+                        >
+                          Mark as Resolved
+                        </Button>
+                      )}
+                      
+                      {(caseDetails.status === 'open' || caseDetails.status === 'in_progress') && (
+                        <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              className="bg-purple-500/10 text-purple-500 border-purple-500/20 hover:bg-purple-500/20"
+                              disabled={isSubmitting}
+                            >
+                              <RefreshCw className="h-4 w-4 mr-2" />
+                              Process Refund
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Process Refund</DialogTitle>
+                              <DialogDescription>
+                                This will refund the purchase amount to the buyer and deduct it from the seller's balance.
+                              </DialogDescription>
+                            </DialogHeader>
+                            <div className="py-4">
+                              <div className="space-y-2">
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Amount:</span>
+                                  <span className="font-semibold">R {parseFloat(caseDetails.purchases?.[0]?.price || 0).toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Buyer:</span>
+                                  <span>ID: {caseDetails.purchases?.[0]?.buyer_id.substring(0, 8)}...</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-muted-foreground">Seller:</span>
+                                  <span>ID: {caseDetails.purchases?.[0]?.seller_id.substring(0, 8)}...</span>
+                                </div>
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <DialogClose asChild>
+                                <Button variant="outline">Cancel</Button>
+                              </DialogClose>
+                              <Button 
+                                onClick={handleRefund} 
+                                disabled={isSubmitting}
+                                className="bg-purple-500 hover:bg-purple-600"
+                              >
+                                {isSubmitting ? (
+                                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processing</>
+                                ) : (
+                                  <>Confirm Refund</>
+                                )}
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      )}
+                      
+                      {(caseDetails.status === 'resolved' || caseDetails.status === 'refunded') && (
+                        <Button 
+                          variant="outline" 
+                          className="bg-gray-500/10 text-gray-400 border-gray-500/20 hover:bg-gray-500/20"
+                          onClick={() => handleStatusChange('closed')}
+                          disabled={isSubmitting}
+                        >
+                          Close Case
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="betting-card">
+              <CardHeader>
+                <CardTitle>Conversation History</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {caseDetails.replies && caseDetails.replies.length > 0 ? (
+                    caseDetails.replies.map((reply) => (
+                      <div 
+                        key={reply.id} 
+                        className={`flex gap-4 ${reply.profiles.role === 'admin' ? 'bg-betting-dark-gray/30' : 'bg-betting-dark-gray/10'} p-4 rounded-lg`}
+                      >
+                        <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center flex-shrink-0">
+                          {reply.profiles.avatar_url ? (
+                            <img 
+                              src={reply.profiles.avatar_url} 
+                              alt={reply.profiles.username || "User"} 
+                              className="w-full h-full rounded-full object-cover" 
+                            />
+                          ) : (
+                            <User className="h-5 w-5" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-medium">
+                              {reply.profiles.username || "Anonymous"}
+                            </span>
+                            {reply.profiles.role === 'admin' && (
+                              <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20 text-xs">
+                                Admin
+                              </Badge>
+                            )}
+                            <span className="text-xs text-muted-foreground ml-auto">
+                              {format(new Date(reply.created_at), "MMM d, yyyy 'at' h:mm a")}
+                            </span>
+                          </div>
+                          <p className="text-sm whitespace-pre-wrap">{reply.content}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No replies yet. Be the first to respond.
+                    </div>
+                  )}
+
+                  {/* Only show the reply form if the case is not closed */}
+                  {caseDetails.status !== 'closed' && (
+                    <form onSubmit={handleSubmitReply} className="space-y-4 pt-4 border-t border-gray-700">
+                      <Textarea
+                        placeholder="Type your reply here..."
+                        className="min-h-[120px]"
+                        value={replyContent}
+                        onChange={(e) => setReplyContent(e.target.value)}
+                        disabled={isSubmitting}
+                      />
+                      <div className="flex justify-end">
+                        <Button 
+                          type="submit" 
+                          disabled={!replyContent.trim() || isSubmitting}
+                        >
+                          {isSubmitting ? (
+                            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Sending</>
+                          ) : (
+                            <><Send className="h-4 w-4 mr-2" /> Send Reply</>
+                          )}
+                        </Button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* If there's related ticket info, show it */}
+            {caseDetails.tickets && (
+              <Card className="betting-card">
+                <CardHeader>
+                  <CardTitle>Related Ticket</CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-betting-green/10 flex items-center justify-center">
-                        <Ticket className="h-5 w-5 text-betting-green" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{ticket.title}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {ticket.betting_site}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-1 text-sm">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">
-                        {format(new Date(ticket.kickoff_time), "PPP p")}
-                      </span>
-                    </div>
-                    
-                    <div className="pt-2">
-                      <Button variant="outline" asChild className="w-full">
-                        <Link to={`/tickets/${ticket.id}`}>
-                          View Ticket Details
-                        </Link>
+                    <div>
+                      <h3 className="font-semibold text-lg mb-2">{caseDetails.tickets.title}</h3>
+                      <p className="text-sm text-muted-foreground mb-4">{caseDetails.tickets.description}</p>
+                      <Button 
+                        variant="outline"
+                        onClick={() => navigate(`/tickets/${caseDetails.ticket_id}`)}
+                      >
+                        View Ticket
                       </Button>
                     </div>
                   </div>
-                ) : (
-                  <p className="text-muted-foreground">No ticket information available</p>
-                )}
-              </CardContent>
-            </Card>
-            
-            <Card className="betting-card">
-              <CardHeader>
-                <CardTitle>Purchase Details</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {purchase ? (
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Purchase Date</p>
-                      <p className="font-medium">
-                        {format(new Date(purchase.purchase_date), "PPP")}
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-sm text-muted-foreground">Amount</p>
-                      <p className="font-medium">R {purchase.price.toFixed(2)}</p>
-                    </div>
-                    
-                    {caseDetails.status === "refunded" && (
-                      <div className="bg-purple-500/10 p-3 rounded-md">
-                        <div className="flex items-center gap-2">
-                          <RefreshCw className="h-4 w-4 text-purple-500" />
-                          <p className="text-sm font-medium text-purple-500">
-                            Refund Processed
-                          </p>
-                        </div>
-                        <p className="text-xs text-purple-400 mt-1">
-                          R {purchase.price.toFixed(2)} has been credited to your account
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">No purchase information available</p>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
-        </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-xl">Case not found</p>
+            <Button 
+              variant="outline" 
+              className="mt-4"
+              onClick={() => navigate(isAdmin ? "/admin/cases" : "/user/cases")}
+            >
+              Back to All Cases
+            </Button>
+          </div>
+        )}
       </div>
     </Layout>
   );

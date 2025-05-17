@@ -1,92 +1,127 @@
 
-import React from "react";
-import { Link } from "react-router-dom";
-import { useAuth } from "@/contexts/auth";
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+import { useAuth } from '@/contexts/auth';
 
-type NavLinksProps = {
-  isMobile?: boolean;
-};
-
-const NavLinks: React.FC<NavLinksProps> = ({ isMobile = false }) => {
-  const { currentUser, userRole } = useAuth();
-
-  // Get dashboard path based on user role
-  const getDashboardPath = () => {
-    if (userRole === "admin") return "/admin/dashboard";
-    if (userRole === "seller") return "/seller/dashboard";
-    if (userRole === "buyer") return "/buyer/dashboard";
-    return "/";
-  };
-
-  const className = "text-sm font-medium text-gray-200 transition-colors hover:text-white";
-
-  if (!currentUser) {
-    return (
-      <>
-        <Link to="/" className={className}>
-          Home
-        </Link>
-        <Link to="/tickets" className={className}>
-          Tickets
-        </Link>
-        <Link to="/sellers" className={className}>
-          Sellers
-        </Link>
-      </>
-    );
-  }
+const NavLinks: React.FC = () => {
+  const { userRole } = useAuth();
 
   return (
-    <>
-      <Link to={getDashboardPath()} className={className}>
-        Dashboard
-      </Link>
-      
-      {userRole === "buyer" && (
+    <div className="hidden md:flex space-x-6">
+      <NavLink
+        to="/tickets"
+        className={({ isActive }) =>
+          isActive
+            ? 'text-white border-b-2 border-betting-green pb-1'
+            : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+        }
+      >
+        Tickets
+      </NavLink>
+      <NavLink
+        to="/sellers"
+        className={({ isActive }) =>
+          isActive
+            ? 'text-white border-b-2 border-betting-green pb-1'
+            : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+        }
+      >
+        Sellers
+      </NavLink>
+
+      {userRole === 'admin' && (
         <>
-          <Link to="/tickets" className={className}>
-            Browse Tickets
-          </Link>
-          <Link to="/sellers" className={className}>
-            Find Sellers
-          </Link>
-          <Link to="/buyer/purchases" className={className}>
-            My Purchases
-          </Link>
-        </>
-      )}
-      
-      {userRole === "seller" && (
-        <>
-          <Link to="/seller/tickets" className={className}>
-            My Tickets
-          </Link>
-          <Link to="/seller/tickets/create" className={className}>
-            Create Ticket
-          </Link>
-          <Link to="/seller/withdrawals" className={className}>
-            Withdrawals
-          </Link>
-        </>
-      )}
-      
-      {userRole === "admin" && (
-        <>
-          <Link to="/admin/tickets" className={className}>
+          <NavLink
+            to="/admin/dashboard"
+            className={({ isActive }) =>
+              isActive
+                ? 'text-white border-b-2 border-betting-green pb-1'
+                : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+            }
+          >
+            Dashboard
+          </NavLink>
+          <NavLink
+            to="/admin/tickets"
+            className={({ isActive }) =>
+              isActive
+                ? 'text-white border-b-2 border-betting-green pb-1'
+                : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+            }
+          >
             Tickets
-          </Link>
-          <Link to="/admin/sellers" className={className}>
+          </NavLink>
+          <NavLink
+            to="/admin/sellers"
+            className={({ isActive }) =>
+              isActive
+                ? 'text-white border-b-2 border-betting-green pb-1'
+                : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+            }
+          >
             Sellers
-          </Link>
-          <Link to="/admin/buyers" className={className}>
+          </NavLink>
+          <NavLink
+            to="/admin/buyers"
+            className={({ isActive }) =>
+              isActive
+                ? 'text-white border-b-2 border-betting-green pb-1'
+                : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+            }
+          >
             Buyers
-          </Link>
-          <Link to="/admin/withdrawals" className={className}>
-            Withdrawals
-          </Link>
+          </NavLink>
+          <NavLink
+            to="/admin/cases"
+            className={({ isActive }) =>
+              isActive
+                ? 'text-white border-b-2 border-betting-green pb-1'
+                : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+            }
+          >
+            Cases
+          </NavLink>
         </>
       )}
-    </>
+
+      {userRole === 'seller' && (
+        <>
+          <NavLink
+            to="/seller/dashboard"
+            className={({ isActive }) =>
+              isActive
+                ? 'text-white border-b-2 border-betting-green pb-1'
+                : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+            }
+          >
+            Dashboard
+          </NavLink>
+          <NavLink
+            to="/seller/tickets"
+            className={({ isActive }) =>
+              isActive
+                ? 'text-white border-b-2 border-betting-green pb-1'
+                : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+            }
+          >
+            My Tickets
+          </NavLink>
+        </>
+      )}
+
+      {userRole === 'buyer' && (
+        <NavLink
+          to="/buyer/purchases"
+          className={({ isActive }) =>
+            isActive
+              ? 'text-white border-b-2 border-betting-green pb-1'
+              : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+          }
+        >
+          My Purchases
+        </NavLink>
+      )}
+    </div>
   );
 };
 
