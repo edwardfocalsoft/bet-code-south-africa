@@ -24,6 +24,7 @@ const AdminBuyers = () => {
     totalCount,
     stats,
     updateBuyerStatus,
+    resendVerificationEmail,
     fetchBuyers
   } = useBuyers({ 
     page: currentPage, 
@@ -74,7 +75,8 @@ const AdminBuyers = () => {
           ) : (
             <BuyersTable 
               buyers={buyers} 
-              updateBuyerStatus={updateBuyerStatus} 
+              updateBuyerStatus={updateBuyerStatus}
+              resendVerificationEmail={resendVerificationEmail}
             />
           )}
           

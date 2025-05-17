@@ -151,19 +151,40 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
         });
       }
 
-      const mappedBuyers = filteredData.map((buyer: any) => ({
-        id: buyer.id,
-        email: buyer.email,
-        role: buyer.role,
-        username: buyer.username || "Anonymous",
-        createdAt: new Date(buyer.created_at),
-        approved: buyer.approved || false,
-        suspended: buyer.suspended || false,
-        lastActive: buyer.updated_at ? new Date(buyer.updated_at) : new Date(buyer.created_at),
-        purchasesCount: purchaseCounts[buyer.id] || 0,
-        loyaltyPoints: buyer.loyalty_points || 0,
-        creditBalance: buyer.credit_balance || 0,
-      }));
+      // Get email verification status from auth.users table
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      
+      if (authError) {
+        console.error("Error fetching auth users:", authError);
+        // Continue without verification status if we can't fetch it
+      }
+      
+      // Create a map of user IDs to email verification status
+      const verificationStatus: Record<string, boolean> = {};
+      if (authUsers) {
+        authUsers.users.forEach((user) => {
+          verificationStatus[user.id] = user.email_confirmed_at !== null;
+        });
+      }
+
+      const mappedBuyers = filteredData.map((buyer: any) => {
+        // Check if this user has verified their email based on auth data
+        const isEmailVerified = verificationStatus[buyer.id] || false;
+        
+        return {
+          id: buyer.id,
+          email: buyer.email,
+          role: buyer.role,
+          username: buyer.username || "Anonymous",
+          createdAt: new Date(buyer.created_at),
+          approved: isEmailVerified, // Use actual email verification status
+          suspended: buyer.suspended || false,
+          lastActive: buyer.updated_at ? new Date(buyer.updated_at) : new Date(buyer.created_at),
+          purchasesCount: purchaseCounts[buyer.id] || 0,
+          loyaltyPoints: buyer.loyalty_points || 0,
+          creditBalance: buyer.credit_balance || 0,
+        };
+      });
 
       setBuyers(mappedBuyers);
       console.log("Buyers data processed successfully");
@@ -219,6 +240,32 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
     }
   }, [buyers, toast]);
 
+  const resendVerificationEmail = useCallback(async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Verification email has been resent.",
+      });
+      
+      return true;
+    } catch (error: any) {
+      console.error("Error resending verification email:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to resend verification email.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  }, [toast]);
+
   useEffect(() => {
     let isMounted = true;
     
@@ -244,6 +291,7 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
     totalCount, 
     stats,
     fetchBuyers,
-    updateBuyerStatus
+    updateBuyerStatus,
+    resendVerificationEmail
   };
 }

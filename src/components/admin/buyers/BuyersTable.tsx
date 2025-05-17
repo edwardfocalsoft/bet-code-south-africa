@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { format } from "date-fns";
-import { User, Ban, Check, MoreHorizontal, User as UserIcon } from "lucide-react";
+import { User, Ban, Check, MoreHorizontal, User as UserIcon, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 import {
@@ -32,9 +32,14 @@ interface BuyersTableProps {
     buyerId: string,
     updates: { approved?: boolean; suspended?: boolean }
   ) => Promise<boolean>;
+  resendVerificationEmail?: (email: string) => Promise<boolean>;
 }
 
-export const BuyersTable = ({ buyers, updateBuyerStatus }: BuyersTableProps) => {
+export const BuyersTable = ({ 
+  buyers, 
+  updateBuyerStatus,
+  resendVerificationEmail
+}: BuyersTableProps) => {
   const { toast } = useToast();
   const [selectedBuyerId, setSelectedBuyerId] = useState<string | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -57,6 +62,18 @@ export const BuyersTable = ({ buyers, updateBuyerStatus }: BuyersTableProps) => 
       toast({
         title: `User ${!currentStatus ? "approved" : "unapproved"} successfully`,
         description: `User ID: ${userId}`,
+      });
+    }
+  };
+
+  const handleResendVerification = async (email: string) => {
+    if (resendVerificationEmail) {
+      await resendVerificationEmail(email);
+    } else {
+      toast({
+        title: "Feature unavailable",
+        description: "Unable to resend verification email at this time.",
+        variant: "destructive",
       });
     }
   };
@@ -117,7 +134,7 @@ export const BuyersTable = ({ buyers, updateBuyerStatus }: BuyersTableProps) => 
                     </Badge>
                   ) : (
                     <Badge variant="outline" className="bg-orange-500/10 text-orange-500 border-orange-500/20">
-                      Pending
+                      Pending Verification
                     </Badge>
                   )}
                 </TableCell>
@@ -134,12 +151,18 @@ export const BuyersTable = ({ buyers, updateBuyerStatus }: BuyersTableProps) => 
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => handleApproveToggle(buyer.id, buyer.approved || false)}>
                         <Check className="mr-2 h-4 w-4" />
-                        {buyer.approved ? "Remove Verification" : "Verify Account"}
+                        {buyer.approved ? "Mark as Unverified" : "Mark as Verified"}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleSuspendToggle(buyer.id, buyer.suspended || false)}>
                         <Ban className="mr-2 h-4 w-4" />
                         {buyer.suspended ? "Unsuspend Account" : "Suspend Account"}
                       </DropdownMenuItem>
+                      {!buyer.approved && (
+                        <DropdownMenuItem onClick={() => handleResendVerification(buyer.email)}>
+                          <Mail className="mr-2 h-4 w-4" />
+                          Resend Verification Email
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onClick={() => viewBuyerProfile(buyer.id)}>
                         <UserIcon className="mr-2 h-4 w-4" />
                         View Profile
