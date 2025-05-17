@@ -4,11 +4,19 @@ import { useNavigate, Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { useAuth } from "@/contexts/auth";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Users, Ticket, BadgeDollarSign, UserCheck, TrendingUp, ArrowUpRight } from "lucide-react";
+import { 
+  AlertCircle, 
+  Users, 
+  Ticket, 
+  BadgeDollarSign, 
+  UserCheck, 
+  TrendingUp, 
+  ArrowUpRight 
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Skeleton } from "@/components/ui/skeleton";
+import StatCard from "@/components/admin/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { isPast } from "date-fns";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface DashboardStats {
   totalUsers: number;
@@ -58,14 +66,17 @@ const AdminDashboard: React.FC = () => {
           
         if (approvalsError) throw approvalsError;
         
-        // Fetch active tickets
-        // Updated to correctly filter out expired tickets by both is_expired flag and kickoff_time
+        // Fetch active tickets - FIXED to properly count only active tickets
+        // A ticket is active if:
+        // 1. It is not hidden
+        // 2. It is not manually marked as expired
+        // 3. Its kickoff time is in the future
         const now = new Date().toISOString();
         const { count: activeTickets, error: ticketsError } = await supabase
           .from("tickets")
           .select("*", { count: "exact", head: true })
-          .eq("is_expired", false)
           .eq("is_hidden", false)
+          .eq("is_expired", false)
           .gt("kickoff_time", now); // Only include tickets with future kickoff times
           
         if (ticketsError) throw ticketsError;
@@ -78,7 +89,8 @@ const AdminDashboard: React.FC = () => {
           
         if (withdrawalsError) throw withdrawalsError;
         
-        const totalWithdrawals = withdrawalsData.reduce((sum, item) => sum + parseFloat(item.amount.toString()), 0);
+        const totalWithdrawals = withdrawalsData.reduce((sum, item) => 
+          sum + parseFloat(item.amount.toString()), 0);
         
         // Fetch recent activity (combining recent sellers, tickets and withdrawals)
         const recentActivity = await fetchRecentActivity();
@@ -227,170 +239,173 @@ const AdminDashboard: React.FC = () => {
         )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="betting-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="font-medium text-lg flex items-center justify-between">
-                <span>Total Users</span>
-                <Users className="h-5 w-5 text-betting-green" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <p className="text-3xl font-bold text-betting-green">{stats?.totalUsers || 0}</p>
-              )}
+          <StatCard
+            title="Total Users"
+            value={stats?.totalUsers || 0}
+            icon={Users}
+            loading={loading}
+            subtitle={
               <div className="flex items-center mt-2 text-xs text-muted-foreground">
                 <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
                 <span className="text-green-500">Growing</span>
               </div>
-            </CardContent>
-          </Card>
+            }
+          />
           
-          <Card className="betting-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="font-medium text-lg flex items-center justify-between">
-                <span>Pending Approvals</span>
-                <UserCheck className="h-5 w-5 text-betting-accent" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <Link to="/admin/sellers" className="text-3xl font-bold text-betting-accent hover:underline">
-                  {stats?.pendingApprovals || 0}
-                </Link>
-              )}
-              {stats?.pendingApprovals ? (
-                <p className="mt-2 text-xs text-amber-400">Requires attention</p>
-              ) : (
-                <p className="mt-2 text-xs text-muted-foreground">No pending approvals</p>
-              )}
-            </CardContent>
-          </Card>
+          <StatCard
+            title="Pending Approvals"
+            value={
+              <Link to="/admin/sellers" className="hover:underline text-betting-accent">
+                {stats?.pendingApprovals || 0}
+              </Link>
+            }
+            icon={UserCheck}
+            loading={loading}
+            subtitle={stats?.pendingApprovals ? 
+              <p className="text-xs text-amber-400">Requires attention</p> : 
+              <p className="text-xs text-muted-foreground">No pending approvals</p>
+            }
+            valueClassName="text-betting-accent"
+          />
           
-          <Card className="betting-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="font-medium text-lg flex items-center justify-between">
-                <span>Active Tickets</span>
-                <Ticket className="h-5 w-5 text-betting-green" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <Link to="/admin/tickets" className="text-3xl font-bold text-betting-green hover:underline">
-                  {stats?.activeTickets || 0}
-                </Link>
-              )}
-            </CardContent>
-          </Card>
+          <StatCard
+            title="Active Tickets"
+            value={
+              <Link to="/admin/tickets" className="hover:underline text-betting-green">
+                {stats?.activeTickets || 0}
+              </Link>
+            }
+            icon={Ticket}
+            loading={loading}
+            valueClassName="text-betting-green"
+          />
           
-          <Card className="betting-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="font-medium text-lg flex items-center justify-between">
-                <span>Pending Withdrawals</span>
-                <BadgeDollarSign className="h-5 w-5 text-betting-accent" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <Skeleton className="h-8 w-16" />
-              ) : (
-                <Link to="/admin/withdrawals" className="text-3xl font-bold text-betting-accent hover:underline">
-                  R {stats?.totalWithdrawals.toFixed(2) || "0.00"}
-                </Link>
-              )}
-            </CardContent>
-          </Card>
+          <StatCard
+            title="Pending Withdrawals"
+            value={
+              <Link to="/admin/withdrawals" className="hover:underline text-betting-accent">
+                R {stats?.totalWithdrawals.toFixed(2) || "0.00"}
+              </Link>
+            }
+            icon={BadgeDollarSign}
+            loading={loading}
+            valueClassName="text-betting-accent"
+          />
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <Card className="betting-card lg:col-span-1">
-            <CardHeader>
-              <CardTitle className="text-xl font-bold">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 gap-4">
-                <Link 
-                  to="/admin/sellers" 
-                  className="bg-betting-dark-gray hover:bg-betting-light-gray transition-colors p-4 rounded-lg flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2">
-                    <UserCheck className="h-5 w-5" />
-                    <span>Manage Sellers</span>
-                  </div>
-                  <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-                </Link>
-                <Link 
-                  to="/admin/tickets" 
-                  className="bg-betting-dark-gray hover:bg-betting-light-gray transition-colors p-4 rounded-lg flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2">
-                    <Ticket className="h-5 w-5" />
-                    <span>Manage Tickets</span>
-                  </div>
-                  <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-                </Link>
-                <Link 
-                  to="/admin/withdrawals" 
-                  className="bg-betting-dark-gray hover:bg-betting-light-gray transition-colors p-4 rounded-lg flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2">
-                    <BadgeDollarSign className="h-5 w-5" />
-                    <span>Process Withdrawals</span>
-                  </div>
-                  <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="betting-card lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-xl font-bold">Recent Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="flex gap-4">
-                      <Skeleton className="h-10 w-10 rounded-full" />
-                      <div className="space-y-2 flex-1">
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-3 w-3/4" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : stats?.recentActivity && stats.recentActivity.length > 0 ? (
-                <div className="space-y-4">
-                  {stats.recentActivity.map((activity, index) => (
-                    <div key={index} className="flex items-start gap-3 px-2 py-1 rounded-md transition-colors hover:bg-betting-dark-gray">
-                      {activity.type.includes('seller') && <UserCheck className="h-5 w-5 text-betting-accent" />}
-                      {activity.type.includes('ticket') && <Ticket className="h-5 w-5 text-betting-green" />}
-                      {activity.type.includes('withdrawal') && <BadgeDollarSign className="h-5 w-5 text-betting-accent" />}
-                      <div>
-                        <p className="text-sm">{activity.message}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {activity.timestamp.toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center py-6 text-muted-foreground">
-                  No recent activity to display.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        <AdminDashboardLayout 
+          stats={stats}
+          loading={loading}
+        />
       </div>
     </Layout>
+  );
+};
+
+// New component for the dashboard layout
+const AdminDashboardLayout: React.FC<{
+  stats: DashboardStats | null;
+  loading: boolean;
+}> = ({ stats, loading }) => {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <QuickActionsCard />
+      <RecentActivityCard stats={stats} loading={loading} />
+    </div>
+  );
+};
+
+// New component for the quick actions section
+const QuickActionsCard: React.FC = () => {
+  return (
+    <Card className="betting-card lg:col-span-1">
+      <CardHeader>
+        <CardTitle className="text-xl font-bold">Quick Actions</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 gap-4">
+          <Link 
+            to="/admin/sellers" 
+            className="bg-betting-dark-gray hover:bg-betting-light-gray transition-colors p-4 rounded-lg flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <UserCheck className="h-5 w-5" />
+              <span>Manage Sellers</span>
+            </div>
+            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+          <Link 
+            to="/admin/tickets" 
+            className="bg-betting-dark-gray hover:bg-betting-light-gray transition-colors p-4 rounded-lg flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <Ticket className="h-5 w-5" />
+              <span>Manage Tickets</span>
+            </div>
+            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+          <Link 
+            to="/admin/withdrawals" 
+            className="bg-betting-dark-gray hover:bg-betting-light-gray transition-colors p-4 rounded-lg flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2">
+              <BadgeDollarSign className="h-5 w-5" />
+              <span>Process Withdrawals</span>
+            </div>
+            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// New component for the recent activity section
+const RecentActivityCard: React.FC<{
+  stats: DashboardStats | null;
+  loading: boolean;
+}> = ({ stats, loading }) => {
+  return (
+    <Card className="betting-card lg:col-span-2">
+      <CardHeader>
+        <CardTitle className="text-xl font-bold">Recent Activity</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex gap-4">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-3 w-3/4" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : stats?.recentActivity && stats.recentActivity.length > 0 ? (
+          <div className="space-y-4">
+            {stats.recentActivity.map((activity, index) => (
+              <div key={index} className="flex items-start gap-3 px-2 py-1 rounded-md transition-colors hover:bg-betting-dark-gray">
+                {activity.type.includes('seller') && <UserCheck className="h-5 w-5 text-betting-accent" />}
+                {activity.type.includes('ticket') && <Ticket className="h-5 w-5 text-betting-green" />}
+                {activity.type.includes('withdrawal') && <BadgeDollarSign className="h-5 w-5 text-betting-accent" />}
+                <div>
+                  <p className="text-sm">{activity.message}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {activity.timestamp.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-center py-6 text-muted-foreground">
+            No recent activity to display.
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

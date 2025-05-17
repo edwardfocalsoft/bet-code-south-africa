@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import Layout from "@/components/layout/Layout";
 import { supabase } from "@/integrations/supabase/client";
@@ -65,74 +64,11 @@ const AdminTickets: React.FC = () => {
   const { toast } = useToast();
 
   // Use the enhanced useTickets hook with role set to "admin"
-  const { fetchTickets: hookFetchTickets } = useTickets({
+  const { toggleTicketVisibility, markTicketAsExpired } = useTickets({
     fetchOnMount: false,
     filterExpired: false,
     role: "admin"
   });
-
-  // Functions for toggling visibility and marking as expired
-  const toggleTicketVisibility = async (ticketId: string, isHidden: boolean) => {
-    try {
-      setLoading(true);
-      
-      const { error: updateError } = await supabase
-        .from("tickets")
-        .update({ is_hidden: isHidden })
-        .eq("id", ticketId);
-      
-      if (updateError) throw updateError;
-      
-      toast({
-        title: "Success",
-        description: isHidden ? "Ticket has been hidden." : "Ticket is now visible."
-      });
-      
-      // Refetch the tickets to update the list
-      fetchTickets(activeTab);
-    } catch (err: any) {
-      console.error("Error updating ticket visibility:", err);
-      toast({
-        title: "Error",
-        description: "Failed to update ticket visibility.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const markTicketAsExpired = async (ticketId: string, isExpired: boolean) => {
-    try {
-      setLoading(true);
-      
-      const { error: updateError } = await supabase
-        .from("tickets")
-        .update({ is_expired: isExpired })
-        .eq("id", ticketId);
-      
-      if (updateError) throw updateError;
-      
-      toast({
-        title: "Success",
-        description: isExpired 
-          ? "Ticket has been marked as expired." 
-          : "Ticket has been restored to active status."
-      });
-      
-      // Refetch the tickets to update the list
-      fetchTickets(activeTab);
-    } catch (err: any) {
-      console.error("Error updating ticket expiration:", err);
-      toast({
-        title: "Error",
-        description: "Failed to update ticket status.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchTickets = async (filter: TicketFilter = "active") => {
     try {
@@ -397,82 +333,99 @@ const AdminTickets: React.FC = () => {
 
   return (
     <Layout requireAuth={true} allowedRoles={["admin"]}>
-      <div className="container mx-auto py-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-          <h1 className="text-3xl font-bold">Manage Tickets</h1>
-          
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowStats(true)}
-              className="flex items-center gap-2"
-            >
-              <BarChart className="h-4 w-4" />
-              Statistics
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              onClick={exportTickets}
-              className="flex items-center gap-2"
-              disabled={exportLoading}
-            >
-              {exportLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
-              Export CSV
-            </Button>
-          </div>
-        </div>
+      <AdminTicketsHeader 
+        setShowStats={setShowStats} 
+        exportTickets={exportTickets}
+        exportLoading={exportLoading}
+        error={error}
+      />
+      
+      <Tabs 
+        defaultValue="active" 
+        value={activeTab} 
+        onValueChange={(value) => setActiveTab(value as TicketFilter)}
+        className="container mx-auto mb-6"
+      >
+        <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-2 md:grid-cols-4">
+          <TabsTrigger value="active">Active</TabsTrigger>
+          <TabsTrigger value="expired">Expired</TabsTrigger>
+          <TabsTrigger value="hidden">Hidden</TabsTrigger>
+          <TabsTrigger value="all">All</TabsTrigger>
+        </TabsList>
         
-        {error && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        
-        <Tabs 
-          defaultValue="active" 
-          value={activeTab} 
-          onValueChange={(value) => setActiveTab(value as TicketFilter)}
-          className="mb-6"
-        >
-          <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-2 md:grid-cols-4">
-            <TabsTrigger value="active">Active</TabsTrigger>
-            <TabsTrigger value="expired">Expired</TabsTrigger>
-            <TabsTrigger value="hidden">Hidden</TabsTrigger>
-            <TabsTrigger value="all">All</TabsTrigger>
-          </TabsList>
+        <TabsContent value={activeTab} className="mt-4">
+          <TicketsFilter 
+            searchTerm={filters.searchTerm}
+            bettingSite={filters.bettingSite}
+            onSearchChange={(value) => handleSearchChange(value)}
+            onBettingSiteChange={(site) => handleBettingSiteChange(site)}
+            uniqueBettingSites={[...new Set(allTickets.map(ticket => ticket.bettingSite))]}
+          />
           
-          <TabsContent value={activeTab} className="mt-4">
-            <TicketsFilter 
-              searchTerm={filters.searchTerm}
-              bettingSite={filters.bettingSite}
-              onSearchChange={handleSearchChange}
-              onBettingSiteChange={handleBettingSiteChange}
-              uniqueBettingSites={uniqueBettingSites}
+          <div className="betting-card overflow-x-auto">
+            <TicketsTable 
+              tickets={tickets}
+              loading={loading}
+              onToggleVisibility={toggleTicketVisibility}
+              onMarkExpired={markTicketAsExpired}
             />
-            
-            <div className="betting-card overflow-x-auto">
-              <TicketsTable 
-                tickets={tickets}
-                loading={loading}
-                onToggleVisibility={toggleTicketVisibility}
-                onMarkExpired={markTicketAsExpired}
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+          </div>
+        </TabsContent>
+      </Tabs>
       
       <Dialog open={showStats} onOpenChange={setShowStats}>
         <TicketsStats stats={stats} loading={statsLoading} />
       </Dialog>
     </Layout>
+  );
+};
+
+// New component for the tickets page header
+const AdminTicketsHeader: React.FC<{
+  setShowStats: (show: boolean) => void;
+  exportTickets: () => void;
+  exportLoading: boolean;
+  error: string | null;
+}> = ({ setShowStats, exportTickets, exportLoading, error }) => {
+  return (
+    <div className="container mx-auto py-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <h1 className="text-3xl font-bold">Manage Tickets</h1>
+        
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowStats(true)}
+            className="flex items-center gap-2"
+          >
+            <BarChart className="h-4 w-4" />
+            Statistics
+          </Button>
+          
+          <Button 
+            variant="outline" 
+            onClick={exportTickets}
+            className="flex items-center gap-2"
+            disabled={exportLoading}
+          >
+            {exportLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            Export CSV
+          </Button>
+        </div>
+      </div>
+      
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+    </div>
   );
 };
 

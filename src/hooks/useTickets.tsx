@@ -6,6 +6,7 @@ import { BettingTicket, BettingSite } from "@/types";
 import { useAuth } from "@/contexts/auth";
 import { useTicketFilters } from "./tickets/useTicketFilters";
 import { useTicketMapper } from "./tickets/useTicketMapper";
+import { useTicketActions } from "./tickets/useTicketActions";
 
 interface FilterOptions {
   bettingSite?: BettingSite | "all";
@@ -32,6 +33,7 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
   const { currentUser } = useAuth();
   const ticketFilters = useTicketFilters();
   const ticketMapper = useTicketMapper();
+  const ticketActions = useTicketActions();
 
   // Add filter states
   const [filters, setFilters] = useState<FilterOptions>({});
@@ -127,6 +129,7 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
     error, 
     fetchTickets,
     filters,
-    updateFilters
+    updateFilters,
+    ...ticketActions // Include ticket actions from the new hook
   };
 }
