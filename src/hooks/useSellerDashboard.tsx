@@ -3,24 +3,35 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
 import { useToast } from "@/hooks/use-toast";
+import { getSellerStats, getSellerPerformanceData, getRecentSales } from "@/utils/sqlFunctions";
 
-interface DashboardData {
+export interface SellerDashboardData {
   totalSales: number;
+  totalRevenue: number;
   ticketsSold: number;
   winRate: number;
+  averageRating: number;
   monthlyGrowth: number;
   profileComplete: boolean;
+  performanceData: Array<{name: string, sales: number}>;
+  recentSales: any[];
+  isLoading: boolean;
 }
 
 export const useSellerDashboard = (currentUser: User | null) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const [dashboardData, setDashboardData] = useState<DashboardData>({
+  const [dashboardData, setDashboardData] = useState<SellerDashboardData>({
     totalSales: 0,
+    totalRevenue: 0,
     ticketsSold: 0,
     winRate: 0,
+    averageRating: 0,
     monthlyGrowth: 0,
-    profileComplete: true
+    profileComplete: true,
+    performanceData: [],
+    recentSales: [],
+    isLoading: true
   });
 
   useEffect(() => {
@@ -32,32 +43,6 @@ export const useSellerDashboard = (currentUser: User | null) => {
       
       setLoading(true);
       try {
-        // Get total sales amount
-        const { data: salesData, error: salesError } = await supabase
-          .from('purchases')
-          .select('price')
-          .eq('seller_id', currentUser.id);
-          
-        if (salesError) throw salesError;
-        const totalSales = salesData?.reduce((sum, item) => sum + parseFloat(String(item.price || 0)), 0) || 0;
-        
-        // Get tickets sold count
-        const { count: ticketsCount, error: ticketsError } = await supabase
-          .from('purchases')
-          .select('*', { count: 'exact', head: true })
-          .eq('seller_id', currentUser.id);
-          
-        if (ticketsError) throw ticketsError;
-        
-        // Get winning tickets count
-        const { count: winningCount, error: winningError } = await supabase
-          .from('purchases')
-          .select('*', { count: 'exact', head: true })
-          .eq('seller_id', currentUser.id)
-          .eq('is_winner', true);
-        
-        if (winningError) throw winningError;
-        
         // Check if profile has bank details
         const { data: bankData, error: bankError } = await supabase
           .from('bank_details')
@@ -66,57 +51,26 @@ export const useSellerDashboard = (currentUser: User | null) => {
           
         if (bankError) throw bankError;
         
-        // Calculate win rate
-        let winRate = 0;
-        if (ticketsCount && ticketsCount > 0 && winningCount !== null) {
-          winRate = (winningCount / ticketsCount) * 100;
-        }
+        // Get seller statistics
+        const stats = await getSellerStats(currentUser.id);
         
-        // Get monthly growth data (compare current month's sales to previous month)
-        const now = new Date();
-        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-        const firstDayOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
-        const lastDayOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0).toISOString();
+        // Get performance data for chart
+        const performance = await getSellerPerformanceData(currentUser.id);
         
-        // Current month sales
-        const { data: currentMonthData, error: currentMonthError } = await supabase
-          .from('purchases')
-          .select('price')
-          .eq('seller_id', currentUser.id)
-          .gte('purchase_date', firstDayOfMonth);
-          
-        if (currentMonthError) throw currentMonthError;
-        
-        // Previous month sales
-        const { data: prevMonthData, error: prevMonthError } = await supabase
-          .from('purchases')
-          .select('price')
-          .eq('seller_id', currentUser.id)
-          .gte('purchase_date', firstDayOfPrevMonth)
-          .lt('purchase_date', firstDayOfMonth);
-          
-        if (prevMonthError) throw prevMonthError;
-        
-        const currentMonthSales = currentMonthData?.reduce((sum, item) => 
-          sum + parseFloat(String(item.price || 0)), 0) || 0;
-          
-        const prevMonthSales = prevMonthData?.reduce((sum, item) => 
-          sum + parseFloat(String(item.price || 0)), 0) || 0;
-        
-        // Calculate monthly growth percentage
-        let monthlyGrowth = 0;
-        if (prevMonthSales > 0) {
-          monthlyGrowth = ((currentMonthSales - prevMonthSales) / prevMonthSales) * 100;
-        } else if (currentMonthSales > 0) {
-          monthlyGrowth = 100;
-        }
+        // Get recent sales
+        const recentSales = await getRecentSales(currentUser.id);
         
         setDashboardData({
-          totalSales: totalSales,
-          ticketsSold: ticketsCount || 0,
-          winRate: winRate,
-          monthlyGrowth: monthlyGrowth,
-          profileComplete: bankData && bankData.length > 0
+          totalSales: stats?.totalRevenue || 0,
+          totalRevenue: stats?.totalRevenue || 0,
+          ticketsSold: stats?.totalSales || 0,
+          winRate: stats?.winRate || 0,
+          averageRating: stats?.averageRating || 0,
+          monthlyGrowth: performance?.monthlyGrowth || 0,
+          profileComplete: bankData && bankData.length > 0,
+          performanceData: performance?.performanceData || [],
+          recentSales: recentSales || [],
+          isLoading: false
         });
       } catch (error) {
         console.error("Error fetching dashboard data:", error);

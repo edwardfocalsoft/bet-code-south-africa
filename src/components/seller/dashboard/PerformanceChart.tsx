@@ -2,7 +2,7 @@
 import React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 interface PerformanceChartProps {
   loading: boolean;
@@ -18,22 +18,37 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
   monthlyGrowth, 
   data 
 }) => {
+  const GrowthIndicator = () => {
+    if (monthlyGrowth > 0) {
+      return (
+        <div className="flex items-center text-sm font-normal text-green-500">
+          <TrendingUp className="h-4 w-4 mr-1" />
+          <span>{monthlyGrowth.toFixed(1)}% from last month</span>
+        </div>
+      );
+    } else if (monthlyGrowth < 0) {
+      return (
+        <div className="flex items-center text-sm font-normal text-red-500">
+          <TrendingDown className="h-4 w-4 mr-1" />
+          <span>{Math.abs(monthlyGrowth).toFixed(1)}% from last month</span>
+        </div>
+      );
+    } else {
+      return (
+        <div className="flex items-center text-sm font-normal text-muted-foreground">
+          <Minus className="h-4 w-4 mr-1" />
+          <span>No change from last month</span>
+        </div>
+      );
+    }
+  };
+
   return (
     <Card className="betting-card lg:col-span-2">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>Performance Overview</span>
-          {monthlyGrowth > 0 ? (
-            <div className="flex items-center text-sm font-normal text-green-500">
-              <TrendingUp className="h-4 w-4 mr-1" />
-              <span>{monthlyGrowth.toFixed(1)}% from last month</span>
-            </div>
-          ) : (
-            <div className="flex items-center text-sm font-normal text-red-500">
-              <TrendingUp className="h-4 w-4 mr-1" />
-              <span>{monthlyGrowth.toFixed(1)}% from last month</span>
-            </div>
-          )}
+          <GrowthIndicator />
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -41,6 +56,10 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
           {loading ? (
             <div className="w-full h-full flex items-center justify-center bg-betting-dark-gray/20 rounded-md">
               <p className="text-muted-foreground">Loading chart data...</p>
+            </div>
+          ) : data.length === 0 ? (
+            <div className="w-full h-full flex items-center justify-center bg-betting-dark-gray/20 rounded-md">
+              <p className="text-muted-foreground">No sales data available</p>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">

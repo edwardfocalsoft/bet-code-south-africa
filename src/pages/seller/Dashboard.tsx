@@ -15,27 +15,19 @@ import RecentSalesCard from "@/components/seller/dashboard/RecentSalesCard";
 import SupportCard from "@/components/seller/dashboard/SupportCard";
 import { formatCurrency } from "@/utils/formatting";
 
-// Mock data for the performance chart
-const mockPerformanceData = [
-  { name: "Jan", sales: 4000 },
-  { name: "Feb", sales: 3000 },
-  { name: "Mar", sales: 5000 },
-  { name: "Apr", sales: 2780 },
-  { name: "May", sales: 1890 },
-  { name: "Jun", sales: 2390 },
-  { name: "Jul", sales: 3490 },
-];
-
 const SellerDashboard: React.FC = () => {
   const { currentUser } = useAuth();
   const { creditBalance } = useWallet();
   const { 
     loading, 
-    totalSales, 
+    totalSales,
+    totalRevenue,
     ticketsSold, 
     winRate, 
     monthlyGrowth,
-    profileComplete 
+    profileComplete,
+    performanceData,
+    recentSales
   } = useSellerDashboard(currentUser);
 
   return (
@@ -89,12 +81,18 @@ const SellerDashboard: React.FC = () => {
             title="Available Balance"
             value={creditBalance !== null ? formatCurrency(creditBalance) : ""}
             icon={Wallet}
-            subtitle="Ready to withdraw"
-            loading={creditBalance === null}
+            subtitle={
+              creditBalance >= 1000 
+                ? "Eligible for withdrawal" 
+                : `R${(1000 - (creditBalance || 0)).toFixed(2)} more until withdrawal`
+            }
+            loading={creditBalance === null || loading}
             action={
-              <Button size="sm" variant="outline" asChild>
-                <Link to="/seller/withdrawals">Withdraw</Link>
-              </Button>
+              creditBalance >= 1000 ? (
+                <Button size="sm" variant="outline" asChild>
+                  <Link to="/seller/withdrawals">Withdraw</Link>
+                </Button>
+              ) : null
             }
           />
         </div>
@@ -103,13 +101,13 @@ const SellerDashboard: React.FC = () => {
           <PerformanceChart 
             loading={loading} 
             monthlyGrowth={monthlyGrowth} 
-            data={mockPerformanceData} 
+            data={performanceData} 
           />
           <SalesTipsCard />
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <RecentSalesCard loading={loading} ticketsSold={ticketsSold} />
+          <RecentSalesCard loading={loading} sales={recentSales} />
           <SupportCard />
         </div>
       </div>
