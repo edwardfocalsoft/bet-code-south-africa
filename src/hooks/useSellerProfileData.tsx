@@ -49,17 +49,7 @@ export const useSellerProfileData = (userId: string | undefined) => {
     
     setIsLoading(true);
     try {
-      // Check if the new fields exist in the profiles table
-      const { data: columnsCheck } = await supabase
-        .from('information_schema.columns')
-        .select('column_name')
-        .eq('table_name', 'profiles')
-        .in('column_name', ['display_whatsapp', 'whatsapp_number'])
-        .limit(1);
-      
-      const whatsAppFieldsExist = columnsCheck && columnsCheck.length > 0;
-      
-      // Fetch profile data
+      // First fetch basic profile data
       const { data, error } = await supabase
         .from("profiles")
         .select("username, avatar_url")
@@ -72,26 +62,28 @@ export const useSellerProfileData = (userId: string | undefined) => {
         setProfileData({
           username: data.username || "",
           avatarUrl: data.avatar_url || "",
-          // Default to false if fields don't exist yet
           displayWhatsapp: false,
           whatsappNumber: "",
         });
         
-        // If WhatsApp fields exist, fetch them separately
-        if (whatsAppFieldsExist) {
-          const { data: whatsAppData, error: whatsAppError } = await supabase
+        // Then try to fetch WhatsApp fields separately and handle errors gracefully
+        try {
+          const { data: whatsAppData } = await supabase
             .from("profiles")
             .select("display_whatsapp, whatsapp_number")
             .eq("id", userId)
             .maybeSingle();
             
-          if (!whatsAppError && whatsAppData) {
+          if (whatsAppData) {
             setProfileData(prev => ({
               ...prev,
               displayWhatsapp: !!whatsAppData.display_whatsapp,
               whatsappNumber: whatsAppData.whatsapp_number || "",
             }));
           }
+        } catch (whatsAppError) {
+          // WhatsApp fields might not exist yet, which is fine
+          console.log("WhatsApp fields might not be available yet:", whatsAppError);
         }
       }
     } catch (error: any) {
@@ -196,26 +188,25 @@ export const useSellerProfileData = (userId: string | undefined) => {
         }
       }
       
-      // Check if WhatsApp fields exist in the profiles table
-      const { data: columnsCheck } = await supabase
-        .from('information_schema.columns')
-        .select('column_name')
-        .eq('table_name', 'profiles')
-        .in('column_name', ['display_whatsapp', 'whatsapp_number'])
-        .limit(1);
-        
-      const whatsAppFieldsExist = columnsCheck && columnsCheck.length > 0;
-      
       // Create update object with required fields
-      const updateData: any = { 
+      const updateData: Record<string, any> = { 
         username: profileData.username,
         avatar_url: avatarUrl,
       };
       
-      // Only add WhatsApp fields if they exist in the database
-      if (whatsAppFieldsExist) {
+      // Try to update WhatsApp fields, but they might not exist yet
+      try {
+        // First check if we can update with WhatsApp fields by testing a small update
+        await supabase
+          .from("profiles")
+          .update({ display_whatsapp: profileData.displayWhatsapp })
+          .eq("id", userId);
+          
+        // If we get here, it means the fields exist, so include them
         updateData.display_whatsapp = profileData.displayWhatsapp;
         updateData.whatsapp_number = profileData.displayWhatsapp ? profileData.whatsappNumber : null;
+      } catch (whatsAppError) {
+        console.log("WhatsApp fields might not exist yet:", whatsAppError);
       }
       
       const { error } = await supabase
