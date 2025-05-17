@@ -1,180 +1,173 @@
 
-import { useState, useEffect, useCallback } from "react";
+// Enhancing the existing useSubscriptions hook
+import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth";
+import { useToast } from "@/hooks/use-toast";
 
-interface Subscription {
-  id: string;
-  sellerId: string;
-  buyerId: string;
-  createdAt: Date;
-  sellerUsername?: string;
-}
-
-export function useSubscriptions() {
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
+export const useSubscriptions = () => {
   const { currentUser } = useAuth();
+  const { toast } = useToast();
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [subscribersCount, setSubscribersCount] = useState(0);
 
-  const fetchSubscriptions = useCallback(async () => {
-    // Don't attempt to fetch or show errors if no user is logged in
-    if (!currentUser) {
-      setSubscriptions([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Modified query to correctly join with profiles table
-      const { data, error: fetchError } = await supabase
-        .from('subscriptions')
-        .select(`
-          id,
-          seller_id,
-          buyer_id,
-          created_at,
-          profiles!subscriptions_seller_id_fkey (username)
-        `)
-        .eq("buyer_id", currentUser.id);
-
-      if (fetchError) throw fetchError;
-
-      const mappedSubscriptions = data ? data.map((sub: any) => ({
-        id: sub.id,
-        sellerId: sub.seller_id,
-        buyerId: sub.buyer_id,
-        createdAt: new Date(sub.created_at),
-        sellerUsername: sub.profiles?.username || "Unknown Seller",
-      })) : [];
-
-      setSubscriptions(mappedSubscriptions);
-    } catch (error: any) {
-      console.error("Error fetching subscriptions:", error);
-      setError(error.message || "Failed to fetch subscriptions");
-      // Only show toast for actual errors when user is logged in and trying to view subscriptions
-      // This prevents showing errors on initial load or when not relevant
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (currentUser?.id) {
+      fetchSubscriptions();
+      if (currentUser.role === "seller") {
+        fetchSubscribersCount();
+      }
     }
   }, [currentUser]);
 
-  const subscribeToSeller = useCallback(
-    async (sellerId: string) => {
-      if (!currentUser) {
+  const fetchSubscriptions = async () => {
+    if (!currentUser?.id) return;
+    
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("subscriptions")
+        .select("*")
+        .eq("buyer_id", currentUser.id);
+        
+      if (error) throw error;
+      setSubscriptions(data || []);
+    } catch (error: any) {
+      console.error("Error fetching subscriptions:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSubscribersCount = async () => {
+    if (!currentUser?.id) return;
+    
+    try {
+      const { count, error } = await supabase
+        .from("subscriptions")
+        .select("*", { count: "exact", head: true })
+        .eq("seller_id", currentUser.id);
+        
+      if (error) throw error;
+      setSubscribersCount(count || 0);
+    } catch (error: any) {
+      console.error("Error fetching subscribers count:", error);
+    }
+  };
+
+  const subscribeToSeller = async (sellerId: string) => {
+    if (!currentUser?.id) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to subscribe to sellers",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    try {
+      setLoading(true);
+      
+      // Check if already subscribed
+      const { data: existingSubscription, error: checkError } = await supabase
+        .from("subscriptions")
+        .select("id")
+        .eq("buyer_id", currentUser.id)
+        .eq("seller_id", sellerId)
+        .maybeSingle();
+      
+      if (checkError) throw checkError;
+      
+      if (existingSubscription) {
         toast({
-          title: "Login Required",
-          description: "Please log in to subscribe to sellers.",
-          variant: "destructive",
+          title: "Already Subscribed",
+          description: "You are already subscribed to this seller",
         });
-        return false;
+        return true;
       }
       
-      // Prevent subscribing to yourself
-      if (sellerId === currentUser.id) {
-        toast({
-          title: "Cannot Subscribe",
-          description: "You cannot subscribe to yourself.",
-          variant: "destructive",
+      // Create new subscription
+      const { error } = await supabase
+        .from("subscriptions")
+        .insert({
+          buyer_id: currentUser.id,
+          seller_id: sellerId
         });
-        return false;
-      }
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Subscription Successful",
+        description: "You are now subscribed to this seller",
+      });
+      
+      await fetchSubscriptions();
+      return true;
+    } catch (error: any) {
+      console.error("Error subscribing to seller:", error);
+      toast({
+        title: "Subscription Failed",
+        description: error.message || "Failed to subscribe to seller",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      try {
-        const { data, error } = await supabase
-          .from('subscriptions')
-          .insert({
-            seller_id: sellerId,
-            buyer_id: currentUser.id,
-          })
-          .select();
+  const unsubscribeFromSeller = async (subscriptionId: string) => {
+    if (!currentUser?.id) return false;
+    
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from("subscriptions")
+        .delete()
+        .eq("id", subscriptionId)
+        .eq("buyer_id", currentUser.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Unsubscribed Successfully",
+        description: "You have unsubscribed from this seller",
+      });
+      
+      await fetchSubscriptions();
+      return true;
+    } catch (error: any) {
+      console.error("Error unsubscribing from seller:", error);
+      toast({
+        title: "Unsubscribe Failed",
+        description: error.message || "Failed to unsubscribe from seller",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        if (error) throw error;
+  const isSubscribed = (sellerId: string) => {
+    return subscriptions.some(sub => sub.seller_id === sellerId);
+  };
 
-        toast({
-          title: "Subscribed",
-          description: "You have successfully subscribed to this seller.",
-        });
-
-        fetchSubscriptions();
-        return true;
-      } catch (error: any) {
-        console.error("Error subscribing to seller:", error);
-        toast({
-          title: "Error",
-          description: "Failed to subscribe. Please try again later.",
-          variant: "destructive",
-        });
-        return false;
-      }
-    },
-    [currentUser, toast, fetchSubscriptions]
-  );
-
-  const unsubscribeFromSeller = useCallback(
-    async (subscriptionId: string) => {
-      if (!currentUser) return false;
-
-      try {
-        const { error } = await supabase
-          .from('subscriptions')
-          .delete()
-          .eq("id", subscriptionId);
-
-        if (error) throw error;
-
-        toast({
-          title: "Unsubscribed",
-          description: "You have successfully unsubscribed from this seller.",
-        });
-
-        fetchSubscriptions();
-        return true;
-      } catch (error: any) {
-        console.error("Error unsubscribing from seller:", error);
-        toast({
-          title: "Error",
-          description: "Failed to unsubscribe. Please try again later.",
-          variant: "destructive",
-        });
-        return false;
-      }
-    },
-    [currentUser, toast, fetchSubscriptions]
-  );
-
-  const isSubscribed = useCallback(
-    (sellerId: string) => {
-      return subscriptions.some((sub) => sub.sellerId === sellerId);
-    },
-    [subscriptions]
-  );
-
-  const getSubscriptionId = useCallback(
-    (sellerId: string) => {
-      const subscription = subscriptions.find((sub) => sub.sellerId === sellerId);
-      return subscription?.id;
-    },
-    [subscriptions]
-  );
-
-  useEffect(() => {
-    fetchSubscriptions();
-  }, [fetchSubscriptions]);
+  const getSubscriptionId = (sellerId: string) => {
+    const subscription = subscriptions.find(sub => sub.seller_id === sellerId);
+    return subscription ? subscription.id : null;
+  };
 
   return {
     subscriptions,
+    subscribersCount,
     loading,
-    error,
-    fetchSubscriptions,
-    subscribeToSeller,
-    unsubscribeFromSeller,
     isSubscribed,
     getSubscriptionId,
+    subscribeToSeller,
+    unsubscribeFromSeller,
+    fetchSubscriptions,
+    fetchSubscribersCount
   };
-}
+};

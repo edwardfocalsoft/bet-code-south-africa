@@ -172,6 +172,36 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_settings: {
+        Row: {
+          id: string
+          is_test_mode: boolean | null
+          merchant_id: string
+          merchant_key: string
+          passphrase: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          is_test_mode?: boolean | null
+          merchant_id: string
+          merchant_key: string
+          passphrase: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          is_test_mode?: boolean | null
+          merchant_id?: string
+          merchant_key?: string
+          passphrase?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           approved: boolean
@@ -220,6 +250,10 @@ export type Database = {
           id: string
           is_rated: boolean
           is_winner: boolean | null
+          payment_data: Json | null
+          payment_id: string | null
+          payment_method: string | null
+          payment_status: string | null
           price: number
           purchase_date: string
           seller_id: string
@@ -230,6 +264,10 @@ export type Database = {
           id?: string
           is_rated?: boolean
           is_winner?: boolean | null
+          payment_data?: Json | null
+          payment_id?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
           price: number
           purchase_date?: string
           seller_id: string
@@ -240,6 +278,10 @@ export type Database = {
           id?: string
           is_rated?: boolean
           is_winner?: boolean | null
+          payment_data?: Json | null
+          payment_id?: string | null
+          payment_method?: string | null
+          payment_status?: string | null
           price?: number
           purchase_date?: string
           seller_id?: string
@@ -478,9 +520,21 @@ export type Database = {
         Args: { user_id: string; amount_to_add: number }
         Returns: number
       }
+      complete_ticket_purchase: {
+        Args: {
+          p_purchase_id: string
+          p_payment_id: string
+          p_payment_data?: Json
+        }
+        Returns: boolean
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      purchase_ticket: {
+        Args: { p_ticket_id: string; p_buyer_id: string }
+        Returns: string
       }
     }
     Enums: {

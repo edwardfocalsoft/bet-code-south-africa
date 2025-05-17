@@ -1,5 +1,6 @@
+
 import React, { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,16 +16,28 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import ShareTicket from "@/components/tickets/ShareTicket";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useTicket } from "@/hooks/useTicket";
+import { usePayFast } from "@/hooks/usePayFast";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
 
 const TicketDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { ticket, loading, error } = useTicket(id);
   const { currentUser } = useAuth();
   const { toast } = useToast();
-  const [purchasing, setPurchasing] = useState(false);
+  const { initiatePayment, loading: paymentLoading } = usePayFast();
+  const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
+  const [processingPurchase, setProcessingPurchase] = useState(false);
+  const navigate = useNavigate();
 
   const handlePurchase = async () => {
     if (!currentUser) {
@@ -36,34 +49,59 @@ const TicketDetails: React.FC = () => {
       return;
     }
 
-    setPurchasing(true);
+    if (!ticket) return;
+    
+    setPurchaseDialogOpen(true);
+  };
+  
+  const confirmPurchase = async () => {
+    if (!currentUser || !ticket) return;
+    
+    setProcessingPurchase(true);
     
     try {
-      // In production, this would be an actual Supabase insert
-      // await supabase.from("purchases").insert({
-      //   ticket_id: ticket?.id,
-      //   buyer_id: currentUser.id,
-      //   seller_id: ticket?.sellerId,
-      //   price: ticket?.price || 0,
-      // });
-
-      toast({
-        title: "Purchase Successful",
-        description: "You now have access to this ticket.",
+      const result = await initiatePayment({
+        ticketId: ticket.id,
+        ticketTitle: ticket.title,
+        amount: ticket.price,
+        buyerId: currentUser.id
       });
-
-      // Simulate success for now
-      setTimeout(() => {
-        setPurchasing(false);
-      }, 1500);
-    } catch (error) {
+      
+      if (result) {
+        setPurchaseDialogOpen(false);
+        
+        if (result.testMode) {
+          // For test mode, we simulate success
+          toast({
+            title: "Purchase Successful",
+            description: "Thank you for your purchase! You now have access to this ticket.",
+          });
+          
+          // Reload the ticket to show updated access
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+        } else {
+          // This would be a redirect to PayFast in production
+          toast({
+            title: "Redirecting to Payment",
+            description: "You will be redirected to complete your payment.",
+          });
+          
+          // In a real implementation, we would redirect to PayFast here
+          // window.location.href = result.paymentUrl;
+        }
+      }
+    } catch (error: any) {
       console.error("Purchase error:", error);
       toast({
         title: "Purchase Failed",
         description: "There was an error processing your purchase. Please try again.",
         variant: "destructive",
       });
-      setPurchasing(false);
+    } finally {
+      setProcessingPurchase(false);
+      // Leave dialog open if there was an error
     }
   };
 
@@ -200,10 +238,10 @@ const TicketDetails: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <Button 
                     className="bg-betting-green hover:bg-betting-green-dark"
-                    disabled={isPastKickoff || purchasing || isSeller}
+                    disabled={isPastKickoff || paymentLoading || isSeller}
                     onClick={handlePurchase}
                   >
-                    {purchasing ? (
+                    {paymentLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Processing...
@@ -282,6 +320,49 @@ const TicketDetails: React.FC = () => {
           </div>
         </div>
       </div>
+      
+      <Dialog open={purchaseDialogOpen} onOpenChange={setPurchaseDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Purchase</DialogTitle>
+            <DialogDescription>
+              You are about to purchase the following ticket:
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <h3 className="font-medium">{ticket.title}</h3>
+            <p className="text-sm text-muted-foreground">Seller: {ticket.sellerUsername}</p>
+            <p className="text-lg font-bold mt-4">
+              Price: R {ticket.price.toFixed(2)}
+            </p>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setPurchaseDialogOpen(false)}
+              disabled={processingPurchase}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="bg-betting-green hover:bg-betting-green-dark"
+              onClick={confirmPurchase}
+              disabled={processingPurchase}
+            >
+              {processingPurchase ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                "Confirm Purchase"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
