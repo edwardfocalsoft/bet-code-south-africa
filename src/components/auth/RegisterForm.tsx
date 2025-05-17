@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserRole } from "@/types";
 import { User, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 const RegisterForm: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -20,12 +21,11 @@ const RegisterForm: React.FC = () => {
   
   const { register } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
 
   const validateEmail = (email: string): boolean => {
-    // Simple email validation regex
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailPattern.test(email);
+    // Simple email validation - just check for @ and .
+    return email.includes('@') && email.includes('.');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,7 +35,7 @@ const RegisterForm: React.FC = () => {
     setPasswordError("");
     setEmailError("");
     
-    // Validate email
+    // Validate email format - just basic check
     if (!validateEmail(email)) {
       setEmailError("Please enter a valid email address");
       return;
@@ -59,7 +59,7 @@ const RegisterForm: React.FC = () => {
       const user = await register(email, password, role);
       
       if (user) {
-        toast({
+        uiToast({
           title: "Account created",
           description: "Your account has been created successfully.",
         });
@@ -74,11 +74,18 @@ const RegisterForm: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Registration error:", error);
-      toast({
-        title: "Registration failed",
-        description: error.message || "Something went wrong. Please try again.",
-        variant: "destructive"
-      });
+      toast.error(error.message || "Something went wrong. Please try again.");
+      
+      // Check for specific email validation errors
+      if (error.message?.includes("email") || error.message?.includes("Email")) {
+        setEmailError(error.message || "Invalid email format");
+      } else {
+        uiToast({
+          title: "Registration failed",
+          description: error.message || "Something went wrong. Please try again.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsLoading(false);
     }

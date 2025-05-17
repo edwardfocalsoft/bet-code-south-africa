@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -147,15 +146,19 @@ export const useAuthProvider = (): AuthContextType => {
       setLoading(true);
       cleanupAuthState();
       
-      // CRITICAL FIX: Use a more direct approach without any redirect options
-      // We'll skip email confirmation for now to get the signup process working
+      // First, check for basic email format validity
+      if (!email.includes('@') || !email.includes('.')) {
+        throw new Error("Please enter a valid email address");
+      }
+      
+      console.log("Starting signup for:", email);
+      
+      // Use a direct approach without any redirect options to fix the email validation issue
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: {
-            role,
-          }
+          data: { role }
         }
       });
 
@@ -179,6 +182,8 @@ export const useAuthProvider = (): AuthContextType => {
           
           if (profileError) {
             console.error("Error creating profile:", profileError);
+          } else {
+            console.log("Profile created successfully for", data.user.email);
           }
         } catch (profileErr) {
           console.error("Failed to create profile:", profileErr);
@@ -196,18 +201,16 @@ export const useAuthProvider = (): AuthContextType => {
           role: role,
           createdAt: new Date(),
         };
-        navigate("/auth/register/confirmation");
+        
         return userObj;
       }
       return null;
     } catch (error: any) {
       console.error("Signup error", error);
-      uiToast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-      return null;
+      
+      // Provide a clearer error message
+      const errorMessage = error.message || "Failed to create account";
+      throw new Error(errorMessage);
     } finally {
       setLoading(false);
     }
