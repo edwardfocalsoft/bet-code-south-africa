@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -74,6 +73,29 @@ export function useNotifications() {
     }
   }, [currentUser, toast]);
 
+  const cleanupOldNotifications = useCallback(async () => {
+    if (!currentUser) return;
+    
+    try {
+      // Call the database function to delete old notifications
+      const { data, error } = await supabase
+        .rpc('delete_old_notifications') as {
+          data: number;
+          error: any;
+        };
+
+      if (error) throw error;
+      
+      if (data > 0) {
+        console.log(`Cleaned up ${data} old notifications`);
+        // Refresh the notifications list
+        fetchNotifications();
+      }
+    } catch (error: any) {
+      console.error("Error cleaning up old notifications:", error);
+    }
+  }, [currentUser, fetchNotifications]);
+
   const markAsRead = useCallback(
     async (notificationId: string) => {
       if (!currentUser) return;
@@ -110,42 +132,45 @@ export function useNotifications() {
     [currentUser, toast]
   );
 
-  const markAllAsRead = useCallback(async () => {
-    if (!currentUser || notifications.length === 0) return;
+  const markAllAsRead = useCallback(
+    async () => {
+      if (!currentUser || notifications.length === 0) return;
 
-    try {
-      // Use generic type as the notifications table isn't in the generated types yet
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('user_id', currentUser.id)
-        .eq('is_read', false) as {
-          error: any;
-        };
+      try {
+        // Use generic type as the notifications table isn't in the generated types yet
+        const { error } = await supabase
+          .from('notifications')
+          .update({ is_read: true })
+          .eq('user_id', currentUser.id)
+          .eq('is_read', false) as {
+            error: any;
+          };
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // Update all notifications to read in local state
-      setNotifications((prev) =>
-        prev.map((n) => ({ ...n, isRead: true }))
-      );
-      
-      // Reset unread count
-      setUnreadCount(0);
-      
-      toast({
-        title: "Success",
-        description: "All notifications marked as read.",
-      });
-    } catch (error: any) {
-      console.error("Error marking all notifications as read:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update notifications.",
-        variant: "destructive",
-      });
-    }
-  }, [currentUser, notifications, toast]);
+        // Update all notifications to read in local state
+        setNotifications((prev) =>
+          prev.map((n) => ({ ...n, isRead: true }))
+        );
+        
+        // Reset unread count
+        setUnreadCount(0);
+        
+        toast({
+          title: "Success",
+          description: "All notifications marked as read.",
+        });
+      } catch (error: any) {
+        console.error("Error marking all notifications as read:", error);
+        toast({
+          title: "Error",
+          description: "Failed to update notifications.",
+          variant: "destructive",
+        });
+      }
+    }, 
+    [currentUser, notifications, toast]
+  );
 
   // Set up a realtime subscription to listen for new notifications
   useEffect(() => {
@@ -197,6 +222,21 @@ export function useNotifications() {
     fetchNotifications();
   }, [fetchNotifications]);
 
+  // Run cleanup on initial load and periodically
+  useEffect(() => {
+    // Initial cleanup
+    cleanupOldNotifications();
+
+    // Set up periodic cleanup (once per day)
+    const cleanupInterval = setInterval(() => {
+      cleanupOldNotifications();
+    }, 24 * 60 * 60 * 1000); // 24 hours
+
+    return () => {
+      clearInterval(cleanupInterval);
+    };
+  }, [cleanupOldNotifications]);
+
   return {
     notifications,
     unreadCount,
@@ -205,5 +245,6 @@ export function useNotifications() {
     fetchNotifications,
     markAsRead,
     markAllAsRead,
+    cleanupOldNotifications,
   };
 }

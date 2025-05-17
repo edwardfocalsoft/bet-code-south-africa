@@ -7,12 +7,13 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Bell } from "lucide-react";
+import { Bell, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNotifications } from "@/hooks/useNotifications";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const NotificationDropdown: React.FC = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
@@ -95,6 +96,22 @@ const NotificationDropdown: React.FC = () => {
             );
           })
         )}
+        
+        <DropdownMenuSeparator />
+        
+        <div className="p-2 text-xs text-muted-foreground flex items-center">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-3 w-3 mr-1 inline-block" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Notifications older than 60 days are automatically deleted</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <span>Notifications are kept for 60 days</span>
+        </div>
         
         {notifications.length > 5 && (
           <>

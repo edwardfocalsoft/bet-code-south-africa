@@ -5,10 +5,11 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const Notifications: React.FC = () => {
-  const { notifications, loading, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, loading, markAsRead, markAllAsRead, cleanupOldNotifications } = useNotifications();
 
   const handleNotificationClick = (notificationId: string) => {
     markAsRead(notificationId);
@@ -34,14 +35,33 @@ const Notifications: React.FC = () => {
       <div className="container mx-auto py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Notifications</h1>
-          {notifications.length > 0 && (
-            <Button 
-              variant="outline" 
-              onClick={() => markAllAsRead()}
-            >
-              Mark all as read
-            </Button>
-          )}
+          <div className="flex space-x-2">
+            {notifications.length > 0 && (
+              <Button 
+                variant="outline" 
+                onClick={() => markAllAsRead()}
+              >
+                Mark all as read
+              </Button>
+            )}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" onClick={() => cleanupOldNotifications()}>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Clean up
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Remove notifications older than 60 days</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+        </div>
+
+        <div className="text-sm text-muted-foreground mb-6">
+          <p>Notifications older than 60 days are automatically deleted.</p>
         </div>
 
         {loading ? (
