@@ -2,7 +2,7 @@
 import React from "react";
 import { Users, TrendingUp, Clock } from "lucide-react";
 import StatCard from "@/components/admin/StatCard";
-import { BuyerStats } from "@/hooks/useBuyers";
+import { BuyerStats } from "@/hooks/buyers/types";
 
 interface BuyersStatsCardsProps {
   stats: BuyerStats;

@@ -8,7 +8,7 @@ import { BuyersLoading } from "@/components/admin/buyers/BuyersLoading";
 import { BuyersError } from "@/components/admin/buyers/BuyersError";
 import { BuyersStatsCards } from "@/components/admin/buyers/BuyersStatsCards";
 import { BuyersFilter } from "@/components/admin/buyers/BuyersFilter";
-import { useBuyers } from "@/hooks/useBuyers";
+import { useBuyers } from "@/hooks/buyers/useBuyers";
 import { useToast } from "@/hooks/use-toast";
 
 const AdminBuyers = () => {
