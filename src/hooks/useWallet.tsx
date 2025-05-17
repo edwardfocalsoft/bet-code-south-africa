@@ -13,6 +13,7 @@ type WalletTransaction = {
   type: "topup" | "purchase" | "refund";
   description?: string;
   created_at: string;
+  reference_id?: string;
 };
 
 export const useWallet = () => {
@@ -66,7 +67,11 @@ export const useWallet = () => {
           console.error("Error fetching transactions:", transactionsError);
           setTransactions([]);
         } else {
-          setTransactions(transactionsData || []);
+          // Cast the transaction types appropriately
+          setTransactions(transactionsData?.map(transaction => ({
+            ...transaction,
+            type: transaction.type as "topup" | "purchase" | "refund"
+          })) || []);
         }
       } catch (error) {
         console.error("Exception in wallet hook:", error);
