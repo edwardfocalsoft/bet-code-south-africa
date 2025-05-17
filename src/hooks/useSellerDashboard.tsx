@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
+import { useToast } from "@/hooks/use-toast";
 
 interface DashboardData {
   totalSales: number;
@@ -13,6 +14,7 @@ interface DashboardData {
 
 export const useSellerDashboard = (currentUser: User | null) => {
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     totalSales: 0,
     ticketsSold: 0,
@@ -23,7 +25,10 @@ export const useSellerDashboard = (currentUser: User | null) => {
 
   useEffect(() => {
     const fetchDashboardData = async () => {
-      if (!currentUser) return;
+      if (!currentUser) {
+        setLoading(false);
+        return;
+      }
       
       setLoading(true);
       try {
@@ -62,24 +67,62 @@ export const useSellerDashboard = (currentUser: User | null) => {
         if (bankError) throw bankError;
         
         // Calculate win rate
-        const winRate = ticketsCount ? (winningCount || 0) / ticketsCount * 100 : 0;
+        const winRate = ticketsCount && ticketsCount > 0 ? ((winningCount || 0) / ticketsCount) * 100 : 0;
+        
+        // Get monthly growth data (compare current month's sales to previous month)
+        const now = new Date();
+        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const firstDayOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString();
+        const lastDayOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0).toISOString();
+        
+        // Current month sales
+        const { data: currentMonthData, error: currentMonthError } = await supabase
+          .from('purchases')
+          .select('price')
+          .eq('seller_id', currentUser.id)
+          .gte('purchase_date', firstDayOfMonth);
+          
+        if (currentMonthError) throw currentMonthError;
+        
+        // Previous month sales
+        const { data: prevMonthData, error: prevMonthError } = await supabase
+          .from('purchases')
+          .select('price')
+          .eq('seller_id', currentUser.id)
+          .gte('purchase_date', firstDayOfPrevMonth)
+          .lt('purchase_date', firstDayOfMonth);
+          
+        if (prevMonthError) throw prevMonthError;
+        
+        const currentMonthSales = currentMonthData?.reduce((sum, item) => sum + parseFloat(String(item.price)), 0) || 0;
+        const prevMonthSales = prevMonthData?.reduce((sum, item) => sum + parseFloat(String(item.price)), 0) || 0;
+        
+        // Calculate monthly growth percentage
+        const monthlyGrowth = prevMonthSales > 0 
+          ? ((currentMonthSales - prevMonthSales) / prevMonthSales) * 100
+          : currentMonthSales > 0 ? 100 : 0;
         
         setDashboardData({
           totalSales: totalSales,
           ticketsSold: ticketsCount || 0,
           winRate: winRate,
-          monthlyGrowth: 0,
+          monthlyGrowth: monthlyGrowth,
           profileComplete: bankData && bankData.length > 0
         });
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load dashboard data. Please try again.",
+          variant: "destructive"
+        });
       } finally {
         setLoading(false);
       }
     };
     
     fetchDashboardData();
-  }, [currentUser]);
+  }, [currentUser, toast]);
 
   return {
     loading,
