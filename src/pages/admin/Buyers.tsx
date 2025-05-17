@@ -6,24 +6,29 @@ import { BuyersHeader } from "@/components/admin/buyers/BuyersHeader";
 import { BuyersTable } from "@/components/admin/buyers/BuyersTable";
 import { BuyersLoading } from "@/components/admin/buyers/BuyersLoading";
 import { BuyersError } from "@/components/admin/buyers/BuyersError";
+import { BuyersStatsCards } from "@/components/admin/buyers/BuyersStatsCards";
+import { BuyersFilter } from "@/components/admin/buyers/BuyersFilter";
 import { useBuyers } from "@/hooks/useBuyers";
 import { useToast } from "@/hooks/use-toast";
 
 const AdminBuyers = () => {
   const { toast } = useToast();
   const [currentPage, setCurrentPage] = useState(1);
+  const [filters, setFilters] = useState({});
   const pageSize = 10;
   
   const { 
     buyers, 
     loading, 
     error, 
-    totalCount, 
+    totalCount,
+    stats,
     updateBuyerStatus,
     fetchBuyers
   } = useBuyers({ 
     page: currentPage, 
     pageSize,
+    filters,
     fetchOnMount: true // Ensure data is fetched when component mounts
   });
 
@@ -41,6 +46,11 @@ const AdminBuyers = () => {
     });
   };
 
+  const handleFilterChange = (newFilters) => {
+    setFilters(newFilters);
+    setCurrentPage(1); // Reset to first page when filters change
+  };
+
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   const handlePageChange = (page: number) => {
@@ -51,6 +61,10 @@ const AdminBuyers = () => {
     <Layout requireAuth={true} allowedRoles={["admin"]}>
       <div className="container px-4 py-8 mx-auto">
         <BuyersHeader error={error} onRetry={retryFetch} />
+        
+        <BuyersStatsCards stats={stats} loading={loading} />
+        
+        <BuyersFilter onFilterChange={handleFilterChange} />
 
         {error && <BuyersError error={error} onRetry={retryFetch} />}
 
