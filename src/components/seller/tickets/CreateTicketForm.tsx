@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import TicketInfoStep from "./form-steps/TicketInfoStep";
 import TicketDetailsStep from "./form-steps/TicketDetailsStep";
 import ProgressStepper from "./form-steps/ProgressStepper";
+import TicketPreview from "./form-steps/TicketPreview";
 import { useTicketForm } from "@/hooks/seller/useTicketForm";
 
 const CreateTicketForm: React.FC = () => {
@@ -16,6 +17,7 @@ const CreateTicketForm: React.FC = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { ticketData, setTicketData, errors, validateStep1, validateStep2, step, setStep } = useTicketForm();
+  const [previewOpen, setPreviewOpen] = useState(false);
   
   const handleNextStep = () => {
     if (step === 1 && validateStep1()) {
@@ -27,6 +29,12 @@ const CreateTicketForm: React.FC = () => {
   
   const handlePrevStep = () => {
     setStep(1);
+  };
+  
+  const showTicketPreview = () => {
+    if (validateStep2()) {
+      setPreviewOpen(true);
+    }
   };
   
   const handleSubmit = async () => {
@@ -53,6 +61,7 @@ const CreateTicketForm: React.FC = () => {
           is_free: ticketData.isFree,
           odds: parseFloat(ticketData.odds),
           kickoff_time: kickoffTime.toISOString(),
+          ticket_code: ticketData.ticketCode
         })
         .select();
       
@@ -90,8 +99,15 @@ const CreateTicketForm: React.FC = () => {
           onPrev={handlePrevStep}
           onSubmit={handleNextStep}
           isSubmitting={isSubmitting}
+          showPreview={showTicketPreview}
         />
       )}
+      
+      <TicketPreview 
+        isOpen={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        ticketData={ticketData}
+      />
     </>
   );
 };

@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Clock, Loader2, DollarSign } from "lucide-react";
+import { CalendarIcon, Clock, Loader2, TicketIcon } from "lucide-react";
 import { BettingSite } from "@/types";
 
 interface TicketDetailsStepProps {
@@ -18,6 +18,7 @@ interface TicketDetailsStepProps {
     odds: string;
     date: Date;
     time: string;
+    ticketCode: string;
   };
   setTicketData: React.Dispatch<React.SetStateAction<any>>;
   errors: {
@@ -25,10 +26,12 @@ interface TicketDetailsStepProps {
     odds: string;
     date: string;
     time: string;
+    ticketCode: string;
   };
   onPrev: () => void;
   onSubmit: () => void;
   isSubmitting: boolean;
+  showPreview: () => void;
 }
 
 const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
@@ -37,7 +40,8 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
   errors,
   onPrev,
   onSubmit,
-  isSubmitting
+  isSubmitting,
+  showPreview
 }) => {
   return (
     <div className="space-y-4">
@@ -59,7 +63,7 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
             Ticket Price (ZAR)
           </Label>
           <div className="relative">
-            <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <span className="absolute left-3 top-3 h-4 w-4 text-muted-foreground">R</span>
             <Input
               id="price"
               type="number"
@@ -74,6 +78,26 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
           {errors.price && <p className="text-red-500 text-xs mt-1">{errors.price}</p>}
         </div>
       )}
+      
+      <div className="space-y-2">
+        <Label htmlFor="ticketCode">
+          Ticket Code
+        </Label>
+        <div className="relative">
+          <TicketIcon className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input 
+            id="ticketCode"
+            placeholder="Enter unique ticket code"
+            value={ticketData.ticketCode}
+            onChange={(e) => setTicketData({...ticketData, ticketCode: e.target.value})}
+            className="bg-betting-black border-betting-light-gray pl-10"
+          />
+        </div>
+        {errors.ticketCode && <p className="text-red-500 text-xs mt-1">{errors.ticketCode}</p>}
+        <p className="text-xs text-muted-foreground">
+          This code will be partially hidden from public view. Only buyers will see the full code.
+        </p>
+      </div>
       
       <div className="space-y-2">
         <Label htmlFor="odds">
@@ -91,7 +115,7 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Event Date</Label>
+          <Label>Kick-Off Date</Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
@@ -111,6 +135,7 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
                 selected={ticketData.date}
                 onSelect={(date) => date && setTicketData({...ticketData, date})}
                 initialFocus
+                className="pointer-events-auto"
               />
             </PopoverContent>
           </Popover>
@@ -118,7 +143,7 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="time">Event Time</Label>
+          <Label htmlFor="time">Kick-Off Time</Label>
           <div className="relative">
             <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
@@ -140,21 +165,31 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
         >
           Back
         </Button>
-        
-        <Button
-          onClick={onSubmit}
-          className="bg-betting-green hover:bg-betting-green-dark"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Creating...
-            </>
-          ) : (
-            "Create Ticket"
-          )}
-        </Button>
+
+        <div className="space-x-2">
+          <Button
+            variant="outline"
+            onClick={showPreview}
+            className="bg-betting-dark-gray border-betting-light-gray"
+          >
+            Preview
+          </Button>
+          
+          <Button
+            onClick={onSubmit}
+            className="bg-betting-green hover:bg-betting-green-dark"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Publishing...
+              </>
+            ) : (
+              "Publish Ticket"
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );

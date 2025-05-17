@@ -11,6 +11,7 @@ interface TicketFormData {
   odds: string;
   date: Date;
   time: string;
+  ticketCode: string;
 }
 
 interface TicketFormErrors {
@@ -21,6 +22,7 @@ interface TicketFormErrors {
   odds: string;
   date: string;
   time: string;
+  ticketCode: string;
 }
 
 export const useTicketForm = () => {
@@ -34,6 +36,7 @@ export const useTicketForm = () => {
     odds: "",
     date: new Date(),
     time: "19:00",
+    ticketCode: "",
   });
   
   const [errors, setErrors] = useState<TicketFormErrors>({
@@ -44,6 +47,7 @@ export const useTicketForm = () => {
     odds: "",
     date: "",
     time: "",
+    ticketCode: "",
   });
   
   const validateStep1 = () => {
@@ -91,6 +95,13 @@ export const useTicketForm = () => {
       valid = false;
     } else {
       newErrors.odds = "";
+    }
+    
+    if (!ticketData.ticketCode.trim()) {
+      newErrors.ticketCode = "Ticket code is required";
+      valid = false;
+    } else {
+      newErrors.ticketCode = "";
     }
     
     // Date/time validation
