@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -214,19 +213,21 @@ export const useCases = () => {
     setIsLoading(true);
 
     try {
-      // 1. Add credit to buyer
-      const { error: buyerError } = await supabase.rpc('add_credits', { 
-        user_id: buyerId, 
-        amount_to_add: amount 
-      });
+      // 1. Add credit to buyer using the add_credits RPC function
+      const { data: buyerResult, error: buyerError } = await supabase
+        .rpc('add_credits', { 
+          user_id: buyerId, 
+          amount_to_add: amount 
+        });
 
       if (buyerError) throw buyerError;
 
-      // 2. Deduct credit from seller
-      const { error: sellerError } = await supabase.rpc('add_credits', { 
-        user_id: sellerId, 
-        amount_to_add: -amount 
-      });
+      // 2. Deduct credit from seller using the add_credits RPC function
+      const { data: sellerResult, error: sellerError } = await supabase
+        .rpc('add_credits', { 
+          user_id: sellerId, 
+          amount_to_add: -amount 
+        });
 
       if (sellerError) throw sellerError;
 

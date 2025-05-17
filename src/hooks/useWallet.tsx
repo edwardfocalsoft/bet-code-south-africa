@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
@@ -83,11 +83,12 @@ export const useWallet = () => {
 
       if (transactionError) throw transactionError;
 
-      // 2. Update user's credit balance
-      const { error: updateError } = await supabase.rpc('add_credits', { 
-        user_id: currentUser.id, 
-        amount_to_add: amount 
-      });
+      // 2. Update user's credit balance using custom SQL function
+      const { data: updateResult, error: updateError } = await supabase
+        .rpc('add_credits', { 
+          user_id: currentUser.id, 
+          amount_to_add: amount 
+        });
 
       if (updateError) throw updateError;
 
@@ -150,11 +151,12 @@ export const useWallet = () => {
 
       if (transactionError) throw transactionError;
 
-      // 3. Update user's credit balance
-      const { error: updateError } = await supabase.rpc('add_credits', { 
-        user_id: currentUser.id, 
-        amount_to_add: -price // Negative for deduction
-      });
+      // 3. Update user's credit balance using custom SQL function
+      const { data: updateResult, error: updateError } = await supabase
+        .rpc('add_credits', { 
+          user_id: currentUser.id, 
+          amount_to_add: -price // Negative for deduction
+        });
 
       if (updateError) throw updateError;
 

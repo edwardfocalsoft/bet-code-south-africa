@@ -3,6 +3,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useWallet } from "@/hooks/useWallet";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const AuthButtons: React.FC = () => {
   const { creditBalance } = useWallet();
