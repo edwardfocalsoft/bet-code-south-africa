@@ -13,6 +13,14 @@ import {
 import { User } from "lucide-react";
 import Logo from "./Logo";
 import NotificationDropdown from "./NotificationDropdown";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu";
 
 export default function Navbar() {
   const { currentUser, logout, userRole } = useAuth();
@@ -24,9 +32,12 @@ export default function Navbar() {
   return (
     <header className="bg-betting-black border-b border-betting-light-gray">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center">
           <Logo />
-          <nav className="hidden md:flex items-center gap-6">
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <nav className="hidden md:flex items-center gap-6 mr-6">
             <Link
               to="/"
               className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
@@ -46,8 +57,7 @@ export default function Navbar() {
               Sellers
             </Link>
           </nav>
-        </div>
-        <div className="flex items-center gap-4">
+          
           {currentUser ? (
             <>
               <NotificationDropdown />

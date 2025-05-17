@@ -30,7 +30,7 @@ export function useSubscriptions() {
       setLoading(true);
       setError(null);
 
-      // Use generic type as the subscription table isn't in the generated types yet
+      // Modified query to correctly join with profiles table
       const { data, error: fetchError } = await supabase
         .from('subscriptions')
         .select(`
@@ -38,19 +38,19 @@ export function useSubscriptions() {
           seller_id,
           buyer_id,
           created_at,
-          profiles:seller_id (username)
+          profiles!subscriptions_seller_id_fkey (username)
         `)
         .eq("buyer_id", currentUser.id);
 
       if (fetchError) throw fetchError;
 
-      const mappedSubscriptions = data.map((sub: any) => ({
+      const mappedSubscriptions = data ? data.map((sub: any) => ({
         id: sub.id,
         sellerId: sub.seller_id,
         buyerId: sub.buyer_id,
         createdAt: new Date(sub.created_at),
         sellerUsername: sub.profiles?.username || "Unknown Seller",
-      }));
+      })) : [];
 
       setSubscriptions(mappedSubscriptions);
     } catch (error: any) {
