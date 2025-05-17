@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User as UserType, UserRole } from "@/types";
@@ -6,6 +7,9 @@ import { useToast } from "@/hooks/use-toast";
 import { toast } from "sonner";
 import { fetchUserProfile, cleanupAuthState } from "./authUtils";
 import { AuthContextType } from "./types";
+
+// Email validation regex
+const EMAIL_REGEX = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 
 export const useAuthProvider = (): AuthContextType => {
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
@@ -144,20 +148,24 @@ export const useAuthProvider = (): AuthContextType => {
   const register = async (email: string, password: string, role: UserRole) => {
     try {
       setLoading(true);
+      
+      // First cleanup any existing auth state
       cleanupAuthState();
       
-      // First, check for basic email format validity
-      if (!email.includes('@') || !email.includes('.')) {
+      // Validate email format using regex pattern
+      if (!EMAIL_REGEX.test(email)) {
         throw new Error("Please enter a valid email address");
       }
       
-      console.log("Starting signup for:", email);
+      console.log("Starting signup for validated email:", email);
       
-      // Use a direct approach without any redirect options to fix the email validation issue
+      // Create account without any redirects to avoid auth state issues
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: email.trim(), // Ensure no whitespace
         password,
         options: {
+          // Avoid anything that might interfere with signup flow
+          emailRedirectTo: undefined,
           data: { role }
         }
       });
@@ -189,11 +197,6 @@ export const useAuthProvider = (): AuthContextType => {
           console.error("Failed to create profile:", profileErr);
         }
         
-        uiToast({
-          title: "Success",
-          description: "Account created successfully. You can now sign in.",
-        });
-        
         // Create a user object to return
         const userObj: UserType = {
           id: data.user.id,
@@ -204,13 +207,18 @@ export const useAuthProvider = (): AuthContextType => {
         
         return userObj;
       }
+      
       return null;
     } catch (error: any) {
       console.error("Signup error", error);
       
-      // Provide a clearer error message
-      const errorMessage = error.message || "Failed to create account";
-      throw new Error(errorMessage);
+      // Ensure we get a clear error message for email validation
+      if (error.message.includes("email") || error.message.includes("Email")) {
+        throw new Error("The email address is invalid. Please check and try again.");
+      }
+      
+      // For other errors
+      throw new Error(error.message || "Failed to create account");
     } finally {
       setLoading(false);
     }
