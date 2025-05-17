@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import {
   Table,
@@ -13,54 +13,92 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
+import { Eye, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Pagination } from "@/components/ui/pagination";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/auth";
+import { toast } from "sonner";
 
-// Mock data for purchases
-const mockPurchases = [
-  {
-    id: "p1",
-    ticketId: "t1",
-    title: "Bayern Munich vs Real Madrid",
-    seller: "TopPicks",
-    purchaseDate: "2023-05-21T10:30:00Z",
-    amount: 49.99,
-    status: "win", // win, loss, pending
-    sport: "Football",
-  },
-  {
-    id: "p2",
-    ticketId: "t2",
-    title: "Tyson Fury vs Anthony Joshua",
-    seller: "BoxingGuru",
-    purchaseDate: "2023-05-19T14:20:00Z",
-    amount: 29.99,
-    status: "loss",
-    sport: "Boxing",
-  },
-  {
-    id: "p3",
-    ticketId: "t3",
-    title: "Lakers vs Celtics",
-    seller: "NBAInsider",
-    purchaseDate: "2023-05-17T08:45:00Z",
-    amount: 19.99,
-    status: "pending",
-    sport: "Basketball",
-  },
-  // Add more mock data as needed
-];
+type Purchase = {
+  id: string;
+  ticketId: string;
+  title: string;
+  seller: string;
+  purchaseDate: string;
+  amount: number;
+  status: "win" | "loss" | "pending";
+  sport?: string;
+};
 
 const BuyerPurchases = () => {
+  const { currentUser } = useAuth();
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const totalPages = Math.ceil(mockPurchases.length / itemsPerPage);
+  
+  useEffect(() => {
+    const fetchPurchases = async () => {
+      if (!currentUser) return;
+      
+      try {
+        setLoading(true);
+        
+        // Fetch purchases with ticket and seller information
+        const { data, error } = await supabase
+          .from('purchases')
+          .select(`
+            id, 
+            price, 
+            purchase_date,
+            is_winner,
+            ticket_id,
+            tickets:ticket_id (title),
+            sellers:seller_id (username)
+          `)
+          .eq('buyer_id', currentUser.id)
+          .order('purchase_date', { ascending: false });
+          
+        if (error) {
+          console.error("Error fetching purchases:", error);
+          toast.error("Failed to fetch purchases");
+          return;
+        }
+        
+        if (!data) {
+          setPurchases([]);
+          return;
+        }
+        
+        // Transform data to match our Purchase type
+        const purchaseData: Purchase[] = data.map(item => ({
+          id: item.id,
+          ticketId: item.ticket_id,
+          title: item.tickets?.title || "Unknown Ticket",
+          seller: item.sellers?.username || "Unknown Seller",
+          purchaseDate: item.purchase_date,
+          amount: parseFloat(String(item.price)),
+          status: item.is_winner === null ? "pending" : item.is_winner ? "win" : "loss"
+        }));
+        
+        setPurchases(purchaseData);
+      } catch (error) {
+        console.error("Exception fetching purchases:", error);
+        toast.error("An unexpected error occurred");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchPurchases();
+  }, [currentUser]);
   
   // Get current items
+  const totalPages = Math.ceil(purchases.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = mockPurchases.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = purchases.slice(indexOfFirstItem, indexOfLastItem);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -89,57 +127,74 @@ const BuyerPurchases = () => {
         <h1 className="text-3xl font-bold mb-6">My Purchases</h1>
         
         <div className="bg-card rounded-md shadow">
-          <Table>
-            <TableCaption>Your purchase history</TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Event</TableHead>
-                <TableHead>Seller</TableHead>
-                <TableHead>Purchase Date</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {currentItems.map((purchase) => (
-                <TableRow key={purchase.id}>
-                  <TableCell className="font-medium">{purchase.title}</TableCell>
-                  <TableCell>{purchase.seller}</TableCell>
-                  <TableCell>{formatDate(purchase.purchaseDate)}</TableCell>
-                  <TableCell>${purchase.amount.toFixed(2)}</TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant="outline"
-                      className={getStatusColor(purchase.status)}
-                    >
-                      {purchase.status.charAt(0).toUpperCase() + purchase.status.slice(1)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      asChild
-                    >
-                      <Link to={`/tickets/${purchase.ticketId}`}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        View Ticket
-                      </Link>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          
-          <div className="flex items-center justify-center py-4">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={handlePageChange}
-            />
-          </div>
+          {loading ? (
+            <div className="flex justify-center items-center p-12">
+              <Loader2 className="h-8 w-8 animate-spin text-betting-green" />
+            </div>
+          ) : purchases.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground mb-4">You haven't purchased any tickets yet</p>
+              <Button className="bg-betting-green hover:bg-betting-green-dark" asChild>
+                <Link to="/tickets">Browse Tickets</Link>
+              </Button>
+            </div>
+          ) : (
+            <>
+              <Table>
+                <TableCaption>Your purchase history</TableCaption>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Event</TableHead>
+                    <TableHead>Seller</TableHead>
+                    <TableHead>Purchase Date</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {currentItems.map((purchase) => (
+                    <TableRow key={purchase.id}>
+                      <TableCell className="font-medium">{purchase.title}</TableCell>
+                      <TableCell>{purchase.seller}</TableCell>
+                      <TableCell>{formatDate(purchase.purchaseDate)}</TableCell>
+                      <TableCell>R{purchase.amount.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant="outline"
+                          className={getStatusColor(purchase.status)}
+                        >
+                          {purchase.status.charAt(0).toUpperCase() + purchase.status.slice(1)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          asChild
+                        >
+                          <Link to={`/tickets/${purchase.ticketId}`}>
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Ticket
+                          </Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center py-4">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                  />
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </Layout>

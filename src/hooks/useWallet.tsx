@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { addCredits } from "@/utils/sqlFunctions";
 
 // Define a transaction type for our wallet
-type WalletTransaction = {
+export type WalletTransaction = {
   id: string;
   user_id: string;
   amount: number;
@@ -19,7 +19,6 @@ type WalletTransaction = {
 export const useWallet = () => {
   const { currentUser } = useAuth();
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -29,13 +28,11 @@ export const useWallet = () => {
       if (!currentUser) {
         setCreditBalance(null);
         setTransactions([]);
-        setLoading(false);
         setIsLoading(false);
         return;
       }
       
       try {
-        setLoading(true);
         setIsLoading(true);
         
         // Fetch credit balance
@@ -78,7 +75,6 @@ export const useWallet = () => {
         setCreditBalance(null);
         setTransactions([]);
       } finally {
-        setLoading(false);
         setIsLoading(false);
       }
     };
@@ -173,7 +169,6 @@ export const useWallet = () => {
 
   return { 
     creditBalance: creditBalance ?? 0, 
-    loading, 
     transactions, 
     isLoading, 
     topUpWallet 
