@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import Layout from "@/components/layout/Layout";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +31,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useTickets } from "@/hooks/useTickets";
+import { isPast } from "date-fns";
 
 interface TicketWithSeller extends BettingTicket {
   sellerEmail: string;
@@ -61,11 +62,11 @@ interface StatsData {
 }
 
 const AdminTickets: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<TicketFilter>("active");
   const [tickets, setTickets] = useState<TicketWithSeller[]>([]);
   const [allTickets, setAllTickets] = useState<TicketWithSeller[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TicketFilter>("active");
   const [filters, setFilters] = useState<TicketsFilterState>({
     searchTerm: "",
     bettingSite: null,
@@ -79,6 +80,13 @@ const AdminTickets: React.FC = () => {
   const [statsLoading, setStatsLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const { toast } = useToast();
+
+  // Use the enhanced useTickets hook with role set to "admin"
+  const { fetchTickets: hookFetchTickets } = useTickets({
+    fetchOnMount: false,
+    filterExpired: false,
+    role: "admin"
+  });
 
   const fetchTickets = async (filter: TicketFilter = "active") => {
     try {
@@ -97,10 +105,15 @@ const AdminTickets: React.FC = () => {
       
       switch (filter) {
         case "active":
-          query = query.eq("is_expired", false).eq("is_hidden", false);
+          // For active tickets, ensure both is_expired is false AND kickoff time hasn't passed
+          query = query.eq("is_hidden", false);
+          const now = new Date().toISOString();
+          query = query.gt("kickoff_time", now); // Only future kickoff times
+          query = query.eq("is_expired", false); // And not manually expired
           break;
         case "expired":
-          query = query.eq("is_expired", true);
+          // For expired tickets, include either is_expired = true OR kickoff_time in the past
+          query = query.or(`is_expired.eq.true,kickoff_time.lt.${new Date().toISOString()}`);
           break;
         case "hidden":
           query = query.eq("is_hidden", true);
@@ -115,23 +128,29 @@ const AdminTickets: React.FC = () => {
       
       if (fetchError) throw fetchError;
       
-      const formattedTickets = data.map((ticket: any) => ({
-        id: ticket.id,
-        title: ticket.title,
-        description: ticket.description,
-        sellerId: ticket.seller_id,
-        sellerUsername: ticket.profiles.username || "Unnamed Seller",
-        sellerEmail: ticket.profiles.email,
-        price: parseFloat(ticket.price),
-        isFree: ticket.is_free,
-        bettingSite: ticket.betting_site,
-        kickoffTime: new Date(ticket.kickoff_time),
-        createdAt: new Date(ticket.created_at),
-        odds: ticket.odds ? parseFloat(ticket.odds) : undefined,
-        isHidden: ticket.is_hidden,
-        isExpired: ticket.is_expired,
-        eventResults: ticket.event_results
-      }));
+      const formattedTickets = data.map((ticket: any) => {
+        const kickoffTime = new Date(ticket.kickoff_time);
+        const isExpiredByDate = isPast(kickoffTime);
+        
+        return {
+          id: ticket.id,
+          title: ticket.title,
+          description: ticket.description,
+          sellerId: ticket.seller_id,
+          sellerUsername: ticket.profiles.username || "Unnamed Seller",
+          sellerEmail: ticket.profiles.email,
+          price: parseFloat(ticket.price),
+          isFree: ticket.is_free,
+          bettingSite: ticket.betting_site,
+          kickoffTime: kickoffTime,
+          createdAt: new Date(ticket.created_at),
+          odds: ticket.odds ? parseFloat(ticket.odds) : undefined,
+          isHidden: ticket.is_hidden,
+          // Make sure to mark tickets as expired if kickoff time has passed
+          isExpired: ticket.is_expired || isExpiredByDate,
+          eventResults: ticket.event_results
+        };
+      });
       
       setAllTickets(formattedTickets);
       applyFilters(formattedTickets, filters);
@@ -178,7 +197,7 @@ const AdminTickets: React.FC = () => {
     // Apply sorting
     filtered.sort((a, b) => {
       const field = filterState.sortField;
-      const order = filterState.sortOrder === "asc" ? 1 : -1;
+      const order = filterState.sortOrder === "desc" ? 1 : -1;
       
       if (field === "title") {
         return a.title.localeCompare(b.title) * order;
@@ -287,70 +306,6 @@ const AdminTickets: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchTickets(activeTab);
-  }, [activeTab]);
-
-  useEffect(() => {
-    applyFilters(allTickets, filters);
-  }, [filters, allTickets]);
-
-  useEffect(() => {
-    if (showStats) {
-      generateStats();
-    }
-  }, [showStats, allTickets]);
-
-  const toggleTicketVisibility = async (ticketId: string, hide: boolean) => {
-    try {
-      const { error: updateError } = await supabase
-        .from("tickets")
-        .update({ is_hidden: hide })
-        .eq("id", ticketId);
-        
-      if (updateError) throw updateError;
-      
-      toast({
-        title: "Success",
-        description: `Ticket ${hide ? "hidden" : "unhidden"} successfully.`,
-      });
-      
-      fetchTickets(activeTab);
-    } catch (error: any) {
-      console.error("Error updating ticket:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update ticket visibility.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const markTicketAsExpired = async (ticketId: string, expired: boolean) => {
-    try {
-      const { error: updateError } = await supabase
-        .from("tickets")
-        .update({ is_expired: expired })
-        .eq("id", ticketId);
-        
-      if (updateError) throw updateError;
-      
-      toast({
-        title: "Success",
-        description: `Ticket marked as ${expired ? "expired" : "active"} successfully.`,
-      });
-      
-      fetchTickets(activeTab);
-    } catch (error: any) {
-      console.error("Error updating ticket:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update ticket status.",
-        variant: "destructive",
-      });
-    }
-  };
-  
   const handleSort = (field: SortField) => {
     setFilters(prev => ({
       ...prev,

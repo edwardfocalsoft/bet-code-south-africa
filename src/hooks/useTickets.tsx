@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { BettingTicket, BettingSite } from "@/types";
 import { useAuth } from "@/contexts/auth";
+import { isPast } from "date-fns"; // Add this import for date checking
 
 interface FilterOptions {
   bettingSite?: BettingSite | "all";
@@ -105,7 +106,7 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
     return data.map((ticket: any) => {
       const kickoffTime = new Date(ticket.kickoff_time);
       // Extra safeguard: Check if the ticket is expired based on kickoff time
-      const isExpiredByDate = kickoffTime < new Date();
+      const isExpiredByDate = isPast(kickoffTime);
       
       return {
         id: ticket.id,
