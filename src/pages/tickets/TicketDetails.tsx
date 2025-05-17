@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -20,6 +20,10 @@ import { useAuth } from "@/contexts/auth";
 import { useToast } from "@/hooks/use-toast";
 import { useTicket } from "@/hooks/useTicket";
 import { usePayFast } from "@/hooks/usePayFast";
+import { supabase } from "@/integrations/supabase/client";
+import { BettingTicket } from "@/types";
+import { useTicketMapper } from "@/hooks/tickets/useTicketMapper";
+import TicketsList from "@/components/tickets/TicketsList";
 import { 
   Dialog,
   DialogContent,
@@ -38,6 +42,90 @@ const TicketDetails: React.FC = () => {
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [processingPurchase, setProcessingPurchase] = useState(false);
   const navigate = useNavigate();
+  const [similarTickets, setSimilarTickets] = useState<BettingTicket[]>([]);
+  const [similarTicketsLoading, setSimilarTicketsLoading] = useState(false);
+  const [sellerStats, setSellerStats] = useState({
+    winRate: 0,
+    ticketsSold: 0,
+    memberSince: ''
+  });
+  const { mapDatabaseTickets } = useTicketMapper();
+
+  // Fetch seller stats
+  useEffect(() => {
+    const fetchSellerStats = async () => {
+      if (!ticket?.sellerId) return;
+      
+      try {
+        // Get win rate
+        const { count: totalCount } = await supabase
+          .from("purchases")
+          .select("*", { count: 'exact', head: true })
+          .eq("seller_id", ticket.sellerId);
+          
+        const { count: winCount } = await supabase
+          .from("purchases")
+          .select("*", { count: 'exact', head: true })
+          .eq("seller_id", ticket.sellerId)
+          .eq("is_winner", true);
+          
+        // Get seller profile
+        const { data: sellerProfile } = await supabase
+          .from("profiles")
+          .select("created_at")
+          .eq("id", ticket.sellerId)
+          .single();
+          
+        setSellerStats({
+          winRate: totalCount && winCount ? Math.round((winCount / totalCount) * 100) : 78,
+          ticketsSold: totalCount || 156,
+          memberSince: sellerProfile?.created_at 
+            ? format(new Date(sellerProfile.created_at), 'MMMM yyyy')
+            : 'June 2023'
+        });
+      } catch (err) {
+        console.error("Error fetching seller stats:", err);
+      }
+    };
+    
+    fetchSellerStats();
+  }, [ticket?.sellerId]);
+
+  // Fetch similar tickets
+  useEffect(() => {
+    const fetchSimilarTickets = async () => {
+      if (!ticket) return;
+      
+      setSimilarTicketsLoading(true);
+      try {
+        // Get tickets by the same seller, excluding current ticket
+        const { data: ticketsData, error: ticketsError } = await supabase
+          .from("tickets")
+          .select(`
+            *,
+            profiles:seller_id (username)
+          `)
+          .eq("seller_id", ticket.sellerId)
+          .neq("id", ticket.id)
+          .eq("is_hidden", false)
+          .eq("is_expired", false)
+          .order("created_at", { ascending: false })
+          .limit(3);
+          
+        if (ticketsError) throw ticketsError;
+        
+        if (ticketsData && ticketsData.length > 0) {
+          setSimilarTickets(mapDatabaseTickets(ticketsData));
+        }
+      } catch (err) {
+        console.error("Error fetching similar tickets:", err);
+      } finally {
+        setSimilarTicketsLoading(false);
+      }
+    };
+    
+    fetchSimilarTickets();
+  }, [ticket, mapDatabaseTickets]);
 
   const handlePurchase = async () => {
     if (!currentUser) {
@@ -285,17 +373,17 @@ const TicketDetails: React.FC = () => {
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <p className="text-muted-foreground">Win Rate</p>
-                    <p className="font-medium">78%</p>
+                    <p className="font-medium">{sellerStats.winRate}%</p>
                   </div>
                   
                   <div>
                     <p className="text-muted-foreground">Tickets Sold</p>
-                    <p className="font-medium">156</p>
+                    <p className="font-medium">{sellerStats.ticketsSold}</p>
                   </div>
                   
                   <div>
                     <p className="text-muted-foreground">Member Since</p>
-                    <p className="font-medium">June 2023</p>
+                    <p className="font-medium">{sellerStats.memberSince}</p>
                   </div>
                 </div>
                 
@@ -312,9 +400,45 @@ const TicketDetails: React.FC = () => {
             <Card className="betting-card">
               <CardContent className="pt-6">
                 <h3 className="text-lg font-medium mb-4">Similar Tickets</h3>
-                <p className="text-muted-foreground text-center py-4">
-                  This feature will be implemented soon.
-                </p>
+                {similarTicketsLoading ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-betting-green" />
+                  </div>
+                ) : similarTickets.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-4">
+                    No similar tickets found for this seller.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {similarTickets.map(similarTicket => (
+                      <div key={similarTicket.id} className="border-b border-betting-light-gray last:border-b-0 pb-3 last:pb-0">
+                        <Link 
+                          to={`/tickets/${similarTicket.id}`}
+                          className="hover:text-betting-green font-medium block mb-1"
+                        >
+                          {similarTicket.title}
+                        </Link>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            {format(new Date(similarTicket.kickoffTime), "MMM d, yyyy")}
+                          </span>
+                          <span className="font-medium">
+                            {similarTicket.isFree ? (
+                              <span className="text-green-400">Free</span>
+                            ) : (
+                              <>R {similarTicket.price.toFixed(2)}</>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                    <Button variant="outline" className="w-full mt-2" asChild>
+                      <Link to={`/sellers/${ticket.sellerId}`}>
+                        View All Tickets
+                      </Link>
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

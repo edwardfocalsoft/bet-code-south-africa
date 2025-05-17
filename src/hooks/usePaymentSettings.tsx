@@ -34,9 +34,26 @@ export const usePaymentSettings = () => {
       const { data, error } = await supabase
         .from("payment_settings")
         .select("*")
+        .limit(1)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // If no settings exist, we should create a default one
+        if (error.code === 'PGRST116') {
+          const defaultSettings = {
+            merchant_id: "10000100",
+            merchant_key: "pb8iz6kkctyzm",
+            passphrase: "TestPayFastPassphrase",
+            is_test_mode: true,
+            updated_at: new Date().toISOString()
+          };
+          
+          setSettings(defaultSettings as PaymentSettings);
+          return;
+        }
+        throw error;
+      }
+      
       setSettings(data);
     } catch (error: any) {
       console.error("Error fetching payment settings:", error);
