@@ -1,13 +1,14 @@
 
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
-import { Ticket, Star, Trophy, Gift, Wallet } from "lucide-react";
+import { Ticket, Trophy, Star, Wallet } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useWallet } from "@/hooks/useWallet";
 import { supabase } from "@/integrations/supabase/client";
 import StatCard from "@/components/buyer/dashboard/StatCard";
 import RecentPurchasesCard from "@/components/buyer/dashboard/RecentPurchasesCard";
 import SupportCard from "@/components/buyer/dashboard/SupportCard";
+import LoyaltyPointsCard from "@/components/buyer/dashboard/LoyaltyPointsCard";
 
 const BuyerDashboard: React.FC = () => {
   const { currentUser } = useAuth();
@@ -126,6 +127,10 @@ const BuyerDashboard: React.FC = () => {
             hasPurchases={dashboardData.ticketsPurchased > 0} 
           />
           <SupportCard />
+          <LoyaltyPointsCard 
+            points={dashboardData.loyaltyPoints} 
+            loading={loading} 
+          />
         </div>
       </div>
     </Layout>
