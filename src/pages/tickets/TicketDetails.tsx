@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -13,7 +14,7 @@ import {
   TrendingUp,
   Star
 } from "lucide-react";
-import { formatDistanceToNow, format } from "date-fns";
+import { formatDistanceToNow, format, isValid } from "date-fns";
 import ShareTicket from "@/components/tickets/ShareTicket";
 import { useAuth } from "@/contexts/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -53,36 +54,51 @@ const TicketDetails: React.FC = () => {
   });
   const { mapDatabaseTickets } = useTicketMapper();
 
+  // Helper function to safely format dates
+  const safeFormat = (date: string | Date | null | undefined, formatStr: string, fallback: string = 'N/A') => {
+    if (!date) return fallback;
+    
+    const dateObj = date instanceof Date ? date : new Date(date);
+    if (!isValid(dateObj)) return fallback;
+    
+    try {
+      return format(dateObj, formatStr);
+    } catch (error) {
+      console.error("Date formatting error:", error, date);
+      return fallback;
+    }
+  };
+
   // Fetch seller stats
   useEffect(() => {
     const fetchSellerStats = async () => {
-      if (!ticket?.sellerId) return;
+      if (!ticket?.seller_id) return;
       
       try {
         // Get win rate
         const { count: totalCount } = await supabase
           .from("purchases")
           .select("*", { count: 'exact', head: true })
-          .eq("seller_id", ticket.sellerId);
+          .eq("seller_id", ticket.seller_id);
           
         const { count: winCount } = await supabase
           .from("purchases")
           .select("*", { count: 'exact', head: true })
-          .eq("seller_id", ticket.sellerId)
+          .eq("seller_id", ticket.seller_id)
           .eq("is_winner", true);
           
         // Get seller profile
         const { data: sellerProfile } = await supabase
           .from("profiles")
           .select("created_at")
-          .eq("id", ticket.sellerId)
+          .eq("id", ticket.seller_id)
           .single();
           
         setSellerStats({
           winRate: totalCount && winCount ? Math.round((winCount / totalCount) * 100) : 78,
           ticketsSold: totalCount || 156,
           memberSince: sellerProfile?.created_at 
-            ? format(new Date(sellerProfile.created_at), 'MMMM yyyy')
+            ? safeFormat(sellerProfile.created_at, 'MMMM yyyy', 'June 2023')
             : 'June 2023'
         });
       } catch (err) {
@@ -91,12 +107,12 @@ const TicketDetails: React.FC = () => {
     };
     
     fetchSellerStats();
-  }, [ticket?.sellerId]);
+  }, [ticket?.seller_id]);
 
   // Fetch similar tickets
   useEffect(() => {
     const fetchSimilarTickets = async () => {
-      if (!ticket) return;
+      if (!ticket || !ticket.seller_id) return;
       
       setSimilarTicketsLoading(true);
       try {
@@ -107,8 +123,8 @@ const TicketDetails: React.FC = () => {
             *,
             profiles:seller_id (username)
           `)
-          .eq("seller_id", ticket.sellerId)
-          .neq("id", ticket.id)
+          .eq("seller_id", ticket.seller_id)
+          .neq("id", id)
           .eq("is_hidden", false)
           .eq("is_expired", false)
           .order("created_at", { ascending: false })
@@ -127,7 +143,7 @@ const TicketDetails: React.FC = () => {
     };
     
     fetchSimilarTickets();
-  }, [ticket, mapDatabaseTickets]);
+  }, [ticket, id, mapDatabaseTickets]);
 
   const handlePurchase = async () => {
     if (!currentUser) {
@@ -142,7 +158,7 @@ const TicketDetails: React.FC = () => {
     if (!ticket) return;
     
     // Check if it's a free ticket
-    if (ticket.isFree) {
+    if (ticket.is_free) {
       await purchaseTicket();
       return;
     }
@@ -206,9 +222,13 @@ const TicketDetails: React.FC = () => {
     );
   }
 
-  const isSeller = currentUser?.id === ticket.sellerId;
-  const isPastKickoff = new Date() > new Date(ticket.kickoffTime);
+  const isSeller = currentUser?.id === ticket.seller_id;
+  const isPastKickoff = new Date() > new Date(ticket.kickoff_time || Date.now());
   const canAffordWithCredit = creditBalance >= ticket.price;
+
+  // Make sure the date is valid before trying to format it
+  const kickoffTime = ticket.kickoff_time ? new Date(ticket.kickoff_time) : new Date();
+  const isValidKickoffTime = isValid(kickoffTime);
 
   return (
     <Layout>
@@ -227,7 +247,7 @@ const TicketDetails: React.FC = () => {
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <h1 className="text-2xl font-bold">{ticket.title}</h1>
-                      {ticket.isFree && (
+                      {ticket.is_free && (
                         <Badge className="bg-green-900/30 text-green-400 border-green-500">
                           Free
                         </Badge>
@@ -241,36 +261,40 @@ const TicketDetails: React.FC = () => {
                     </div>
                     
                     <div className="flex items-center gap-3 text-sm text-muted-foreground mb-4">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        <span>{format(new Date(ticket.kickoffTime), "PPP")}</span>
-                      </div>
-                      
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        <span>{format(new Date(ticket.kickoffTime), "p")}</span>
-                      </div>
+                      {isValidKickoffTime && (
+                        <>
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            <span>{safeFormat(kickoffTime, "PPP")}</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            <span>{safeFormat(kickoffTime, "p")}</span>
+                          </div>
+                        </>
+                      )}
                       
                       <div className="flex items-center gap-1">
                         <User className="h-4 w-4" />
                         <Link 
-                          to={`/sellers/${ticket.sellerId}`} 
+                          to={`/sellers/${ticket.seller_id}`} 
                           className="text-betting-green hover:underline"
                         >
-                          {ticket.sellerUsername}
+                          {ticket.profiles?.username || "Unknown Seller"}
                         </Link>
                       </div>
                     </div>
                     
                     <div className="flex items-center gap-2 mb-8">
                       <Badge className="bg-betting-dark-gray text-white">
-                        {ticket.bettingSite}
+                        {ticket.betting_site}
                       </Badge>
                       
                       {ticket.odds && (
                         <div className="flex items-center gap-1 text-sm">
                           <TrendingUp className="h-4 w-4 text-betting-green" />
-                          <span>Odds: {ticket.odds.toFixed(2)}</span>
+                          <span>Odds: {Number(ticket.odds).toFixed(2)}</span>
                         </div>
                       )}
                     </div>
@@ -301,10 +325,10 @@ const TicketDetails: React.FC = () => {
               <CardFooter className="flex justify-between border-t border-betting-light-gray pt-4">
                 <div className="flex items-baseline gap-2">
                   <span className="text-xl font-bold">
-                    {ticket.isFree ? (
+                    {ticket.is_free ? (
                       <span className="text-green-400">Free</span>
                     ) : (
-                      <>R {ticket.price.toFixed(2)}</>
+                      <>R {Number(ticket.price).toFixed(2)}</>
                     )}
                   </span>
                 </div>
@@ -322,7 +346,7 @@ const TicketDetails: React.FC = () => {
                       </>
                     ) : alreadyPurchased ? (
                       "Purchased"
-                    ) : ticket.isFree ? (
+                    ) : ticket.is_free ? (
                       "Get for Free"
                     ) : (
                       "Purchase Ticket"
@@ -339,16 +363,16 @@ const TicketDetails: React.FC = () => {
                 <h3 className="text-lg font-medium mb-4">Seller Information</h3>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="h-12 w-12 rounded-full bg-betting-light-gray flex items-center justify-center text-xl font-bold">
-                    {ticket.sellerUsername?.charAt(0).toUpperCase() || "?"}
+                    {ticket.profiles?.username?.charAt(0).toUpperCase() || "?"}
                   </div>
                   
                   <div>
                     <h4 className="font-medium">
                       <Link 
-                        to={`/sellers/${ticket.sellerId}`} 
+                        to={`/sellers/${ticket.seller_id}`} 
                         className="hover:text-betting-green"
                       >
-                        {ticket.sellerUsername}
+                        {ticket.profiles?.username || "Unknown Seller"}
                       </Link>
                     </h4>
                     <div className="flex items-center text-sm">
@@ -377,7 +401,7 @@ const TicketDetails: React.FC = () => {
                 
                 <div className="mt-6">
                   <Button variant="outline" className="w-full" asChild>
-                    <Link to={`/sellers/${ticket.sellerId}`}>
+                    <Link to={`/sellers/${ticket.seller_id}`}>
                       View Seller Profile
                     </Link>
                   </Button>
@@ -398,30 +422,37 @@ const TicketDetails: React.FC = () => {
                   </p>
                 ) : (
                   <div className="space-y-4">
-                    {similarTickets.map(similarTicket => (
-                      <div key={similarTicket.id} className="border-b border-betting-light-gray last:border-b-0 pb-3 last:pb-0">
-                        <Link 
-                          to={`/tickets/${similarTicket.id}`}
-                          className="hover:text-betting-green font-medium block mb-1"
-                        >
-                          {similarTicket.title}
-                        </Link>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            {format(new Date(similarTicket.kickoffTime), "MMM d, yyyy")}
-                          </span>
-                          <span className="font-medium">
-                            {similarTicket.isFree ? (
-                              <span className="text-green-400">Free</span>
-                            ) : (
-                              <>R {similarTicket.price.toFixed(2)}</>
-                            )}
-                          </span>
+                    {similarTickets.map(similarTicket => {
+                      const ticketDate = new Date(similarTicket.kickoffTime);
+                      const isValidDate = isValid(ticketDate);
+
+                      return (
+                        <div key={similarTicket.id} className="border-b border-betting-light-gray last:border-b-0 pb-3 last:pb-0">
+                          <Link 
+                            to={`/tickets/${similarTicket.id}`}
+                            className="hover:text-betting-green font-medium block mb-1"
+                          >
+                            {similarTicket.title}
+                          </Link>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              {isValidDate 
+                                ? format(ticketDate, "MMM d, yyyy") 
+                                : "Date not available"}
+                            </span>
+                            <span className="font-medium">
+                              {similarTicket.isFree ? (
+                                <span className="text-green-400">Free</span>
+                              ) : (
+                                <>R {similarTicket.price.toFixed(2)}</>
+                              )}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                     <Button variant="outline" className="w-full mt-2" asChild>
-                      <Link to={`/sellers/${ticket.sellerId}`}>
+                      <Link to={`/sellers/${ticket.seller_id}`}>
                         View All Tickets
                       </Link>
                     </Button>
@@ -444,13 +475,13 @@ const TicketDetails: React.FC = () => {
           
           <div className="py-4">
             <h3 className="font-medium">{ticket.title}</h3>
-            <p className="text-sm text-muted-foreground">Seller: {ticket.sellerUsername}</p>
+            <p className="text-sm text-muted-foreground">Seller: {ticket.profiles?.username || "Unknown Seller"}</p>
             <p className="text-lg font-bold mt-4">
-              Price: R {ticket.price.toFixed(2)}
+              Price: R {Number(ticket.price).toFixed(2)}
             </p>
             
             {/* Payment method selection */}
-            {!ticket.isFree && (
+            {!ticket.is_free && (
               <div className="mt-6 border-t border-betting-light-gray pt-4">
                 <h4 className="text-sm font-medium mb-3">Payment Method</h4>
                 

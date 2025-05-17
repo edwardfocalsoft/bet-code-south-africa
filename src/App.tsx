@@ -31,6 +31,8 @@ import Users from './pages/admin/Buyers';
 import Notifications from './pages/user/Notifications';
 import SellerWithdrawals from './pages/seller/Withdrawals';
 import AdminWithdrawals from './pages/admin/Withdrawals';
+import UserCasesPage from './pages/user/Cases';
+import CaseDetailsPage from './pages/user/CaseDetails';
 
 const App: React.FC = () => {
   return (
@@ -49,6 +51,8 @@ const App: React.FC = () => {
           <Route path="/user/settings" element={<UserSettings />} />
           <Route path="/user/wallet" element={<UserWallet />} />
           <Route path="/notifications" element={<Notifications />} />
+          <Route path="/user/cases" element={<UserCasesPage />} />
+          <Route path="/user/cases/:id" element={<CaseDetailsPage />} />
           
           {/* Buyer Routes */}
           <Route path="/buyer/dashboard" element={<BuyerDashboard />} />
