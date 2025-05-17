@@ -24,7 +24,7 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
       
       console.log("Fetching buyers - started");
 
-      // Get total count first for pagination
+      // Get total count first for pagination - only buyers
       const { count, error: countError } = await supabase
         .from("profiles")
         .select("*", { count: "exact" })
@@ -86,6 +86,7 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
         lastActive: buyer.updated_at ? new Date(buyer.updated_at) : new Date(buyer.created_at),
         purchasesCount: purchaseCounts[buyer.id] || 0,
         loyaltyPoints: buyer.loyalty_points || 0,
+        creditBalance: buyer.credit_balance || 0,
       }));
 
       setBuyers(mappedBuyers);
