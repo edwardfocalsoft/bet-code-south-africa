@@ -18,6 +18,7 @@ interface PaymentData {
   buyerId: string;
   purchaseId?: string;
   sellerId?: string;
+  useCredit?: boolean;
 }
 
 export const usePayFast = () => {
@@ -69,11 +70,59 @@ export const usePayFast = () => {
         throw new Error("Payment configuration not found");
       }
 
-      // First, create a pending purchase record
+      // Check if user has credits to apply to this purchase
+      let remainingAmount = paymentData.amount;
+      let useCredit = paymentData.useCredit ?? true; // Default to using credit
       let purchaseId = paymentData.purchaseId;
       
-      if (!purchaseId) {
-        // Call the purchase_ticket function via RPC
+      if (useCredit && !purchaseId) {
+        // Get user's credit balance
+        const { data: userData, error: userError } = await supabase
+          .from("profiles")
+          .select("credit_balance")
+          .eq("id", currentUser.id)
+          .single();
+          
+        if (userError) throw userError;
+        
+        const creditBalance = Number(userData?.credit_balance || 0);
+        
+        // If user has enough credit, create purchase record
+        if (creditBalance >= paymentData.amount) {
+          // Call the purchase_ticket function via RPC
+          const { data, error } = await supabase.rpc(
+            "purchase_ticket",
+            {
+              p_ticket_id: paymentData.ticketId,
+              p_buyer_id: paymentData.buyerId
+            }
+          );
+          
+          if (error) throw error;
+          purchaseId = data;
+          
+          // Complete purchase using credits
+          const { data: completeData, error: completeError } = await supabase.rpc(
+            "complete_ticket_purchase",
+            {
+              p_purchase_id: purchaseId,
+              p_payment_id: `credit_${Date.now()}`,
+              p_payment_data: { payment_method: 'credit' }
+            }
+          );
+          
+          if (completeError) throw completeError;
+          
+          return {
+            purchaseId,
+            success: true,
+            creditUsed: true,
+            paymentComplete: true
+          };
+        }
+        
+        // Credit balance is insufficient, create purchase and proceed with payment
+        // Call the purchase_ticket function via RPC to create initial record
         const { data, error } = await supabase.rpc(
           "purchase_ticket",
           {
@@ -96,7 +145,7 @@ export const usePayFast = () => {
         name_first: currentUser.username || "User",
         email_address: currentUser.email || "",
         m_payment_id: purchaseId,
-        amount: paymentData.amount.toFixed(2),
+        amount: remainingAmount.toFixed(2),
         item_name: `Ticket: ${paymentData.ticketTitle}`.substring(0, 100),
         item_description: "Sports betting ticket purchase"
       };
@@ -107,12 +156,6 @@ export const usePayFast = () => {
         config.passphrase
       );
       const finalParams = { ...paymentParams, signature };
-
-      // Construct the form data for submission
-      const formData = new FormData();
-      Object.entries(finalParams).forEach(([key, value]) => {
-        formData.append(key, value.toString());
-      });
 
       // In test mode, simulate a successful payment
       if (config.is_test_mode) {
@@ -128,8 +171,7 @@ export const usePayFast = () => {
         };
       }
 
-      // Return payment data - in a real implementation, 
-      // this would be submitted to PayFast
+      // Return payment data for actual PayFast integration
       return {
         purchaseId,
         paymentUrl: "https://sandbox.payfast.co.za/eng/process",

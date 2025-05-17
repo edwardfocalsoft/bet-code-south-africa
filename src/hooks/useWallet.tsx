@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
 import { addCredits } from "@/utils/sqlFunctions";
+import { usePayFast } from "./usePayFast";
 
 // Define a transaction type for our wallet
 export type WalletTransaction = {
@@ -21,6 +22,7 @@ export const useWallet = () => {
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { initiatePayment } = usePayFast();
 
   // Fetch both credit balance and transactions
   useEffect(() => {
@@ -117,7 +119,7 @@ export const useWallet = () => {
     };
   }, [currentUser]);
 
-  // Add top up wallet function
+  // Add top up wallet function using PayFast
   const topUpWallet = async (amount: number) => {
     if (!currentUser) {
       toast.error("You must be logged in to add credits");
@@ -132,32 +134,58 @@ export const useWallet = () => {
     try {
       setIsLoading(true);
       
-      // Use the addCredits utility function to update the balance
-      const newBalance = await addCredits(currentUser.id, amount);
-      
-      if (newBalance === null) {
-        toast.error("Failed to add credits to your wallet");
-        return false;
-      }
-      
-      // Create a transaction record
-      const { error: transactionError } = await supabase
+      // Initialize a pending transaction
+      const { data: transactionData, error: transactionError } = await supabase
         .from('wallet_transactions')
         .insert({
           user_id: currentUser.id,
           amount: amount,
           type: 'topup',
-          description: 'Wallet top-up'
-        });
+          description: 'Wallet top-up (pending)'
+        })
+        .select('id')
+        .single();
       
       if (transactionError) {
-        console.error("Error recording transaction:", transactionError);
-        // The balance was already updated, so still consider this a success
+        throw transactionError;
       }
       
-      setCreditBalance(newBalance);
-      toast.success(`R${amount.toFixed(2)} added to your wallet`);
-      return true;
+      // Initiate payment via PayFast
+      const paymentResult = await initiatePayment({
+        ticketId: 'wallet-topup',
+        ticketTitle: 'Wallet Credit Top-up',
+        amount: amount,
+        buyerId: currentUser.id,
+        purchaseId: transactionData.id,
+        useCredit: false // Don't use existing credit for top-ups
+      });
+
+      if (paymentResult && paymentResult.paymentUrl) {
+        // Redirect to payment page
+        window.location.href = paymentResult.paymentUrl;
+        return true;
+      } else if (paymentResult && paymentResult.testMode) {
+        // In test mode, simulate successful payment and update credit balance
+        const newBalance = await addCredits(currentUser.id, amount);
+        
+        // Update transaction status
+        await supabase
+          .from('wallet_transactions')
+          .update({
+            description: 'Wallet top-up (completed)'
+          })
+          .eq('id', transactionData.id);
+        
+        if (newBalance !== null) {
+          setCreditBalance(newBalance);
+          toast.success(`R${amount.toFixed(2)} added to your wallet`);
+          return true;
+        }
+      }
+      
+      // If we reached here, something went wrong
+      toast.error("Payment processing failed");
+      return false;
     } catch (error) {
       console.error("Error adding credits:", error);
       toast.error("An unexpected error occurred");

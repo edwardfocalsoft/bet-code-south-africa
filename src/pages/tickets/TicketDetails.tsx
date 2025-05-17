@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -32,15 +31,18 @@ import {
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog";
+import { useWallet } from "@/hooks/useWallet";
 
 const TicketDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { ticket, loading, error } = useTicket(id);
+  const { ticket, seller, loading, error, purchaseLoading, alreadyPurchased, purchaseTicket } = useTicket(id);
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const { initiatePayment, loading: paymentLoading } = usePayFast();
+  const { creditBalance } = useWallet();
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [processingPurchase, setProcessingPurchase] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'credit' | 'payfast'>('credit');
   const navigate = useNavigate();
   const [similarTickets, setSimilarTickets] = useState<BettingTicket[]>([]);
   const [similarTicketsLoading, setSimilarTicketsLoading] = useState(false);
@@ -139,7 +141,21 @@ const TicketDetails: React.FC = () => {
 
     if (!ticket) return;
     
+    // Check if it's a free ticket
+    if (ticket.isFree) {
+      await purchaseTicket();
+      return;
+    }
+    
+    // Otherwise, open the purchase dialog
     setPurchaseDialogOpen(true);
+    
+    // Default to credit if there's enough balance
+    if (creditBalance >= ticket.price) {
+      setPaymentMethod('credit');
+    } else {
+      setPaymentMethod('payfast');
+    }
   };
   
   const confirmPurchase = async () => {
@@ -148,38 +164,8 @@ const TicketDetails: React.FC = () => {
     setProcessingPurchase(true);
     
     try {
-      const result = await initiatePayment({
-        ticketId: ticket.id,
-        ticketTitle: ticket.title,
-        amount: ticket.price,
-        buyerId: currentUser.id
-      });
-      
-      if (result) {
-        setPurchaseDialogOpen(false);
-        
-        if (result.testMode) {
-          // For test mode, we simulate success
-          toast({
-            title: "Purchase Successful",
-            description: "Thank you for your purchase! You now have access to this ticket.",
-          });
-          
-          // Reload the ticket to show updated access
-          setTimeout(() => {
-            window.location.reload();
-          }, 2000);
-        } else {
-          // This would be a redirect to PayFast in production
-          toast({
-            title: "Redirecting to Payment",
-            description: "You will be redirected to complete your payment.",
-          });
-          
-          // In a real implementation, we would redirect to PayFast here
-          // window.location.href = result.paymentUrl;
-        }
-      }
+      await purchaseTicket();
+      setPurchaseDialogOpen(false);
     } catch (error: any) {
       console.error("Purchase error:", error);
       toast({
@@ -189,7 +175,6 @@ const TicketDetails: React.FC = () => {
       });
     } finally {
       setProcessingPurchase(false);
-      // Leave dialog open if there was an error
     }
   };
 
@@ -223,6 +208,7 @@ const TicketDetails: React.FC = () => {
 
   const isSeller = currentUser?.id === ticket.sellerId;
   const isPastKickoff = new Date() > new Date(ticket.kickoffTime);
+  const canAffordWithCredit = creditBalance >= ticket.price;
 
   return (
     <Layout>
@@ -303,7 +289,7 @@ const TicketDetails: React.FC = () => {
                     <h3 className="mt-0">Ticket Content</h3>
                     <p className="mb-0">
                       {currentUser ? (
-                        "Content will be visible after purchase."
+                        alreadyPurchased ? ticket.ticket_code : "Content will be visible after purchase."
                       ) : (
                         "Please log in and purchase this ticket to view its content."
                       )}
@@ -326,14 +312,16 @@ const TicketDetails: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <Button 
                     className="bg-betting-green hover:bg-betting-green-dark"
-                    disabled={isPastKickoff || paymentLoading || isSeller}
+                    disabled={isPastKickoff || purchaseLoading || isSeller || alreadyPurchased}
                     onClick={handlePurchase}
                   >
-                    {paymentLoading ? (
+                    {purchaseLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Processing...
                       </>
+                    ) : alreadyPurchased ? (
+                      "Purchased"
                     ) : ticket.isFree ? (
                       "Get for Free"
                     ) : (
@@ -460,6 +448,64 @@ const TicketDetails: React.FC = () => {
             <p className="text-lg font-bold mt-4">
               Price: R {ticket.price.toFixed(2)}
             </p>
+            
+            {/* Payment method selection */}
+            {!ticket.isFree && (
+              <div className="mt-6 border-t border-betting-light-gray pt-4">
+                <h4 className="text-sm font-medium mb-3">Payment Method</h4>
+                
+                <div className="space-y-3">
+                  {/* Credit balance option */}
+                  <div 
+                    className={`p-3 border rounded-lg cursor-pointer ${
+                      paymentMethod === 'credit' 
+                        ? 'border-betting-green bg-betting-green/10' 
+                        : 'border-betting-light-gray'
+                    }`}
+                    onClick={() => canAffordWithCredit && setPaymentMethod('credit')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="h-4 w-4 rounded-full flex items-center justify-center">
+                          {paymentMethod === 'credit' && (
+                            <div className="h-2 w-2 rounded-full bg-betting-green" />
+                          )}
+                        </div>
+                        <span>Wallet Credit</span>
+                      </div>
+                      <span className={`text-sm ${canAffordWithCredit ? 'text-green-400' : 'text-red-400'}`}>
+                        R {creditBalance.toFixed(2)} available
+                      </span>
+                    </div>
+                    
+                    {!canAffordWithCredit && (
+                      <p className="text-xs text-red-400 mt-1">
+                        Insufficient credit balance
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* PayFast option */}
+                  <div 
+                    className={`p-3 border rounded-lg cursor-pointer ${
+                      paymentMethod === 'payfast' 
+                        ? 'border-betting-green bg-betting-green/10' 
+                        : 'border-betting-light-gray'
+                    }`}
+                    onClick={() => setPaymentMethod('payfast')}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="h-4 w-4 rounded-full flex items-center justify-center">
+                        {paymentMethod === 'payfast' && (
+                          <div className="h-2 w-2 rounded-full bg-betting-green" />
+                        )}
+                      </div>
+                      <span>PayFast</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           
           <DialogFooter>
@@ -473,7 +519,7 @@ const TicketDetails: React.FC = () => {
             <Button
               className="bg-betting-green hover:bg-betting-green-dark"
               onClick={confirmPurchase}
-              disabled={processingPurchase}
+              disabled={processingPurchase || (!canAffordWithCredit && paymentMethod === 'credit')}
             >
               {processingPurchase ? (
                 <>
