@@ -102,3 +102,28 @@ export interface CaseReplyProfile {
   error?: boolean;
 }
 
+// Define types for case details
+export interface CaseDetail {
+  id: string;
+  case_number?: string;
+  title: string;
+  description: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+  ticket_id: string;
+  purchase_id: string;
+  replies: CaseReply[];
+  purchases?: any;
+  tickets?: any;
+}
+
+export interface CaseReply {
+  id: string;
+  case_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  profiles: CaseReplyProfile;
+}

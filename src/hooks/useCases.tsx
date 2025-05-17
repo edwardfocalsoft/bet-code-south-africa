@@ -4,12 +4,31 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
+import { CaseReplyProfile } from "@/types";
 
 export const useCases = () => {
   const { currentUser, userRole } = useAuth();
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
   const isAdmin = userRole === 'admin';
+
+  // Process profile data to handle errors
+  const safeProfileData = (profile: any): CaseReplyProfile => {
+    // If there's an error or profile is missing, return a default profile with error flag
+    if (!profile || profile.error) {
+      return { 
+        role: "unknown", 
+        error: true 
+      };
+    }
+    
+    // Return valid profile data
+    return {
+      username: profile.username,
+      role: profile.role,
+      avatar_url: profile.avatar_url
+    };
+  };
 
   // Get user cases with support for userId filter for admin
   const { data: userCases, refetch: refetchCases } = useQuery({
@@ -21,34 +40,39 @@ export const useCases = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const filterUserId = urlParams.get('userId');
       
-      let query = supabase
-        .from('cases')
-        .select(`
-          *,
-          profiles:user_id(*),
-          purchases(*),
-          tickets(*)
-        `)
-        .order('created_at', { ascending: false });
-      
-      // If admin, get all cases, or filter by user_id if provided in URL
-      if (isAdmin) {
-        if (filterUserId) {
-          query = query.eq('user_id', filterUserId);
+      try {
+        let query = supabase
+          .from('cases')
+          .select(`
+            *,
+            profiles:user_id(username, email, role, avatar_url),
+            purchases(*),
+            tickets(*)
+          `)
+          .order('created_at', { ascending: false });
+        
+        // If admin, get all cases, or filter by user_id if provided in URL
+        if (isAdmin) {
+          if (filterUserId) {
+            query = query.eq('user_id', filterUserId);
+          }
+        } else {
+          // Non-admin users can only see their own cases
+          query = query.eq('user_id', currentUser.id);
         }
-      } else {
-        // Non-admin users can only see their own cases
-        query = query.eq('user_id', currentUser.id);
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error("Error fetching cases:", error);
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error("Error fetching cases:", error);
+          return [];
+        }
+        
+        return data || [];
+      } catch (error) {
+        console.error("Error in userCases query:", error);
         return [];
       }
-      
-      return data || [];
     },
     enabled: !!currentUser,
   });
@@ -89,10 +113,16 @@ export const useCases = () => {
         return { ...caseData, replies: [] };
       }
       
+      // Process replies to ensure profile data is safe
+      const processedReplies = repliesData?.map(reply => ({
+        ...reply,
+        profiles: safeProfileData(reply.profiles)
+      })) || [];
+      
       // Return the combined data
       return { 
         ...caseData, 
-        replies: repliesData || [] 
+        replies: processedReplies
       };
     } catch (error) {
       console.error("Error in fetchCaseDetails:", error);

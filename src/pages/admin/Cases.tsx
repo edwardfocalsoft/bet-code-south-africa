@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -35,7 +36,7 @@ const AdminCasesPage: React.FC = () => {
   const { userCases, isLoading, updateCaseStatus } = useCases();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   
   // Get userId from query params if it exists
   const urlParams = new URLSearchParams(window.location.search);
@@ -62,7 +63,7 @@ const AdminCasesPage: React.FC = () => {
   // Helper function to safely get profile name
   const getProfileName = (profiles: any): string => {
     if (!profiles) return 'Unknown User';
-    if ('error' in profiles) return 'Unknown User';
+    if (profiles.error) return 'Unknown User';
     return profiles.username || profiles.email || 'Unknown User';
   };
 
@@ -74,9 +75,9 @@ const AdminCasesPage: React.FC = () => {
          getProfileName(caseItem.profiles)?.toLowerCase().includes(searchQuery.toLowerCase()))
       : true;
     
-    const matchesStatus = statusFilter
-      ? caseItem.status.toLowerCase() === statusFilter.toLowerCase()
-      : true;
+    const matchesStatus = statusFilter === "all" 
+      ? true 
+      : caseItem.status.toLowerCase() === statusFilter.toLowerCase();
     
     return matchesSearch && matchesStatus;
   });
@@ -133,7 +134,7 @@ const AdminCasesPage: React.FC = () => {
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Statuses</SelectItem>
+                  <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="open">Open</SelectItem>
                   <SelectItem value="in_progress">In Progress</SelectItem>
                   <SelectItem value="resolved">Resolved</SelectItem>
@@ -145,7 +146,7 @@ const AdminCasesPage: React.FC = () => {
                 variant="outline" 
                 onClick={() => {
                   setSearchQuery("");
-                  setStatusFilter("");
+                  setStatusFilter("all");
                 }}
               >
                 Reset Filters
@@ -169,7 +170,7 @@ const AdminCasesPage: React.FC = () => {
             ) : filteredCases && filteredCases.length > 0 ? (
               <Table>
                 <TableCaption>
-                  Support case list {filteredCases.length < userCases?.length ? `(${filteredCases.length} of ${userCases?.length})` : ''}
+                  Support case list {filteredCases.length < (userCases?.length || 0) ? `(${filteredCases.length} of ${userCases?.length})` : ''}
                 </TableCaption>
                 <TableHeader>
                   <TableRow>
@@ -184,7 +185,7 @@ const AdminCasesPage: React.FC = () => {
                 <TableBody>
                   {filteredCases.map((caseItem: any) => (
                     <TableRow key={caseItem.id} className="cursor-pointer hover:bg-betting-light-gray/10" onClick={() => navigate(`/user/cases/${caseItem.id}`)}>
-                      <TableCell className="font-medium">{caseItem.case_number}</TableCell>
+                      <TableCell className="font-medium">{caseItem.case_number || 'N/A'}</TableCell>
                       <TableCell>{caseItem.title}</TableCell>
                       <TableCell>{getProfileName(caseItem.profiles)}</TableCell>
                       <TableCell>{format(new Date(caseItem.created_at), "PPP")}</TableCell>
@@ -248,7 +249,7 @@ const AdminCasesPage: React.FC = () => {
               <div className="text-center py-8">
                 <p className="text-lg font-medium mb-2">No cases found</p>
                 <p className="text-muted-foreground">
-                  {(searchQuery || statusFilter || filterUserId)
+                  {(searchQuery || statusFilter !== "all" || filterUserId)
                     ? "No cases match your search criteria. Try adjusting your filters."
                     : "There are no support cases in the system."}
                 </p>

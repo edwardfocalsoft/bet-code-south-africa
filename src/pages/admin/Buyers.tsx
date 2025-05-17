@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import {
@@ -39,11 +40,24 @@ const AdminBuyers = () => {
     loading, 
     error, 
     totalCount, 
-    updateBuyerStatus 
+    updateBuyerStatus,
+    fetchBuyers
   } = useBuyers({ 
     page: currentPage, 
     pageSize 
   });
+
+  // Add a useEffect to refetch buyers if there's an error
+  useEffect(() => {
+    if (error) {
+      // Retry loading after a short delay
+      const timer = setTimeout(() => {
+        fetchBuyers();
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [error, fetchBuyers]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
@@ -77,7 +91,8 @@ const AdminBuyers = () => {
     navigate(`/admin/cases?userId=${userId}`);
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | undefined) => {
+    if (!date) return "N/A";
     return format(date, "MMM d, yyyy");
   };
 
@@ -131,7 +146,7 @@ const AdminBuyers = () => {
                           <div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center">
                             <User className="h-4 w-4" />
                           </div>
-                          <span>{buyer.username}</span>
+                          <span>{buyer.username || buyer.email}</span>
                         </div>
                       </TableCell>
                       <TableCell>{buyer.email}</TableCell>
