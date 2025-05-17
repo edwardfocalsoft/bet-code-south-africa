@@ -43,6 +43,24 @@ export const useSellerProfileData = (userId: string | undefined) => {
   const [hasBankDetails, setHasBankDetails] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [whatsappFieldsExist, setWhatsappFieldsExist] = useState(false);
+
+  // Helper function to check if WhatsApp fields exist
+  const checkWhatsAppFieldsExist = async (): Promise<boolean> => {
+    try {
+      // We'll use a direct query to check if the columns exist
+      // Note: This is wrapped in a try-catch because it might fail if the user doesn't have permissions
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("display_whatsapp, whatsapp_number")
+        .limit(1);
+      
+      // If the query didn't error out, the fields exist
+      return !error;
+    } catch {
+      return false;
+    }
+  };
 
   const loadProfile = async () => {
     if (!userId) return;
@@ -66,15 +84,13 @@ export const useSellerProfileData = (userId: string | undefined) => {
           whatsappNumber: "",
         });
         
-        // Then try to fetch WhatsApp fields separately using separate query
-        // This way, if the fields don't exist yet, it won't affect our basic profile data
-        try {
-          // Use raw query to check if columns exist without error
-          const { data: columnsData } = await supabase
-            .rpc('check_whatsapp_fields_exist');
-          
-          if (columnsData) {
-            // Only attempt to query the fields if they exist
+        // Check if WhatsApp fields exist
+        const fieldsExist = await checkWhatsAppFieldsExist();
+        setWhatsappFieldsExist(fieldsExist);
+        
+        // Then try to fetch WhatsApp fields separately if they exist
+        if (fieldsExist) {
+          try {
             const { data: whatsAppData } = await supabase
               .from("profiles")
               .select("*") // Select all columns to avoid specific column errors
@@ -82,18 +98,16 @@ export const useSellerProfileData = (userId: string | undefined) => {
               .maybeSingle();
               
             if (whatsAppData) {
-              // Access fields safely with optional chaining
+              // Access fields safely with type assertion since TS doesn't know these fields yet
               setProfileData(prev => ({
                 ...prev,
-                // Use any type assertion to bypass TypeScript's strict checking
                 displayWhatsapp: !!(whatsAppData as any).display_whatsapp,
                 whatsappNumber: (whatsAppData as any).whatsapp_number || "",
               }));
             }
+          } catch (whatsAppError) {
+            console.log("Error fetching WhatsApp fields:", whatsAppError);
           }
-        } catch (whatsAppError) {
-          // WhatsApp fields might not exist yet, which is fine
-          console.log("WhatsApp fields might not be available yet:", whatsAppError);
         }
       }
     } catch (error: any) {
@@ -212,16 +226,22 @@ export const useSellerProfileData = (userId: string | undefined) => {
         
       if (basicUpdateError) throw basicUpdateError;
       
-      // Then try to update WhatsApp fields separately using a stored function
-      try {
-        await supabase.rpc('update_whatsapp_fields', {
-          p_user_id: userId,
-          p_display_whatsapp: profileData.displayWhatsapp,
-          p_whatsapp_number: profileData.displayWhatsapp ? profileData.whatsappNumber : null
-        });
-      } catch (whatsAppError) {
-        console.log("WhatsApp fields might not exist yet:", whatsAppError);
-        // Don't throw the error as this is optional
+      // Then try to update WhatsApp fields separately if they exist
+      if (whatsappFieldsExist) {
+        // Since we confirmed the fields exist, we can update them directly
+        const whatsappUpdateData = {
+          display_whatsapp: profileData.displayWhatsapp,
+          whatsapp_number: profileData.displayWhatsapp ? profileData.whatsappNumber : null
+        };
+        
+        const { error: whatsappError } = await supabase
+          .from("profiles")
+          .update(whatsappUpdateData)
+          .eq("id", userId);
+          
+        if (whatsappError) {
+          console.log("Error updating WhatsApp fields:", whatsappError);
+        }
       }
       
       setProfileData(prev => ({
