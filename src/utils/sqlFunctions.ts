@@ -31,3 +31,34 @@ export const addCredits = async (userId: string, amount: number): Promise<number
     return null;
   }
 };
+
+/**
+ * Delete notifications older than 60 days for all users or a specific user
+ * @param userId Optional user ID to delete notifications only for that user
+ * @returns Number of deleted notifications or null if there was an error
+ */
+export const deleteOldNotifications = async (userId?: string): Promise<number | null> => {
+  try {
+    let query = supabase
+      .from('notifications')
+      .delete()
+      .lt('created_at', new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString());
+    
+    // If userId is provided, only delete notifications for that user
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+    
+    const { error, count } = await query.select('id');
+    
+    if (error) {
+      console.error('Error deleting old notifications:', error);
+      return null;
+    }
+    
+    return count;
+  } catch (error) {
+    console.error('Exception when deleting old notifications:', error);
+    return null;
+  }
+};

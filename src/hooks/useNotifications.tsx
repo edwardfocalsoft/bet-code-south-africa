@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { deleteOldNotifications } from "@/utils/sqlFunctions";
 
 export interface Notification {
   id: string;
@@ -77,24 +78,33 @@ export function useNotifications() {
     if (!currentUser) return;
     
     try {
-      // Call the database function to delete old notifications
-      const { data, error } = await supabase
-        .rpc('delete_old_notifications') as {
-          data: number;
-          error: any;
-        };
-
-      if (error) throw error;
+      // Call the utility function to delete old notifications for the current user
+      const deletedCount = await deleteOldNotifications(currentUser.id);
       
-      if (data > 0) {
-        console.log(`Cleaned up ${data} old notifications`);
+      if (deletedCount && deletedCount > 0) {
+        console.log(`Cleaned up ${deletedCount} old notifications`);
         // Refresh the notifications list
         fetchNotifications();
+        
+        toast({
+          title: "Success",
+          description: `Deleted ${deletedCount} old notifications.`,
+        });
+      } else if (deletedCount === 0) {
+        toast({
+          title: "Info",
+          description: "No old notifications to clean up.",
+        });
       }
     } catch (error: any) {
       console.error("Error cleaning up old notifications:", error);
+      toast({
+        title: "Error",
+        description: "Failed to clean up old notifications.",
+        variant: "destructive",
+      });
     }
-  }, [currentUser, fetchNotifications]);
+  }, [currentUser, fetchNotifications, toast]);
 
   const markAsRead = useCallback(
     async (notificationId: string) => {
