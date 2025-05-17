@@ -99,6 +99,9 @@ const UserDropdown: React.FC = () => {
               <Link to="/admin/withdrawals" className="w-full">Withdrawals</Link>
             </DropdownMenuItem>
             <DropdownMenuItem>
+              <Link to="/admin/payment-settings" className="w-full">Payment Settings</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
               <Link to="/notifications" className="w-full">Notifications</Link>
             </DropdownMenuItem>
           </>

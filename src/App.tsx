@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import AllTickets from './pages/tickets/AllTickets';
@@ -5,7 +6,7 @@ import TicketDetails from './pages/tickets/TicketDetails';
 import UserSettings from './pages/user/Settings';
 import UserWallet from './pages/user/Wallet';
 import BuyerPurchases from './pages/buyer/Purchases';
-import BuyerDashboard from './pages/buyer/Dashboard'; // Added import for BuyerDashboard
+import BuyerDashboard from './pages/buyer/Dashboard'; 
 import SellerDashboard from './pages/seller/Dashboard';
 import CreateTicket from './pages/seller/CreateTicket';
 import SellerTickets from './pages/seller/Tickets';
@@ -21,11 +22,14 @@ import { AuthProvider } from './contexts/auth';
 import NotFound from './pages/NotFound';
 
 // Import statements with corrected paths
-import Home from './pages/Index'; // Home page
-import Login from './pages/auth/Login'; // Corrected path
-import Register from './pages/auth/Register'; // Corrected path
+import Home from './pages/Index'; 
+import Login from './pages/auth/Login'; 
+import Register from './pages/auth/Register'; 
 import SellerProfile from './pages/sellers/SellerPublicProfile';
 import Users from './pages/admin/Buyers';
+import Notifications from './pages/user/Notifications';
+import SellerWithdrawals from './pages/seller/Withdrawals';
+import AdminWithdrawals from './pages/admin/Withdrawals';
 
 const App: React.FC = () => {
   return (
@@ -43,6 +47,7 @@ const App: React.FC = () => {
           {/* User Routes */}
           <Route path="/user/settings" element={<UserSettings />} />
           <Route path="/user/wallet" element={<UserWallet />} />
+          <Route path="/notifications" element={<Notifications />} />
           
           {/* Buyer Routes */}
           <Route path="/buyer/dashboard" element={<BuyerDashboard />} />
@@ -52,6 +57,7 @@ const App: React.FC = () => {
           <Route path="/seller/dashboard" element={<SellerDashboard />} />
           <Route path="/seller/tickets/create" element={<CreateTicket />} />
           <Route path="/seller/tickets" element={<SellerTickets />} />
+          <Route path="/seller/withdrawals" element={<SellerWithdrawals />} />
 
           {/* Admin Routes */}
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
@@ -60,6 +66,7 @@ const App: React.FC = () => {
           <Route path="/admin/tickets" element={<AdminTickets />} />
           <Route path="/admin/cases" element={<Cases />} />
           <Route path="/admin/users" element={<Users />} />
+          <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
           
           {/* Payment routes */}
           <Route path="/payment/success" element={<PaymentSuccess />} />

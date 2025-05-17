@@ -9,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, CreditCard } from "lucide-react";
+import { usePaymentSettings } from "@/hooks/usePaymentSettings";
 
 const UserSettings: React.FC = () => {
   const { currentUser, userRole } = useAuth();
@@ -21,6 +22,13 @@ const UserSettings: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const { toast } = useToast();
+  const { settings, loading: paymentLoading, updateSettings } = usePaymentSettings();
+  const [paymentFormData, setPaymentFormData] = useState({
+    merchant_id: "",
+    merchant_key: "",
+    passphrase: "",
+    is_test_mode: true
+  });
 
   useEffect(() => {
     if (currentUser) {
@@ -28,6 +36,17 @@ const UserSettings: React.FC = () => {
       setUsername(currentUser.username || "");
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    if (settings && userRole === "admin") {
+      setPaymentFormData({
+        merchant_id: settings.merchant_id,
+        merchant_key: settings.merchant_key,
+        passphrase: settings.passphrase,
+        is_test_mode: settings.is_test_mode
+      });
+    }
+  }, [settings, userRole]);
 
   const updateProfile = async () => {
     if (!currentUser) return;
@@ -94,15 +113,32 @@ const UserSettings: React.FC = () => {
     }
   };
 
+  const handlePaymentSettingsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
+    setPaymentFormData({
+      ...paymentFormData,
+      [name]: type === 'checkbox' ? checked : value
+    });
+  };
+
+  const updatePaymentSettings = async () => {
+    setLoading(true);
+    const success = await updateSettings(paymentFormData);
+    setLoading(false);
+  };
+
+  const showPaymentSettings = userRole === "admin";
+
   return (
     <Layout requireAuth={true}>
       <div className="container mx-auto py-8">
         <h1 className="text-3xl font-bold mb-6">Account Settings</h1>
         
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-8">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="profile">Profile Information</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
+            {showPaymentSettings && <TabsTrigger value="payment">Payment Gateway</TabsTrigger>}
           </TabsList>
           
           <TabsContent value="profile">
@@ -240,6 +276,99 @@ const UserSettings: React.FC = () => {
               </CardFooter>
             </Card>
           </TabsContent>
+
+          {showPaymentSettings && (
+            <TabsContent value="payment">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5 text-betting-green" />
+                    <CardTitle>Payment Gateway Settings</CardTitle>
+                  </div>
+                  <CardDescription>
+                    Configure the PayFast payment gateway settings for the platform.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {paymentLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-betting-green" />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="merchant_id">Merchant ID</Label>
+                        <Input
+                          id="merchant_id"
+                          name="merchant_id"
+                          value={paymentFormData.merchant_id}
+                          onChange={handlePaymentSettingsChange}
+                          placeholder="Enter PayFast merchant ID"
+                          className="bg-betting-light-gray border-betting-light-gray focus:border-betting-green"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="merchant_key">Merchant Key</Label>
+                        <Input
+                          id="merchant_key"
+                          name="merchant_key"
+                          value={paymentFormData.merchant_key}
+                          onChange={handlePaymentSettingsChange}
+                          placeholder="Enter PayFast merchant key"
+                          className="bg-betting-light-gray border-betting-light-gray focus:border-betting-green"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="passphrase">Passphrase</Label>
+                        <Input
+                          id="passphrase"
+                          name="passphrase"
+                          type="password"
+                          value={paymentFormData.passphrase}
+                          onChange={handlePaymentSettingsChange}
+                          placeholder="Enter PayFast passphrase"
+                          className="bg-betting-light-gray border-betting-light-gray focus:border-betting-green"
+                        />
+                      </div>
+                      
+                      <div className="flex items-center space-x-2 pt-4">
+                        <input
+                          type="checkbox"
+                          id="is_test_mode"
+                          name="is_test_mode"
+                          checked={paymentFormData.is_test_mode}
+                          onChange={handlePaymentSettingsChange}
+                          className="h-4 w-4"
+                        />
+                        <Label htmlFor="is_test_mode">Enable Test Mode</Label>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+                <CardFooter>
+                  <Button 
+                    onClick={updatePaymentSettings}
+                    disabled={loading || paymentLoading}
+                    className="bg-betting-green hover:bg-betting-green-dark"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Updating...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Gateway Settings
+                      </>
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </Layout>

@@ -2,7 +2,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth';
-import { LayoutDashboard, Wallet, Ticket, ShoppingBag } from 'lucide-react';
+import { LayoutDashboard, Wallet, Ticket, ShoppingBag, CreditCard, BellRing } from 'lucide-react';
 
 const NavLinks: React.FC = () => {
   const { userRole } = useAuth();
@@ -31,10 +31,21 @@ const NavLinks: React.FC = () => {
           }>
             Buyers
           </NavLink>
+          <NavLink to="/admin/withdrawals" className={({ isActive }) =>
+            isActive ? 'text-white border-b-2 border-betting-green pb-1' : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+          }>
+            Withdrawals
+          </NavLink>
           <NavLink to="/admin/cases" className={({ isActive }) =>
             isActive ? 'text-white border-b-2 border-betting-green pb-1' : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
           }>
             Cases
+          </NavLink>
+          <NavLink to="/admin/payment-settings" className={({ isActive }) =>
+            isActive ? 'text-white border-b-2 border-betting-green pb-1' : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+          }>
+            <CreditCard className="h-4 w-4 inline mr-1" />
+            Payment
           </NavLink>
         </>
       )}
@@ -50,6 +61,17 @@ const NavLinks: React.FC = () => {
             isActive ? 'text-white border-b-2 border-betting-green pb-1' : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
           }>
             My Tickets
+          </NavLink>
+          <NavLink to="/seller/withdrawals" className={({ isActive }) =>
+            isActive ? 'text-white border-b-2 border-betting-green pb-1' : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+          }>
+            Withdrawals
+          </NavLink>
+          <NavLink to="/notifications" className={({ isActive }) =>
+            isActive ? 'text-white border-b-2 border-betting-green pb-1' : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+          }>
+            <BellRing className="h-4 w-4 inline mr-1" />
+            Notifications
           </NavLink>
         </>
       )}
@@ -79,6 +101,22 @@ const NavLinks: React.FC = () => {
           }>
             <ShoppingBag className="h-4 w-4" />
             My Purchases
+          </NavLink>
+          <NavLink to="/notifications" className={({ isActive }) =>
+            isActive ? 'flex items-center gap-1.5 text-white border-b-2 border-betting-green pb-1' : 'flex items-center gap-1.5 text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+          }>
+            <BellRing className="h-4 w-4" />
+            Notifications
+          </NavLink>
+        </>
+      )}
+
+      {!userRole && (
+        <>
+          <NavLink to="/tickets" className={({ isActive }) =>
+            isActive ? 'text-white border-b-2 border-betting-green pb-1' : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+          }>
+            Browse Tickets
           </NavLink>
         </>
       )}
