@@ -1,94 +1,75 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@/types";
-import { useToast } from "@/hooks/use-toast";
-import { getSellerStats, getSellerPerformanceData, getRecentSales } from "@/utils/sqlFunctions";
 
-export interface SellerDashboardData {
-  totalSales: number;
-  totalRevenue: number;
-  ticketsSold: number;
-  winRate: number;
-  averageRating: number;
-  monthlyGrowth: number;
-  profileComplete: boolean;
-  performanceData: Array<{name: string, sales: number}>;
-  recentSales: any[];
-  isLoading: boolean;
-}
-
-export const useSellerDashboard = (currentUser: User | null) => {
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-  const [dashboardData, setDashboardData] = useState<SellerDashboardData>({
-    totalSales: 0,
-    totalRevenue: 0,
-    ticketsSold: 0,
-    winRate: 0,
-    averageRating: 0,
-    monthlyGrowth: 0,
-    profileComplete: true,
-    performanceData: [],
-    recentSales: [],
-    isLoading: true
-  });
+export const useSellerDashboard = (user: any) => {
+  const [winRate, setWinRate] = useState<number>(0);
+  const [averageRating, setAverageRating] = useState<number | null>(null);
+  const [ticketsSold, setTicketsSold] = useState<number>(0);
+  const [subscribersCount, setSubscribersCount] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      if (!currentUser) {
-        setLoading(false);
-        return;
-      }
-      
-      setLoading(true);
+    if (!user?.id) return;
+    
+    const fetchDashboardStats = async () => {
+      setIsLoading(true);
       try {
-        // Check if profile has bank details
-        const { data: bankData, error: bankError } = await supabase
-          .from('bank_details')
-          .select('id')
-          .eq('user_id', currentUser.id);
+        // Fetch total tickets sold
+        const { count: soldCount, error: soldError } = await supabase
+          .from('purchases')
+          .select('*', { count: 'exact', head: true })
+          .eq('seller_id', user.id);
+        
+        if (soldError) throw soldError;
+        setTicketsSold(soldCount || 0);
+        
+        // Fetch winning tickets
+        const { count: winCount, error: winError } = await supabase
+          .from('purchases')
+          .select('*', { count: 'exact', head: true })
+          .eq('seller_id', user.id)
+          .eq('is_winner', true);
+        
+        if (winError) throw winError;
+        setWinRate(soldCount ? Math.round((winCount / soldCount) * 100) : 0);
+        
+        // Fetch ratings
+        const { data: ratingData, error: ratingError } = await supabase
+          .from('ratings')
+          .select('score')
+          .eq('seller_id', user.id);
+        
+        if (ratingError) throw ratingError;
+        if (ratingData && ratingData.length > 0) {
+          const average = ratingData.reduce((sum, rating) => sum + rating.score, 0) / ratingData.length;
+          setAverageRating(Number(average.toFixed(1)));
+        }
+
+        // Fetch subscribers count
+        const { count: subCount, error: subError } = await supabase
+          .from('subscriptions')
+          .select('*', { count: 'exact', head: true })
+          .eq('seller_id', user.id);
           
-        if (bankError) throw bankError;
+        if (subError) throw subError;
+        setSubscribersCount(subCount || 0);
         
-        // Get seller statistics
-        const stats = await getSellerStats(currentUser.id);
-        
-        // Get performance data for chart
-        const performance = await getSellerPerformanceData(currentUser.id);
-        
-        // Get recent sales
-        const recentSales = await getRecentSales(currentUser.id);
-        
-        setDashboardData({
-          totalSales: stats?.totalRevenue || 0,
-          totalRevenue: stats?.totalRevenue || 0,
-          ticketsSold: stats?.totalSales || 0,
-          winRate: stats?.winRate || 0,
-          averageRating: stats?.averageRating || 0,
-          monthlyGrowth: performance?.monthlyGrowth || 0,
-          profileComplete: bankData && bankData.length > 0,
-          performanceData: performance?.performanceData || [],
-          recentSales: recentSales || [],
-          isLoading: false
-        });
       } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load dashboard data. Please try again.",
-          variant: "destructive"
-        });
+        console.error("Error fetching dashboard stats:", error);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
     
-    fetchDashboardData();
-  }, [currentUser, toast]);
+    fetchDashboardStats();
+  }, [user]);
 
   return {
-    loading,
-    ...dashboardData
+    isLoading,
+    winRate,
+    averageRating,
+    ticketsSold,
+    subscribersCount
   };
 };

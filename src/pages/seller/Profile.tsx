@@ -1,13 +1,11 @@
 
 import React from "react";
 import Layout from "@/components/layout/Layout";
-import { Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useSellerProfileData } from "@/hooks/useSellerProfileData";
 import ProfileSidebar from "@/components/seller/profile/ProfileSidebar";
-import PersonalDetailsForm from "@/components/seller/profile/PersonalDetailsForm";
-import BankDetailsForm from "@/components/seller/profile/BankDetailsForm";
-import AccountVerificationCard from "@/components/seller/profile/AccountVerificationCard";
+import ProfileContent from "@/components/seller/profile/ProfileContent";
+import ProfileLoading from "@/components/seller/profile/ProfileLoading";
 
 const SellerProfile: React.FC = () => {
   const { currentUser } = useAuth();
@@ -32,9 +30,7 @@ const SellerProfile: React.FC = () => {
     return (
       <Layout requireAuth={true} allowedRoles={["seller", "admin"]}>
         <div className="container mx-auto py-8">
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-betting-green" />
-          </div>
+          <ProfileLoading />
         </div>
       </Layout>
     );
@@ -58,27 +54,19 @@ const SellerProfile: React.FC = () => {
           </div>
           
           <div className="md:col-span-2">
-            <PersonalDetailsForm 
-              profileData={{
-                username: profileData.username,
-                displayWhatsapp: profileData.displayWhatsapp,
-                whatsappNumber: profileData.whatsappNumber
-              }}
-              setProfileData={setProfileData}
-              isSaving={isSaving || uploading}
-              onSubmit={saveProfile}
+            <ProfileContent 
               currentUserEmail={currentUser?.email || ""}
-            />
-            
-            <BankDetailsForm 
+              profileData={profileData}
+              setProfileData={setProfileData}
               bankDetails={bankDetails}
               setBankDetails={setBankDetails}
               hasBankDetails={hasBankDetails}
-              isSaving={isSavingBank}
-              onSubmit={saveBankDetails}
+              isSaving={isSaving}
+              isSavingBank={isSavingBank}
+              uploading={uploading}
+              saveProfile={saveProfile}
+              saveBankDetails={saveBankDetails}
             />
-            
-            <AccountVerificationCard />
           </div>
         </div>
       </div>

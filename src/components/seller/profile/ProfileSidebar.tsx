@@ -26,7 +26,7 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
   isUploading,
   isSaving
 }) => {
-  const { winRate, averageRating, ticketsSold, totalRevenue } = useSellerDashboard(currentUser);
+  const { winRate, averageRating, ticketsSold, subscribersCount } = useSellerDashboard(currentUser);
 
   return (
     <Card className="betting-card h-full">
@@ -90,8 +90,8 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
               <p className="text-xs text-muted-foreground">Tickets Sold</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-betting-green">R{totalRevenue}</p>
-              <p className="text-xs text-muted-foreground">Total Revenue</p>
+              <p className="text-2xl font-bold text-betting-green">{subscribersCount}</p>
+              <p className="text-xs text-muted-foreground">Subscribers</p>
             </div>
           </div>
         </div>
