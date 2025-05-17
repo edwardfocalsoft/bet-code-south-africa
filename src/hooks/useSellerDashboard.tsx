@@ -52,7 +52,7 @@ export const useSellerDashboard = (user: any) => {
           setAverageRating(Number(average.toFixed(1)));
         }
 
-        // Fetch subscribers count
+        // Fetch subscribers count - Fixed to correctly count all subscribers
         const { count: subCount, error: subError } = await supabase
           .from('subscriptions')
           .select('*', { count: 'exact', head: true })

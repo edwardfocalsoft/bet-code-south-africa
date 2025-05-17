@@ -2,7 +2,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth';
-import { LayoutDashboard, Wallet, Ticket, ShoppingBag, CreditCard, BellRing } from 'lucide-react';
+import { LayoutDashboard, Wallet, Ticket, ShoppingBag, CreditCard, BellRing, UserCircle } from 'lucide-react';
 
 const NavLinks: React.FC = () => {
   const { userRole } = useAuth();
@@ -56,6 +56,12 @@ const NavLinks: React.FC = () => {
             isActive ? 'text-white border-b-2 border-betting-green pb-1' : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
           }>
             Dashboard
+          </NavLink>
+          <NavLink to="/seller/profile" className={({ isActive }) =>
+            isActive ? 'text-white border-b-2 border-betting-green pb-1' : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+          }>
+            <UserCircle className="h-4 w-4 inline mr-1" />
+            Profile
           </NavLink>
           <NavLink to="/seller/tickets" className={({ isActive }) =>
             isActive ? 'text-white border-b-2 border-betting-green pb-1' : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'

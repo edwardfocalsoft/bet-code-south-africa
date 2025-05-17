@@ -8,6 +8,7 @@ import UserWallet from './pages/user/Wallet';
 import BuyerPurchases from './pages/buyer/Purchases';
 import BuyerDashboard from './pages/buyer/Dashboard'; 
 import SellerDashboard from './pages/seller/Dashboard';
+import SellerProfile from './pages/seller/Profile';
 import CreateTicket from './pages/seller/CreateTicket';
 import SellerTickets from './pages/seller/Tickets';
 import AdminDashboard from './pages/admin/Dashboard';
@@ -25,7 +26,7 @@ import NotFound from './pages/NotFound';
 import Home from './pages/Index'; 
 import Login from './pages/auth/Login'; 
 import Register from './pages/auth/Register'; 
-import SellerProfile from './pages/sellers/SellerPublicProfile';
+import SellerPublicProfile from './pages/sellers/SellerPublicProfile';
 import Users from './pages/admin/Buyers';
 import Notifications from './pages/user/Notifications';
 import SellerWithdrawals from './pages/seller/Withdrawals';
@@ -42,7 +43,7 @@ const App: React.FC = () => {
           <Route path="/auth/register" element={<Register />} />
           <Route path="/tickets" element={<AllTickets />} />
           <Route path="/tickets/:id" element={<TicketDetails />} />
-          <Route path="/sellers/:id" element={<SellerProfile />} />
+          <Route path="/sellers/:id" element={<SellerPublicProfile />} />
 
           {/* User Routes */}
           <Route path="/user/settings" element={<UserSettings />} />
@@ -55,6 +56,7 @@ const App: React.FC = () => {
 
           {/* Seller Routes */}
           <Route path="/seller/dashboard" element={<SellerDashboard />} />
+          <Route path="/seller/profile" element={<SellerProfile />} />
           <Route path="/seller/tickets/create" element={<CreateTicket />} />
           <Route path="/seller/tickets" element={<SellerTickets />} />
           <Route path="/seller/withdrawals" element={<SellerWithdrawals />} />

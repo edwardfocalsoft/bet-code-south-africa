@@ -1,13 +1,13 @@
 
-// Enhancing the existing useSubscriptions hook
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
 import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 export const useSubscriptions = () => {
   const { currentUser } = useAuth();
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [subscribersCount, setSubscribersCount] = useState(0);
@@ -32,9 +32,11 @@ export const useSubscriptions = () => {
         .eq("buyer_id", currentUser.id);
         
       if (error) throw error;
+      console.log("Fetched subscriptions:", data);
       setSubscriptions(data || []);
     } catch (error: any) {
       console.error("Error fetching subscriptions:", error);
+      toast.error("Failed to load subscriptions");
     } finally {
       setLoading(false);
     }
@@ -50,19 +52,22 @@ export const useSubscriptions = () => {
         .eq("seller_id", currentUser.id);
         
       if (error) throw error;
+      console.log("Subscriber count:", count);
       setSubscribersCount(count || 0);
     } catch (error: any) {
       console.error("Error fetching subscribers count:", error);
+      toast.error("Failed to load subscriber count");
     }
   };
 
   const subscribeToSeller = async (sellerId: string) => {
     if (!currentUser?.id) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to subscribe to sellers",
-        variant: "destructive",
-      });
+      toast.error("Please log in to subscribe to sellers");
+      return false;
+    }
+    
+    if (currentUser.id === sellerId) {
+      toast.error("You cannot subscribe to yourself");
       return false;
     }
     
@@ -80,10 +85,7 @@ export const useSubscriptions = () => {
       if (checkError) throw checkError;
       
       if (existingSubscription) {
-        toast({
-          title: "Already Subscribed",
-          description: "You are already subscribed to this seller",
-        });
+        toast.info("You are already subscribed to this seller");
         return true;
       }
       
@@ -97,20 +99,13 @@ export const useSubscriptions = () => {
       
       if (error) throw error;
       
-      toast({
-        title: "Subscription Successful",
-        description: "You are now subscribed to this seller",
-      });
+      toast.success("You are now subscribed to this seller");
       
       await fetchSubscriptions();
       return true;
     } catch (error: any) {
       console.error("Error subscribing to seller:", error);
-      toast({
-        title: "Subscription Failed",
-        description: error.message || "Failed to subscribe to seller",
-        variant: "destructive",
-      });
+      toast.error(error.message || "Failed to subscribe to seller");
       return false;
     } finally {
       setLoading(false);
@@ -130,20 +125,13 @@ export const useSubscriptions = () => {
       
       if (error) throw error;
       
-      toast({
-        title: "Unsubscribed Successfully",
-        description: "You have unsubscribed from this seller",
-      });
+      toast.success("You have unsubscribed from this seller");
       
       await fetchSubscriptions();
       return true;
     } catch (error: any) {
       console.error("Error unsubscribing from seller:", error);
-      toast({
-        title: "Unsubscribe Failed",
-        description: error.message || "Failed to unsubscribe from seller",
-        variant: "destructive",
-      });
+      toast.error(error.message || "Failed to unsubscribe from seller");
       return false;
     } finally {
       setLoading(false);
