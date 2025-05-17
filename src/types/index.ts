@@ -21,7 +21,8 @@ export interface User {
   bankDetails?: BankDetails;
   avatar_url?: string;
   purchasesCount?: number; 
-  lastActive?: Date;      
+  lastActive?: Date;
+  creditBalance?: number;
 }
 
 export interface BankDetails {

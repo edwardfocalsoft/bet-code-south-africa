@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Loader2, User, CreditCard, Calendar, ShoppingBag, Users } from "lucide-react";
@@ -104,15 +103,21 @@ export const BuyerProfileModal = ({ isOpen, onClose, buyerId }: BuyerProfileModa
         if (transactionsError) throw transactionsError;
         setTransactions(transactionsData || []);
 
-        // Fetch subscriptions with seller names
+        // Fix the subscription query to properly fetch the seller name
         const { data: subscriptionsData, error: subscriptionsError } = await supabase
           .from("subscriptions")
-          .select("*, seller:seller_id(username)")
+          .select(`
+            id,
+            seller_id,
+            buyer_id,
+            created_at,
+            seller:profiles!seller_id(username)
+          `)
           .eq("buyer_id", buyerId);
           
         if (subscriptionsError) throw subscriptionsError;
         
-        const mappedSubscriptions = (subscriptionsData || []).map(sub => ({
+        const mappedSubscriptions = (subscriptionsData || []).map((sub: any) => ({
           id: sub.id,
           seller_id: sub.seller_id,
           created_at: sub.created_at,
@@ -124,14 +129,14 @@ export const BuyerProfileModal = ({ isOpen, onClose, buyerId }: BuyerProfileModa
         // Fetch purchases with ticket titles
         const { data: purchasesData, error: purchasesError } = await supabase
           .from("purchases")
-          .select("*, ticket:ticket_id(title)")
+          .select("*, ticket:tickets!ticket_id(title)")
           .eq("buyer_id", buyerId)
           .order("purchase_date", { ascending: false })
           .limit(10);
           
         if (purchasesError) throw purchasesError;
         
-        const mappedPurchases = (purchasesData || []).map(purchase => ({
+        const mappedPurchases = (purchasesData || []).map((purchase: any) => ({
           id: purchase.id,
           price: purchase.price,
           purchase_date: purchase.purchase_date,
