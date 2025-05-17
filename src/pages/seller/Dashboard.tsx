@@ -21,7 +21,7 @@ const SellerDashboard: React.FC = () => {
   const { 
     isLoading, 
     totalSales,
-    totalRevenue,
+    totalRevenue, 
     ticketsSold, 
     winRate, 
     monthlyGrowth,
