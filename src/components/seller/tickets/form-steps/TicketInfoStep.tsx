@@ -41,13 +41,14 @@ const TicketInfoStep: React.FC<TicketInfoStepProps> = ({
     "Long Ticket"
   ];
   
+  // Using only the values defined in the BettingSite type
   const bettingSites: BettingSite[] = [
-    "Bet365",
     "Betway",
-    "Hollywoodbets",
-    "Sportingbet",
+    "HollywoodBets",
     "Supabets",
-    "Other",
+    "Playa",
+    "10bet",
+    "Easybet",
   ];
 
   return (
