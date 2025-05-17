@@ -47,20 +47,24 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
       if (fetchError) throw fetchError;
 
       if (data) {
-        // Get purchases count in a separate query to avoid join issues
+        // Get purchase counts for each buyer using separate queries instead of group
         const buyerIds = data.map((buyer: any) => buyer.id);
         
-        // Get purchase counts for each buyer
+        // Get purchases for all buyers in one query
         const { data: purchasesData, error: purchasesError } = await supabase
           .from("purchases")
-          .select("buyer_id, count")
-          .in("buyer_id", buyerIds)
-          .group("buyer_id");
+          .select("buyer_id")
+          .in("buyer_id", buyerIds);
           
-        const purchaseCounts = purchasesData?.reduce((acc: Record<string, number>, curr: any) => {
-          acc[curr.buyer_id] = parseInt(curr.count);
-          return acc;
-        }, {}) || {};
+        if (purchasesError) throw purchasesError;
+        
+        // Count purchases by buyer_id
+        const purchaseCounts: Record<string, number> = {};
+        if (purchasesData) {
+          purchasesData.forEach((purchase: { buyer_id: string }) => {
+            purchaseCounts[purchase.buyer_id] = (purchaseCounts[purchase.buyer_id] || 0) + 1;
+          });
+        }
 
         const mappedBuyers = data.map((buyer: any) => ({
           id: buyer.id,
