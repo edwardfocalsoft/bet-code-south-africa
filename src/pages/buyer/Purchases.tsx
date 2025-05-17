@@ -138,25 +138,25 @@ const BuyerPurchases: React.FC = () => {
             <>
               <TabsContent value="all" className="space-y-4">
                 {filterPurchases(null).map(purchase => (
-                  <PurchaseCard key={purchase.id} purchase={purchase} />
+                  <PurchaseCard key={purchase.id} purchase={purchase} formatDate={formatDate} getStatusColor={getStatusColor} />
                 ))}
               </TabsContent>
               
               <TabsContent value="active" className="space-y-4">
                 {filterPurchases('active').map(purchase => (
-                  <PurchaseCard key={purchase.id} purchase={purchase} />
+                  <PurchaseCard key={purchase.id} purchase={purchase} formatDate={formatDate} getStatusColor={getStatusColor} />
                 ))}
               </TabsContent>
               
               <TabsContent value="used" className="space-y-4">
                 {filterPurchases('used').map(purchase => (
-                  <PurchaseCard key={purchase.id} purchase={purchase} />
+                  <PurchaseCard key={purchase.id} purchase={purchase} formatDate={formatDate} getStatusColor={getStatusColor} />
                 ))}
               </TabsContent>
               
               <TabsContent value="expired" className="space-y-4">
                 {filterPurchases('expired').map(purchase => (
-                  <PurchaseCard key={purchase.id} purchase={purchase} />
+                  <PurchaseCard key={purchase.id} purchase={purchase} formatDate={formatDate} getStatusColor={getStatusColor} />
                 ))}
               </TabsContent>
             </>
@@ -169,9 +169,11 @@ const BuyerPurchases: React.FC = () => {
 
 interface PurchaseCardProps {
   purchase: Purchase;
+  formatDate: (date: string) => string;
+  getStatusColor: (status: string) => string;
 }
 
-const PurchaseCard: React.FC<PurchaseCardProps> = ({ purchase }) => {
+const PurchaseCard: React.FC<PurchaseCardProps> = ({ purchase, formatDate, getStatusColor }) => {
   return (
     <Card className="betting-card">
       <CardContent className="p-6">
