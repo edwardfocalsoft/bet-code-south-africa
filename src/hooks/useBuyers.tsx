@@ -104,9 +104,9 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
         
         // Status filter
         if (options.filters.status === "verified") {
-          query = query.eq("approved", true);
+          query = query.not("username", "is", null).not("username", "eq", "Anonymous");
         } else if (options.filters.status === "unverified") {
-          query = query.eq("approved", false);
+          query = query.or("username.is.null,username.eq.Anonymous");
         }
       }
       
@@ -157,79 +157,28 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
         });
       }
 
-      try {
-        // Get email verification status from auth.users table
-        console.log("Attempting to fetch auth users...");
-        const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
+      // Map the buyers with verification status determined by username presence
+      const mappedBuyers = filteredData.map((buyer: any) => {
+        // Consider a buyer verified if they have a username that is not "Anonymous"
+        const isVerified = buyer.username && buyer.username !== "Anonymous";
         
-        if (authError) {
-          console.error("Error fetching auth users:", authError);
-          throw authError;
-        }
-        
-        // Create a map of user IDs to email verification status
-        const verificationStatus: Record<string, boolean> = {};
-        
-        console.log("Auth data received:", authData);
-        
-        if (authData && authData.users) {
-          console.log("Processing auth users:", authData.users.length);
-          authData.users.forEach((user: AuthUser) => {
-            console.log(`User ${user.id}: email_confirmed_at = ${user.email_confirmed_at}`);
-            verificationStatus[user.id] = user.email_confirmed_at !== null;
-          });
-        } else {
-          console.log("No auth users data available");
-        }
-        
-        const mappedBuyers = filteredData.map((buyer: any) => {
-          // Use actual email verification status if available, otherwise fall back to profile.approved
-          const isEmailVerified = verificationStatus[buyer.id] !== undefined 
-            ? verificationStatus[buyer.id] 
-            : buyer.approved;
-          
-          console.log(`Buyer ${buyer.id}: isEmailVerified = ${isEmailVerified}, profile.approved = ${buyer.approved}`);
-          
-          return {
-            id: buyer.id,
-            email: buyer.email,
-            role: buyer.role,
-            username: buyer.username || "Anonymous",
-            createdAt: new Date(buyer.created_at),
-            approved: isEmailVerified,
-            suspended: buyer.suspended || false,
-            lastActive: buyer.updated_at ? new Date(buyer.updated_at) : new Date(buyer.created_at),
-            purchasesCount: purchaseCounts[buyer.id] || 0,
-            loyaltyPoints: buyer.loyalty_points || 0,
-            creditBalance: buyer.credit_balance || 0,
-          };
-        });
+        return {
+          id: buyer.id,
+          email: buyer.email,
+          role: buyer.role,
+          username: buyer.username || "Anonymous",
+          createdAt: new Date(buyer.created_at),
+          approved: isVerified,
+          suspended: buyer.suspended || false,
+          lastActive: buyer.updated_at ? new Date(buyer.updated_at) : new Date(buyer.created_at),
+          purchasesCount: purchaseCounts[buyer.id] || 0,
+          loyaltyPoints: buyer.loyalty_points || 0,
+          creditBalance: buyer.credit_balance || 0,
+        };
+      });
 
-        setBuyers(mappedBuyers);
-        console.log("Buyers data processed successfully with auth verification status");
-      } catch (authError) {
-        console.error("Failed to get authentication status:", authError);
-        
-        // Fall back to using the profile.approved status if we can't get auth data
-        const mappedBuyers = filteredData.map((buyer: any) => {
-          return {
-            id: buyer.id,
-            email: buyer.email,
-            role: buyer.role,
-            username: buyer.username || "Anonymous",
-            createdAt: new Date(buyer.created_at),
-            approved: buyer.approved, // Fallback to the stored approved status
-            suspended: buyer.suspended || false,
-            lastActive: buyer.updated_at ? new Date(buyer.updated_at) : new Date(buyer.created_at),
-            purchasesCount: purchaseCounts[buyer.id] || 0,
-            loyaltyPoints: buyer.loyalty_points || 0,
-            creditBalance: buyer.credit_balance || 0,
-          };
-        });
-        
-        setBuyers(mappedBuyers);
-        console.log("Buyers data processed with fallback approval status");
-      }
+      setBuyers(mappedBuyers);
+      console.log("Buyers data processed successfully with simplified verification logic");
     } catch (error: any) {
       console.error("Error fetching buyers:", error);
       setError(error.message || "Failed to fetch buyers");
