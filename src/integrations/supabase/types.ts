@@ -53,6 +53,92 @@ export type Database = {
           },
         ]
       }
+      case_replies: {
+        Row: {
+          case_id: string
+          content: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          case_id: string
+          content: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          case_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_replies_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cases: {
+        Row: {
+          case_number: string | null
+          created_at: string
+          description: string
+          id: string
+          purchase_id: string
+          status: string
+          ticket_id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          case_number?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          purchase_id: string
+          status?: string
+          ticket_id: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          case_number?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          purchase_id?: string
+          status?: string
+          ticket_id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cases_purchase_id_fkey"
+            columns: ["purchase_id"]
+            isOneToOne: false
+            referencedRelation: "purchases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cases_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -91,6 +177,7 @@ export type Database = {
           approved: boolean
           avatar_url: string | null
           created_at: string
+          credit_balance: number
           email: string
           id: string
           loyalty_points: number | null
@@ -103,6 +190,7 @@ export type Database = {
           approved?: boolean
           avatar_url?: string | null
           created_at?: string
+          credit_balance?: number
           email: string
           id: string
           loyalty_points?: number | null
@@ -115,6 +203,7 @@ export type Database = {
           approved?: boolean
           avatar_url?: string | null
           created_at?: string
+          credit_balance?: number
           email?: string
           id?: string
           loyalty_points?: number | null
@@ -311,6 +400,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          reference_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       withdrawals: {
         Row: {

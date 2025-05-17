@@ -28,10 +28,15 @@ import AdminTickets from "./pages/admin/Tickets";
 import AdminSellers from "./pages/admin/Sellers";
 import AdminBuyers from "./pages/admin/Buyers";
 import AdminWithdrawals from "./pages/admin/Withdrawals";
+import AdminCases from "./pages/admin/Cases";
 import SeedDatabase from "./pages/admin/SeedDatabase";
 
 import UserSettings from "./pages/user/Settings";
 import Notifications from "./pages/user/Notifications";
+import UserWallet from "./pages/user/Wallet";
+import ReportIssue from "./pages/user/ReportIssue";
+import CasesPage from "./pages/user/Cases";
+import CaseDetailsPage from "./pages/user/CaseDetails";
 
 import { ThemeProvider } from "./components/ui/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
@@ -98,11 +103,16 @@ function App() {
           <Route path="/admin/sellers" element={<AdminSellers />} />
           <Route path="/admin/buyers" element={<AdminBuyers />} />
           <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
+          <Route path="/admin/cases" element={<AdminCases />} />
           <Route path="/admin/seed-database" element={<SeedDatabase />} />
           
           {/* User Routes */}
           <Route path="/user/settings" element={<UserSettings />} />
-          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/user/notifications" element={<Notifications />} />
+          <Route path="/user/wallet" element={<UserWallet />} />
+          <Route path="/user/report-issue/:ticketId/:purchaseId" element={<ReportIssue />} />
+          <Route path="/user/cases" element={<CasesPage />} />
+          <Route path="/user/cases/:caseId" element={<CaseDetailsPage />} />
           
           {/* 404 Route */}
           <Route path="*" element={<NotFound />} />
