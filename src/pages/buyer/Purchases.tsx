@@ -6,6 +6,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { formatDate, getStatusColor, formatCurrency } from "@/utils/formatting";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 type Purchase = {
   id: string;
@@ -16,10 +33,14 @@ type Purchase = {
   status: 'active' | 'used' | 'expired';
 };
 
+const ITEMS_PER_PAGE = 10;
+
 const BuyerPurchases: React.FC = () => {
   const { currentUser } = useAuth();
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState("all");
 
   // Mock data for demonstration purposes
   // In a real implementation, this would come from the database
@@ -51,6 +72,79 @@ const BuyerPurchases: React.FC = () => {
         purchaseDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days ago
         price: 60,
         status: 'expired' as const
+      },
+      // Add more mock data to demonstrate pagination
+      {
+        id: "p4",
+        ticketId: "t4",
+        ticketTitle: "Premier League Prediction",
+        purchaseDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        price: 45,
+        status: 'active' as const
+      },
+      {
+        id: "p5",
+        ticketId: "t5",
+        ticketTitle: "Formula 1 Race Prediction",
+        purchaseDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+        price: 55,
+        status: 'active' as const
+      },
+      {
+        id: "p6",
+        ticketId: "t6",
+        ticketTitle: "Rugby Match Prediction",
+        purchaseDate: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+        price: 40,
+        status: 'used' as const
+      },
+      {
+        id: "p7",
+        ticketId: "t7",
+        ticketTitle: "Cricket Test Match Prediction",
+        purchaseDate: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+        price: 35,
+        status: 'active' as const
+      },
+      {
+        id: "p8",
+        ticketId: "t8",
+        ticketTitle: "Boxing Match Prediction",
+        purchaseDate: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+        price: 70,
+        status: 'expired' as const
+      },
+      {
+        id: "p9",
+        ticketId: "t9",
+        ticketTitle: "Horse Racing Prediction",
+        purchaseDate: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+        price: 25,
+        status: 'used' as const
+      },
+      {
+        id: "p10",
+        ticketId: "t10",
+        ticketTitle: "UFC Fight Prediction",
+        purchaseDate: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000).toISOString(),
+        price: 65,
+        status: 'active' as const
+      },
+      {
+        id: "p11",
+        ticketId: "t11",
+        ticketTitle: "MLB Baseball Prediction",
+        purchaseDate: new Date(Date.now() - 22 * 24 * 60 * 60 * 1000).toISOString(),
+        price: 40,
+        status: 'expired' as const
+      },
+      {
+        id: "p12",
+        ticketId: "t12",
+        ticketTitle: "NHL Hockey Prediction",
+        purchaseDate: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
+        price: 45,
+        status: 'used' as const
       }
     ];
     
@@ -81,30 +175,27 @@ const BuyerPurchases: React.FC = () => {
     // fetchPurchases();
   }, [currentUser]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      case 'used':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
-      case 'expired':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400';
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
   const filterPurchases = (status: string | null) => {
     if (!status) return purchases;
     return purchases.filter(purchase => purchase.status === status);
+  };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setCurrentPage(1); // Reset to first page when changing tabs
+  };
+
+  const filteredPurchases = filterPurchases(activeTab === "all" ? null : activeTab as any);
+  const totalPages = Math.ceil(filteredPurchases.length / ITEMS_PER_PAGE);
+  
+  const paginatedPurchases = filteredPurchases.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo(0, 0);
   };
 
   return (
@@ -112,7 +203,7 @@ const BuyerPurchases: React.FC = () => {
       <div className="container mx-auto py-8">
         <h1 className="text-3xl font-bold mb-6">My Purchases</h1>
         
-        <Tabs defaultValue="all" className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="mb-6">
             <TabsTrigger value="all">All Purchases</TabsTrigger>
             <TabsTrigger value="active">Active</TabsTrigger>
@@ -135,72 +226,107 @@ const BuyerPurchases: React.FC = () => {
               </CardContent>
             </Card>
           ) : (
-            <>
-              <TabsContent value="all" className="space-y-4">
-                {filterPurchases(null).map(purchase => (
-                  <PurchaseCard key={purchase.id} purchase={purchase} formatDate={formatDate} getStatusColor={getStatusColor} />
-                ))}
-              </TabsContent>
-              
-              <TabsContent value="active" className="space-y-4">
-                {filterPurchases('active').map(purchase => (
-                  <PurchaseCard key={purchase.id} purchase={purchase} formatDate={formatDate} getStatusColor={getStatusColor} />
-                ))}
-              </TabsContent>
-              
-              <TabsContent value="used" className="space-y-4">
-                {filterPurchases('used').map(purchase => (
-                  <PurchaseCard key={purchase.id} purchase={purchase} formatDate={formatDate} getStatusColor={getStatusColor} />
-                ))}
-              </TabsContent>
-              
-              <TabsContent value="expired" className="space-y-4">
-                {filterPurchases('expired').map(purchase => (
-                  <PurchaseCard key={purchase.id} purchase={purchase} formatDate={formatDate} getStatusColor={getStatusColor} />
-                ))}
-              </TabsContent>
-            </>
+            <TabsContent value={activeTab}>
+              <Card className="betting-card">
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Ticket</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedPurchases.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center py-8">
+                              No purchases found in this category.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          paginatedPurchases.map((purchase) => (
+                            <TableRow key={purchase.id}>
+                              <TableCell className="font-medium">{purchase.ticketTitle}</TableCell>
+                              <TableCell>{formatDate(purchase.purchaseDate)}</TableCell>
+                              <TableCell>R {purchase.price}</TableCell>
+                              <TableCell>
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${getStatusColor(purchase.status)}`}>
+                                  {purchase.status.charAt(0).toUpperCase() + purchase.status.slice(1)}
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <a 
+                                  href={`/tickets/${purchase.ticketId}`} 
+                                  className="text-betting-green hover:underline text-sm"
+                                >
+                                  View details
+                                </a>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="py-4">
+                      <Pagination>
+                        <PaginationContent>
+                          <PaginationItem>
+                            <PaginationPrevious 
+                              onClick={() => handlePageChange(Math.max(1, currentPage - 1))} 
+                              className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} 
+                            />
+                          </PaginationItem>
+                          
+                          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            let pageNumber;
+                            if (totalPages <= 5) {
+                              pageNumber = i + 1;
+                            } else if (currentPage <= 3) {
+                              pageNumber = i + 1;
+                              if (i === 4) pageNumber = totalPages;
+                            } else if (currentPage >= totalPages - 2) {
+                              pageNumber = totalPages - 4 + i;
+                            } else {
+                              pageNumber = currentPage - 2 + i;
+                            }
+                            
+                            return (
+                              <PaginationItem key={i}>
+                                <PaginationLink 
+                                  isActive={currentPage === pageNumber}
+                                  onClick={() => handlePageChange(pageNumber)}
+                                >
+                                  {pageNumber}
+                                </PaginationLink>
+                              </PaginationItem>
+                            );
+                          })}
+                          
+                          <PaginationItem>
+                            <PaginationNext 
+                              onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))} 
+                              className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"} 
+                            />
+                          </PaginationItem>
+                        </PaginationContent>
+                      </Pagination>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
           )}
         </Tabs>
       </div>
     </Layout>
-  );
-};
-
-interface PurchaseCardProps {
-  purchase: Purchase;
-  formatDate: (date: string) => string;
-  getStatusColor: (status: string) => string;
-}
-
-const PurchaseCard: React.FC<PurchaseCardProps> = ({ purchase, formatDate, getStatusColor }) => {
-  return (
-    <Card className="betting-card">
-      <CardContent className="p-6">
-        <div className="flex flex-col md:flex-row justify-between">
-          <div>
-            <h3 className="text-xl font-semibold mb-2">{purchase.ticketTitle}</h3>
-            <p className="text-muted-foreground text-sm">
-              Purchased on {formatDate(purchase.purchaseDate)}
-            </p>
-          </div>
-          <div className="flex flex-col items-start md:items-end mt-4 md:mt-0">
-            <span className="font-bold text-lg">R {purchase.price}</span>
-            <span className={`text-xs px-2 py-1 rounded-full mt-2 ${getStatusColor(purchase.status)}`}>
-              {purchase.status.charAt(0).toUpperCase() + purchase.status.slice(1)}
-            </span>
-          </div>
-        </div>
-        <div className="mt-4 pt-4 border-t border-gray-700">
-          <a 
-            href={`/tickets/${purchase.ticketId}`} 
-            className="text-betting-green hover:underline text-sm"
-          >
-            View ticket details
-          </a>
-        </div>
-      </CardContent>
-    </Card>
   );
 };
 

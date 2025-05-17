@@ -10,6 +10,7 @@ import AllTickets from "./pages/tickets/AllTickets";
 import TicketDetails from "./pages/tickets/TicketDetails";
 
 import AllSellers from "./pages/sellers/AllSellers";
+import SellersLeaderboard from "./pages/sellers/SellersLeaderboard";
 import SellerPublicProfile from "./pages/sellers/SellerPublicProfile";
 
 import BuyerDashboard from "./pages/buyer/Dashboard";
@@ -75,6 +76,7 @@ function App() {
           
           {/* Seller Routes - Public */}
           <Route path="/sellers" element={<AllSellers />} />
+          <Route path="/sellers/leaderboard" element={<SellersLeaderboard />} />
           <Route path="/sellers/:id" element={<SellerPublicProfile />} />
           
           {/* Buyer Routes */}
