@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Layout from "@/components/layout/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,7 +31,12 @@ import { BettingSite } from "@/types";
 
 const AllTickets: React.FC = () => {
   const [viewMode, setViewMode] = useState<"cards" | "table">("table");
-  const { tickets, loading, filters, updateFilters } = useTickets();
+  // Explicitly set role to "buyer" for this page
+  const { tickets, loading, filters, updateFilters } = useTickets({
+    fetchOnMount: true,
+    filterExpired: true,
+    role: "buyer"
+  });
   const [priceRange, setPriceRange] = useState([0]);
   const [showFreeOnly, setShowFreeOnly] = useState(false);
   

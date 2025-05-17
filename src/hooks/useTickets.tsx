@@ -19,7 +19,7 @@ interface FilterOptions {
 interface UseTicketsOptions {
   fetchOnMount?: boolean;
   filterExpired?: boolean;
-  role?: "buyer" | "seller";
+  role?: "buyer" | "seller" | "admin";
 }
 
 export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, filterExpired: true, role: "buyer" }) {
@@ -71,20 +71,28 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
         query = query.lte("price", maxPriceStr);
       }
 
-      // Filter expired tickets based on role
-      if (options.role === "buyer" && options.filterExpired !== false) {
-        // For buyers, ALWAYS hide expired tickets unless explicitly requested
+      // Expired tickets handling based on role
+      if (options.role === "buyer") {
+        // Buyers should NEVER see expired tickets
         query = query.eq("is_expired", false);
-      } else if (mergedFilters?.showExpired !== undefined) {
-        query = query.eq("is_expired", mergedFilters.showExpired);
+      } else if (options.role === "seller") {
+        // For sellers, only show their own tickets and respect showExpired filter
+        if (mergedFilters?.sellerId) {
+          query = query.eq("seller_id", mergedFilters.sellerId);
+        }
+        
+        // Only filter expired if specifically requested
+        if (mergedFilters?.showExpired !== undefined) {
+          query = query.eq("is_expired", mergedFilters.showExpired);
+        }
+      } else if (options.role === "admin") {
+        // For admins, respect the showExpired filter if provided
+        if (mergedFilters?.showExpired !== undefined) {
+          query = query.eq("is_expired", mergedFilters.showExpired);
+        }
       }
 
-      // For sellers, we want to show their expired tickets when requested
-      if (options.role === "seller" && mergedFilters?.sellerId) {
-        query = query.eq("seller_id", mergedFilters.sellerId);
-      }
-
-      // By default, don't show hidden tickets
+      // By default, don't show hidden tickets (for all roles)
       if (mergedFilters?.showHidden !== true) {
         query = query.eq("is_hidden", false);
       }
@@ -133,7 +141,7 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
     } finally {
       setLoading(false);
     }
-  }, [toast, options.role, options.filterExpired, filters]);
+  }, [toast, options.role, filters]);
 
   useEffect(() => {
     if (options.fetchOnMount) {
