@@ -33,26 +33,24 @@ export const useTicketFilters = () => {
   // Apply maximum price filter to the query
   const applyMaxPriceFilter = useCallback((query: any, maxPrice: number | undefined) => {
     if (maxPrice !== undefined) {
-      const maxPriceStr = String(maxPrice);
-      return query.lte("price", maxPriceStr);
+      // Ensure we're passing a string to Supabase for numeric comparisons
+      return query.lte("price", String(maxPrice));
     }
     return query;
   }, []);
 
   // Apply expired tickets filter based on role
   const applyExpiredFilter = useCallback((query: any, mergedFilters: FilterOptions, role: string) => {
-    // Critical fix: For buyers, NEVER show expired tickets regardless of other filters
+    // For buyers, never show expired tickets
     if (role === "buyer") {
       return query.eq("is_expired", false);
-    } else if (role === "seller" || role === "admin") {
-      // For sellers and admins, respect the showExpired filter if provided
-      if (mergedFilters?.showExpired !== undefined) {
-        return query.eq("is_expired", mergedFilters.showExpired);
-      }
-      // Default behavior for sellers/admins if no explicit filter is provided
-      return query.eq("is_expired", false);
+    } 
+    // For sellers and admins, respect the showExpired filter if provided
+    else if (mergedFilters?.showExpired !== undefined) {
+      return query.eq("is_expired", mergedFilters.showExpired);
     }
-    return query;
+    // Default behavior for sellers/admins if no explicit filter is provided
+    return query.eq("is_expired", false);
   }, []);
 
   // Apply seller ID filter (for sellers viewing their own tickets)
@@ -74,8 +72,7 @@ export const useTicketFilters = () => {
   // Apply sorting to the query
   const applySorting = useCallback((query: any, sortBy: string | undefined, sortOrder: "asc" | "desc" | undefined) => {
     if (sortBy) {
-      const sortByValue = typeof sortBy === 'number' ? String(sortBy) : sortBy;
-      return query.order(sortByValue, { 
+      return query.order(sortBy, { 
         ascending: sortOrder !== "desc" 
       });
     }
