@@ -46,41 +46,45 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
 
       if (fetchError) throw fetchError;
 
-      if (data) {
-        // Get purchase counts for each buyer using separate queries instead of group
-        const buyerIds = data.map((buyer: any) => buyer.id);
-        
-        // Get purchases for all buyers in one query
-        const { data: purchasesData, error: purchasesError } = await supabase
-          .from("purchases")
-          .select("buyer_id")
-          .in("buyer_id", buyerIds);
-          
-        if (purchasesError) throw purchasesError;
-        
-        // Count purchases by buyer_id
-        const purchaseCounts: Record<string, number> = {};
-        if (purchasesData) {
-          purchasesData.forEach((purchase: { buyer_id: string }) => {
-            purchaseCounts[purchase.buyer_id] = (purchaseCounts[purchase.buyer_id] || 0) + 1;
-          });
-        }
-
-        const mappedBuyers = data.map((buyer: any) => ({
-          id: buyer.id,
-          email: buyer.email,
-          role: buyer.role,
-          username: buyer.username || "Anonymous",
-          createdAt: new Date(buyer.created_at),
-          approved: buyer.approved,
-          suspended: buyer.suspended,
-          lastActive: new Date(buyer.updated_at),
-          purchasesCount: purchaseCounts[buyer.id] || 0,
-          loyaltyPoints: buyer.loyalty_points || 0,
-        }));
-
-        setBuyers(mappedBuyers);
+      if (!data || data.length === 0) {
+        setBuyers([]);
+        setLoading(false);
+        return;
       }
+
+      // Get purchase counts for each buyer
+      const buyerIds = data.map((buyer: any) => buyer.id);
+      
+      // Get purchases for all buyers in one query
+      const { data: purchasesData, error: purchasesError } = await supabase
+        .from("purchases")
+        .select("buyer_id")
+        .in("buyer_id", buyerIds);
+          
+      if (purchasesError) throw purchasesError;
+      
+      // Count purchases by buyer_id
+      const purchaseCounts: Record<string, number> = {};
+      if (purchasesData) {
+        purchasesData.forEach((purchase: { buyer_id: string }) => {
+          purchaseCounts[purchase.buyer_id] = (purchaseCounts[purchase.buyer_id] || 0) + 1;
+        });
+      }
+
+      const mappedBuyers = data.map((buyer: any) => ({
+        id: buyer.id,
+        email: buyer.email,
+        role: buyer.role,
+        username: buyer.username || "Anonymous",
+        createdAt: new Date(buyer.created_at),
+        approved: buyer.approved || false,
+        suspended: buyer.suspended || false,
+        lastActive: buyer.updated_at ? new Date(buyer.updated_at) : new Date(buyer.created_at),
+        purchasesCount: purchaseCounts[buyer.id] || 0,
+        loyaltyPoints: buyer.loyalty_points || 0,
+      }));
+
+      setBuyers(mappedBuyers);
     } catch (error: any) {
       console.error("Error fetching buyers:", error);
       setError(error.message || "Failed to fetch buyers");
@@ -92,6 +96,7 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
       // Set empty array to prevent infinite loading state
       setBuyers([]);
     } finally {
+      // Ensure loading state is always set to false when done
       setLoading(false);
     }
   }, [options.page, options.pageSize, toast]);
@@ -132,9 +137,21 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
   }, [buyers, toast]);
 
   useEffect(() => {
+    let isMounted = true;
+    
     if (options.fetchOnMount) {
-      fetchBuyers();
+      fetchBuyers().catch(err => {
+        if (isMounted) {
+          console.error("Error in fetchBuyers effect:", err);
+          setLoading(false);
+          setError("Failed to fetch buyers");
+        }
+      });
     }
+    
+    return () => {
+      isMounted = false;
+    };
   }, [options.fetchOnMount, options.page, options.pageSize, fetchBuyers]);
 
   return { 

@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Pagination } from "@/components/ui/pagination";
-import { User, Ban, Check, MoreHorizontal, Activity, Loader2 } from "lucide-react";
+import { User, Ban, Check, MoreHorizontal, Activity, Loader2, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { useBuyers } from "@/hooks/useBuyers";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -46,6 +46,14 @@ const AdminBuyers = () => {
     page: currentPage, 
     pageSize 
   });
+
+  const retryFetch = () => {
+    fetchBuyers();
+    toast({
+      title: "Refreshing",
+      description: "Attempting to reload buyers data...",
+    });
+  };
 
   // Add a useEffect to refetch buyers if there's an error
   useEffect(() => {
@@ -101,6 +109,12 @@ const AdminBuyers = () => {
       <div className="container px-4 py-8 mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Manage Buyers</h1>
+          {error && (
+            <Button onClick={retryFetch} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          )}
         </div>
 
         {error && (
@@ -114,8 +128,8 @@ const AdminBuyers = () => {
         <div className="bg-card rounded-md shadow">
           {loading ? (
             <div className="flex justify-center items-center p-12">
-              <Loader2 className="h-8 w-8 animate-spin text-betting-green" />
-              <span className="ml-2">Loading buyers...</span>
+              <Loader2 className="h-8 w-8 animate-spin text-betting-green mr-2" />
+              <span>Loading buyers...</span>
             </div>
           ) : (
             <Table>
