@@ -11,13 +11,13 @@ const AuthButtons: React.FC = () => {
   const { creditBalance } = useWallet();
   
   // Only show credit balance if user is logged in
-  const hasCredits = currentUser && creditBalance !== null && creditBalance > 0;
+  const hasCredits = currentUser && creditBalance !== null && creditBalance !== undefined;
 
   return (
     <div className="flex items-center gap-3">
       {currentUser && (
         <>
-          {creditBalance !== null ? (
+          {creditBalance !== null && creditBalance !== undefined ? (
             <div className="px-3 py-1 bg-betting-dark-gray text-betting-green rounded-md flex items-center">
               <span className="text-sm font-medium">R {creditBalance.toFixed(2)}</span>
             </div>

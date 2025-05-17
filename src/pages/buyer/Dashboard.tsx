@@ -114,8 +114,8 @@ const BuyerDashboard: React.FC = () => {
           
           <StatCard 
             title="Credit Balance"
-            value={creditBalance !== null ? parseFloat(creditBalance.toFixed(2)) : null}
-            loading={creditBalance === null}
+            value={creditBalance !== null && creditBalance !== undefined ? parseFloat(creditBalance.toFixed(2)) : 0}
+            loading={creditBalance === null || creditBalance === undefined}
             icon={<Wallet className="h-8 w-8 text-betting-green opacity-50" />}
             link={{ text: "Manage wallet", to: "/user/wallet" }}
           />
