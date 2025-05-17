@@ -8,6 +8,7 @@ import { AlertCircle, Users, Ticket, BadgeDollarSign, UserCheck, TrendingUp, Arr
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { isPast } from "date-fns";
 
 interface DashboardStats {
   totalUsers: number;
@@ -58,11 +59,14 @@ const AdminDashboard: React.FC = () => {
         if (approvalsError) throw approvalsError;
         
         // Fetch active tickets
+        // Updated to correctly filter out expired tickets by both is_expired flag and kickoff_time
+        const now = new Date().toISOString();
         const { count: activeTickets, error: ticketsError } = await supabase
           .from("tickets")
           .select("*", { count: "exact", head: true })
           .eq("is_expired", false)
-          .eq("is_hidden", false);
+          .eq("is_hidden", false)
+          .gt("kickoff_time", now); // Only include tickets with future kickoff times
           
         if (ticketsError) throw ticketsError;
         
