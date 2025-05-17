@@ -1,3 +1,4 @@
+
 export type UserRole = "buyer" | "seller" | "admin";
 
 export type BettingSite = 
@@ -19,8 +20,8 @@ export interface User {
   loyaltyPoints?: number;
   bankDetails?: BankDetails;
   avatar_url?: string;
-  purchasesCount?: number; // Added property 
-  lastActive?: Date;       // Added property
+  purchasesCount?: number; 
+  lastActive?: Date;      
 }
 
 export interface BankDetails {
@@ -92,3 +93,12 @@ export interface DashboardStats {
   pendingApprovals?: number;
   pendingWithdrawals?: number;
 }
+
+// Added a specific interface for case reply profiles to handle error cases
+export interface CaseReplyProfile {
+  username?: string;
+  role: string;
+  avatar_url?: string;
+  error?: boolean;
+}
+

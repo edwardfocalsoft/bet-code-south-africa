@@ -47,6 +47,7 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
+import { CaseReplyProfile } from "@/types";
 
 interface CaseReply {
   id: string;
@@ -54,11 +55,7 @@ interface CaseReply {
   user_id: string;
   content: string;
   created_at: string;
-  profiles: {
-    username?: string;
-    role: string;
-    avatar_url?: string;
-  };
+  profiles: CaseReplyProfile;
 }
 
 interface CaseDetail {
@@ -102,6 +99,26 @@ const CaseDetailsPage: React.FC = () => {
   const urlParams = new URLSearchParams(window.location.search);
   const showRefundOption = urlParams.get('refund') === 'true';
 
+  // Helper function to safely get profile data
+  const safeProfileData = (profile: any): CaseReplyProfile => {
+    // If profile has an error or is invalid
+    if (!profile || profile.error) {
+      return {
+        username: 'Unknown User',
+        role: 'buyer',
+        avatar_url: undefined,
+        error: true
+      };
+    }
+    
+    return {
+      username: profile.username || 'Unknown User',
+      role: profile.role || 'buyer',
+      avatar_url: profile.avatar_url,
+      error: false
+    };
+  };
+
   useEffect(() => {
     if (showRefundOption) {
       setRefundDialogOpen(true);
@@ -122,17 +139,16 @@ const CaseDetailsPage: React.FC = () => {
           return;
         }
 
-        // Ensure the details object conforms to CaseDetail interface
+        // Process the replies to handle potential profile errors
+        const processedReplies: CaseReply[] = details.replies?.map((reply: any) => ({
+          ...reply,
+          profiles: safeProfileData(reply.profiles)
+        })) || [];
+        
+        // Create a properly typed CaseDetail object
         const processedDetails: CaseDetail = {
           ...details,
-          replies: details.replies?.map((reply: any) => ({
-            ...reply,
-            profiles: {
-              username: reply.profiles?.username || 'Unknown User',
-              role: reply.profiles?.role || 'buyer',
-              avatar_url: reply.profiles?.avatar_url
-            }
-          })) || []
+          replies: processedReplies
         };
         
         setCaseDetails(processedDetails);
@@ -157,7 +173,20 @@ const CaseDetailsPage: React.FC = () => {
       if (result) {
         // Refresh case details to show the new reply
         const updatedDetails = await fetchCaseDetails(caseId);
-        setCaseDetails(updatedDetails);
+        
+        if (updatedDetails) {
+          // Process the updatedDetails to ensure it matches our expected type
+          const processedReplies: CaseReply[] = updatedDetails.replies?.map((reply: any) => ({
+            ...reply,
+            profiles: safeProfileData(reply.profiles)
+          })) || [];
+          
+          setCaseDetails({
+            ...updatedDetails,
+            replies: processedReplies
+          });
+        }
+        
         setReplyContent("");
       }
     } finally {
@@ -207,7 +236,20 @@ const CaseDetailsPage: React.FC = () => {
       if (success) {
         // Reload case details
         const updatedDetails = await fetchCaseDetails(caseId);
-        setCaseDetails(updatedDetails);
+        
+        if (updatedDetails) {
+          // Process the updatedDetails to ensure it matches our expected type
+          const processedReplies: CaseReply[] = updatedDetails.replies?.map((reply: any) => ({
+            ...reply,
+            profiles: safeProfileData(reply.profiles)
+          })) || [];
+          
+          setCaseDetails({
+            ...updatedDetails,
+            replies: processedReplies
+          });
+        }
+        
         setRefundDialogOpen(false);
       }
     } finally {
@@ -287,6 +329,7 @@ const CaseDetailsPage: React.FC = () => {
           </div>
         ) : caseDetails ? (
           <div className="space-y-6">
+            {/* Case details card */}
             <Card className="betting-card">
               <CardHeader className="pb-2">
                 <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
@@ -306,6 +349,7 @@ const CaseDetailsPage: React.FC = () => {
                 </div>
               </CardHeader>
               <CardContent>
+                {/* ... keep existing code (case description and admin action buttons) */}
                 <div className="space-y-4">
                   <div className="p-4 bg-betting-dark-gray/30 rounded-md">
                     <p className="whitespace-pre-wrap">{caseDetails.description}</p>
@@ -406,6 +450,7 @@ const CaseDetailsPage: React.FC = () => {
               </CardContent>
             </Card>
 
+            {/* Conversation history card */}
             <Card className="betting-card">
               <CardHeader>
                 <CardTitle>Conversation History</CardTitle>
@@ -481,7 +526,7 @@ const CaseDetailsPage: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* If there's related ticket info, show it */}
+            {/* Related ticket info */}
             {caseDetails.tickets && (
               <Card className="betting-card">
                 <CardHeader>

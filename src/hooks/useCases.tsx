@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -56,54 +57,47 @@ export const useCases = () => {
   const fetchCaseDetails = async (caseId: string) => {
     if (!currentUser) return null;
     
-    // Get the case
-    const { data: caseData, error: caseError } = await supabase
-      .from('cases')
-      .select(`
-        *,
-        purchases(*),
-        tickets(*)
-      `)
-      .eq('id', caseId)
-      .single();
-    
-    if (caseError) {
-      console.error("Error fetching case:", caseError);
+    try {
+      // Get the case
+      const { data: caseData, error: caseError } = await supabase
+        .from('cases')
+        .select(`
+          *,
+          purchases(*),
+          tickets(*)
+        `)
+        .eq('id', caseId)
+        .single();
+      
+      if (caseError) {
+        console.error("Error fetching case:", caseError);
+        return null;
+      }
+      
+      // Get case replies with profile information
+      const { data: repliesData, error: repliesError } = await supabase
+        .from('case_replies')
+        .select(`
+          *,
+          profiles:user_id(username, role, avatar_url)
+        `)
+        .eq('case_id', caseId)
+        .order('created_at', { ascending: true });
+      
+      if (repliesError) {
+        console.error("Error fetching case replies:", repliesError);
+        return { ...caseData, replies: [] };
+      }
+      
+      // Return the combined data
+      return { 
+        ...caseData, 
+        replies: repliesData || [] 
+      };
+    } catch (error) {
+      console.error("Error in fetchCaseDetails:", error);
       return null;
     }
-    
-    // Get case replies
-    const { data: repliesData, error: repliesError } = await supabase
-      .from('case_replies')
-      .select(`
-        *,
-        profiles:user_id(username, role, avatar_url)
-      `)
-      .eq('case_id', caseId)
-      .order('created_at', { ascending: true });
-    
-    if (repliesError) {
-      console.error("Error fetching case replies:", repliesError);
-      return { ...caseData, replies: [] };
-    }
-
-    // Filter out any replies with error in profiles and ensure proper structure
-    const validReplies = repliesData?.map(reply => {
-      // If profiles has an error, provide default values
-      if (reply.profiles && 'error' in reply.profiles) {
-        return {
-          ...reply,
-          profiles: { 
-            username: 'Unknown User', 
-            role: 'buyer', 
-            avatar_url: null
-          }
-        };
-      }
-      return reply;
-    }) || [];
-    
-    return { ...caseData, replies: validReplies };
   };
 
   // Create a new case
