@@ -101,7 +101,7 @@ export const getSellerStats = async (sellerId: string) => {
     // Calculate win rate
     let winRate = 0;
     if (totalSales && totalSales > 0 && winningCount !== null) {
-      winRate = (winningCount / totalSales) * 100;
+      winRate = Math.round((winningCount / totalSales) * 100);
     }
     
     // Get average rating

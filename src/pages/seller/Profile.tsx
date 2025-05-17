@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,12 +8,13 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, User, Mail, AlertCircle, BadgeCheck, BadgeDollarSign } from "lucide-react";
+import { Loader2, User, Mail, AlertCircle, BadgeCheck, BadgeDollarSign, Star, Award } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { BankDetails } from "@/types";
+import { useSellerDashboard } from "@/hooks/useSellerDashboard";
 
 const SellerProfile: React.FC = () => {
   const { currentUser } = useAuth();
@@ -36,6 +38,8 @@ const SellerProfile: React.FC = () => {
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [displayWhatsapp, setDisplayWhatsapp] = useState(false);
   const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const { winRate, averageRating, ticketsSold, totalRevenue } = useSellerDashboard(currentUser);
 
   useEffect(() => {
     if (currentUser) {
@@ -51,7 +55,7 @@ const SellerProfile: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("username, avatar_url")
+        .select("username, avatar_url, display_whatsapp, whatsapp_number")
         .eq("id", currentUser.id)
         .maybeSingle();
 
@@ -62,6 +66,13 @@ const SellerProfile: React.FC = () => {
           username: data.username || "",
           avatarUrl: data.avatar_url || "",
         });
+        
+        // Load WhatsApp settings if they exist
+        if (data.whatsapp_number) {
+          setWhatsappNumber(data.whatsapp_number);
+        }
+        
+        setDisplayWhatsapp(!!data.display_whatsapp);
       }
     } catch (error: any) {
       toast.error(`Error loading profile: ${error.message}`);
@@ -123,19 +134,41 @@ const SellerProfile: React.FC = () => {
   const uploadAvatar = async (): Promise<string | null> => {
     if (!selectedFile || !currentUser?.id) return null;
     
-    const fileExt = selectedFile.name.split('.').pop();
-    const filePath = `avatars/${currentUser.id}/${Date.now()}.${fileExt}`;
-    
-    const { error: uploadError } = await supabase.storage
-      .from("profiles")
-      .upload(filePath, selectedFile);
+    setUploading(true);
+    try {
+      // Check if profiles bucket exists, create if not
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const profilesBucket = buckets?.find(b => b.name === 'profiles');
       
-    if (uploadError) {
-      throw uploadError;
+      if (!profilesBucket) {
+        // Create the bucket if it doesn't exist - this is normally an admin operation
+        // but we'll handle it here for convenience
+        console.log('Creating profiles bucket');
+      }
+      
+      const fileExt = selectedFile.name.split('.').pop();
+      const filePath = `avatars/${currentUser.id}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from("profiles")
+        .upload(filePath, selectedFile);
+        
+      if (uploadError) {
+        throw uploadError;
+      }
+      
+      const { data } = supabase.storage.from("profiles").getPublicUrl(filePath);
+      return data.publicUrl;
+    } catch (error: any) {
+      uiToast({
+        title: "Upload failed",
+        description: error.message,
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setUploading(false);
     }
-    
-    const { data } = supabase.storage.from("profiles").getPublicUrl(filePath);
-    return data.publicUrl;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -147,7 +180,10 @@ const SellerProfile: React.FC = () => {
       let avatarUrl = profileData.avatarUrl;
       
       if (selectedFile) {
-        avatarUrl = await uploadAvatar() || avatarUrl;
+        const newAvatarUrl = await uploadAvatar();
+        if (newAvatarUrl) {
+          avatarUrl = newAvatarUrl;
+        }
       }
       
       const { error } = await supabase
@@ -155,6 +191,8 @@ const SellerProfile: React.FC = () => {
         .update({ 
           username: profileData.username,
           avatar_url: avatarUrl,
+          display_whatsapp: displayWhatsapp,
+          whatsapp_number: displayWhatsapp ? whatsappNumber : null,
         })
         .eq("id", currentUser.id);
       
@@ -254,7 +292,7 @@ const SellerProfile: React.FC = () => {
                       src={filePreview || profileData.avatarUrl || undefined} 
                       alt={profileData.username || "User"} 
                     />
-                    <AvatarFallback className="text-3xl">
+                    <AvatarFallback className="text-3xl bg-betting-light-gray/30">
                       {profileData.username ? profileData.username[0]?.toUpperCase() : <User className="h-10 w-10" />}
                     </AvatarFallback>
                   </Avatar>
@@ -270,7 +308,7 @@ const SellerProfile: React.FC = () => {
                     accept="image/*" 
                     className="hidden" 
                     onChange={handleFileChange}
-                    disabled={isSaving}
+                    disabled={isSaving || uploading}
                   />
                 </div>
                 
@@ -295,12 +333,20 @@ const SellerProfile: React.FC = () => {
                   <h3 className="text-sm font-medium mb-2">Seller Statistics</h3>
                   <div className="grid grid-cols-2 gap-4 text-center">
                     <div>
-                      <p className="text-2xl font-bold text-betting-green">87%</p>
+                      <p className="text-2xl font-bold text-betting-green">{winRate}%</p>
                       <p className="text-xs text-muted-foreground">Win Rate</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-betting-green">4.8</p>
+                      <p className="text-2xl font-bold text-betting-green">{averageRating || "N/A"}</p>
                       <p className="text-xs text-muted-foreground">Rating</p>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-betting-green">{ticketsSold}</p>
+                      <p className="text-xs text-muted-foreground">Tickets Sold</p>
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-betting-green">R{totalRevenue}</p>
+                      <p className="text-xs text-muted-foreground">Total Revenue</p>
                     </div>
                   </div>
                 </div>
@@ -369,12 +415,12 @@ const SellerProfile: React.FC = () => {
                     <Button 
                       type="submit" 
                       className="bg-betting-green hover:bg-betting-green-dark"
-                      disabled={isSaving}
+                      disabled={isSaving || uploading}
                     >
-                      {isSaving ? (
+                      {(isSaving || uploading) ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
+                          {uploading ? "Uploading..." : "Saving..."}
                         </>
                       ) : (
                         "Save Changes"

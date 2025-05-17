@@ -11,6 +11,8 @@ interface StatCardProps {
   subtitle?: string;
   loading?: boolean;
   action?: React.ReactNode;
+  className?: string;
+  iconClassName?: string;
 }
 
 const StatCard: React.FC<StatCardProps> = ({ 
@@ -19,10 +21,12 @@ const StatCard: React.FC<StatCardProps> = ({
   icon: Icon, 
   subtitle, 
   loading = false,
-  action
+  action,
+  className = "",
+  iconClassName = "text-betting-green opacity-50"
 }) => {
   return (
-    <Card className="betting-card">
+    <Card className={`betting-card ${className}`}>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm text-muted-foreground">{title}</CardTitle>
       </CardHeader>
@@ -37,7 +41,7 @@ const StatCard: React.FC<StatCardProps> = ({
             </div>
             <div className="flex items-center gap-2">
               {action}
-              <Icon className="h-8 w-8 text-betting-green opacity-50" />
+              <Icon className={`h-8 w-8 ${iconClassName}`} />
             </div>
           </div>
         )}
