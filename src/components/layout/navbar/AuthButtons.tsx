@@ -30,10 +30,10 @@ const AuthButtons: React.FC = () => {
       {!currentUser ? (
         <>
           <Button variant="outline" asChild>
-            <Link to="/auth/login">Login</Link>
+            <Link to="/login">Login</Link>
           </Button>
           <Button asChild className="bg-betting-green hover:bg-betting-green-dark">
-            <Link to="/auth/register">Register</Link>
+            <Link to="/register">Register</Link>
           </Button>
         </>
       ) : (
