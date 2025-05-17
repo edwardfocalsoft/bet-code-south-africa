@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Layout from "@/components/layout/Layout";
 import {
@@ -24,7 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Pagination } from "@/components/ui/pagination";
 import { User, Ban, Check, MoreHorizontal, Activity } from "lucide-react";
-import { useSupabase } from "@/hooks/useSupabase";
+import useSupabase from "@/hooks/useSupabase";
 
 const AdminBuyers = () => {
   const { toast } = useToast();

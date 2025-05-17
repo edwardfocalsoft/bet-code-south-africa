@@ -7,6 +7,8 @@ import { useTicket } from "./useTicket";
 // Export all hooks
 export { useTickets, useSellers, useTicket };
 
-export default function useSupabase() {
-  return { supabase, useTickets, useSellers, useTicket };
-}
+const useSupabase = () => {
+  return { supabase };
+};
+
+export default useSupabase;
