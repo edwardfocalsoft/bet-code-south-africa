@@ -21,6 +21,8 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
     try {
       setLoading(true);
       setError(null);
+      
+      console.log("Fetching buyers - started");
 
       // Get total count first for pagination
       const { count, error: countError } = await supabase
@@ -45,6 +47,8 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
         .range(from, to);
 
       if (fetchError) throw fetchError;
+
+      console.log(`Fetched ${data?.length || 0} buyers`);
 
       if (!data || data.length === 0) {
         setBuyers([]);
@@ -85,6 +89,7 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
       }));
 
       setBuyers(mappedBuyers);
+      console.log("Buyers data processed successfully");
     } catch (error: any) {
       console.error("Error fetching buyers:", error);
       setError(error.message || "Failed to fetch buyers");
@@ -98,6 +103,7 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
     } finally {
       // Ensure loading state is always set to false when done
       setLoading(false);
+      console.log("Buyers fetch complete, loading set to false");
     }
   }, [options.page, options.pageSize, toast]);
 

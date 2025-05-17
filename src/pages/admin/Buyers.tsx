@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Pagination } from "@/components/ui/pagination";
 import { BuyersHeader } from "@/components/admin/buyers/BuyersHeader";
@@ -23,8 +23,15 @@ const AdminBuyers = () => {
     fetchBuyers
   } = useBuyers({ 
     page: currentPage, 
-    pageSize 
+    pageSize,
+    fetchOnMount: true // Ensure data is fetched when component mounts
   });
+
+  // Force data refresh when component mounts
+  useEffect(() => {
+    fetchBuyers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const retryFetch = () => {
     fetchBuyers();
