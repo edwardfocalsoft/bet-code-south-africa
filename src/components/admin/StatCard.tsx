@@ -8,7 +8,7 @@ interface StatCardProps {
   title: string;
   value: React.ReactNode;
   icon: LucideIcon;
-  subtitle?: string;
+  subtitle?: React.ReactNode; // Changed from string to React.ReactNode to support both strings and JSX elements
   loading?: boolean;
   action?: React.ReactNode;
   className?: string;
@@ -37,7 +37,7 @@ const StatCard: React.FC<StatCardProps> = ({
           <div className="flex items-end justify-between">
             <div>
               <p className={`text-3xl font-bold ${valueClassName}`}>{value}</p>
-              {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+              {subtitle && <div className="text-xs text-muted-foreground">{subtitle}</div>}
             </div>
             <div className="flex items-center gap-2">
               {action}

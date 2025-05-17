@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -262,8 +261,8 @@ const AdminDashboard: React.FC = () => {
             icon={UserCheck}
             loading={loading}
             subtitle={stats?.pendingApprovals ? 
-              <p className="text-xs text-amber-400">Requires attention</p> : 
-              <p className="text-xs text-muted-foreground">No pending approvals</p>
+              "Requires attention" : 
+              "No pending approvals"
             }
             valueClassName="text-betting-accent"
           />
