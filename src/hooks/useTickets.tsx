@@ -59,14 +59,16 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
 
   // Apply expired tickets filter based on role
   const applyExpiredFilter = useCallback((query: any, mergedFilters: FilterOptions, role: string) => {
+    // Critical fix: For buyers, NEVER show expired tickets regardless of other filters
     if (role === "buyer") {
-      // Buyers should NEVER see expired tickets
       return query.eq("is_expired", false);
     } else if (role === "seller" || role === "admin") {
       // For sellers and admins, respect the showExpired filter if provided
       if (mergedFilters?.showExpired !== undefined) {
         return query.eq("is_expired", mergedFilters.showExpired);
       }
+      // Default behavior for sellers/admins if no explicit filter is provided
+      return query.eq("is_expired", false);
     }
     return query;
   }, []);
@@ -100,22 +102,29 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
 
   // Map database tickets to frontend ticket objects
   const mapDatabaseTickets = useCallback((data: any[]): BettingTicket[] => {
-    return data.map((ticket: any) => ({
-      id: ticket.id,
-      title: ticket.title,
-      description: ticket.description,
-      sellerId: ticket.seller_id,
-      sellerUsername: ticket.profiles?.username || "Unknown Seller",
-      price: parseFloat(String(ticket.price)),
-      isFree: ticket.is_free,
-      bettingSite: ticket.betting_site,
-      kickoffTime: new Date(ticket.kickoff_time),
-      createdAt: new Date(ticket.created_at),
-      odds: ticket.odds ? parseFloat(String(ticket.odds)) : undefined,
-      isHidden: ticket.is_hidden,
-      isExpired: ticket.is_expired,
-      eventResults: ticket.event_results,
-    }));
+    return data.map((ticket: any) => {
+      const kickoffTime = new Date(ticket.kickoff_time);
+      // Extra safeguard: Check if the ticket is expired based on kickoff time
+      const isExpiredByDate = kickoffTime < new Date();
+      
+      return {
+        id: ticket.id,
+        title: ticket.title,
+        description: ticket.description,
+        sellerId: ticket.seller_id,
+        sellerUsername: ticket.profiles?.username || "Unknown Seller",
+        price: parseFloat(String(ticket.price)),
+        isFree: ticket.is_free,
+        bettingSite: ticket.betting_site,
+        kickoffTime: kickoffTime,
+        createdAt: new Date(ticket.created_at),
+        odds: ticket.odds ? parseFloat(String(ticket.odds)) : undefined,
+        isHidden: ticket.is_hidden,
+        // Critical fix: Mark as expired either if explicitly marked in DB or if kickoff time has passed
+        isExpired: ticket.is_expired || isExpiredByDate,
+        eventResults: ticket.event_results,
+      };
+    });
   }, []);
 
   const fetchTickets = useCallback(async (filterOptions?: FilterOptions) => {
@@ -157,7 +166,13 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
       if (error) throw error;
 
       const mappedTickets = mapDatabaseTickets(data);
-      setTickets(mappedTickets);
+      
+      // Extra filter to ensure no expired tickets are shown to buyers
+      const finalTickets = options.role === "buyer" 
+        ? mappedTickets.filter(ticket => !ticket.isExpired) 
+        : mappedTickets;
+      
+      setTickets(finalTickets);
     } catch (error: any) {
       console.error("Error fetching tickets:", error);
       setError(error.message || "Failed to fetch tickets");
