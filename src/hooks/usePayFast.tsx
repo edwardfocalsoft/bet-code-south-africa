@@ -17,6 +17,7 @@ interface PaymentData {
   amount: number;
   buyerId: string;
   purchaseId?: string;
+  sellerId?: string;
 }
 
 export const usePayFast = () => {

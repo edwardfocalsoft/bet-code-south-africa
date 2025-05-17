@@ -12,8 +12,9 @@ export const useTicket = (ticketId: string | undefined) => {
   const [loading, setLoading] = useState(true);
   const [purchaseLoading, setPurchaseLoading] = useState(false);
   const [alreadyPurchased, setAlreadyPurchased] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
   const { currentUser } = useAuth();
-  const { generatePaymentUrl } = usePayFast();
+  const { initiatePayment } = usePayFast();
   const { toast: uiToast } = useToast();
 
   const fetchTicketDetails = useCallback(async () => {
@@ -21,6 +22,7 @@ export const useTicket = (ticketId: string | undefined) => {
 
     try {
       setLoading(true);
+      setError(null);
       
       // Get ticket details
       const { data: ticketData, error: ticketError } = await supabase
@@ -57,6 +59,7 @@ export const useTicket = (ticketId: string | undefined) => {
       
     } catch (error: any) {
       console.error("Error fetching ticket:", error);
+      setError(error);
       uiToast({
         title: "Error",
         description: error.message || "Failed to load ticket details",
@@ -108,16 +111,20 @@ export const useTicket = (ticketId: string | undefined) => {
       }
 
       // For paid tickets, redirect to PayFast
-      const paymentUrl = await generatePaymentUrl({
+      const result = await initiatePayment({
+        ticketId: ticketId || "",
+        ticketTitle: ticket.title,
         amount: ticket.price,
-        item_name: ticket.title,
-        purchaseId: purchaseId,
-        buyerId: currentUser.id,
-        sellerId: ticket.seller_id
+        buyerId: currentUser.id
       });
 
-      // Redirect to payment page
-      window.location.href = paymentUrl;
+      if (result && result.paymentUrl) {
+        // Redirect to payment page
+        window.location.href = result.paymentUrl;
+      } else if (result && result.testMode) {
+        toast.success("Test mode payment successful!");
+        setAlreadyPurchased(true);
+      }
 
     } catch (error: any) {
       console.error("Purchase error:", error);
@@ -133,6 +140,7 @@ export const useTicket = (ticketId: string | undefined) => {
     loading,
     purchaseLoading,
     alreadyPurchased,
+    error,
     purchaseTicket,
     refreshTicket: fetchTicketDetails
   };
