@@ -62,7 +62,7 @@ export const useSellerDashboard = (currentUser: User | null) => {
         if (bankError) throw bankError;
         
         // Calculate win rate
-        const winRate = ticketsCount > 0 ? (winningCount / ticketsCount) * 100 : 0;
+        const winRate = ticketsCount ? (winningCount! / ticketsCount) * 100 : 0;
         
         setDashboardData({
           totalSales: totalSales,
