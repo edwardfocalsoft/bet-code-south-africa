@@ -32,6 +32,7 @@ interface TicketDetailsStepProps {
   onSubmit: () => void;
   isSubmitting: boolean;
   showPreview: () => void;
+  isCheckingTicketCode?: boolean;
 }
 
 const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
@@ -41,7 +42,8 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
   onPrev,
   onSubmit,
   isSubmitting,
-  showPreview
+  showPreview,
+  isCheckingTicketCode = false
 }) => {
   return (
     <div className="space-y-4">
@@ -92,6 +94,11 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
             onChange={(e) => setTicketData({...ticketData, ticketCode: e.target.value})}
             className="bg-betting-black border-betting-light-gray pl-10"
           />
+          {isCheckingTicketCode && (
+            <div className="absolute right-3 top-3">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          )}
         </div>
         {errors.ticketCode && <p className="text-red-500 text-xs mt-1">{errors.ticketCode}</p>}
         <p className="text-xs text-muted-foreground">
@@ -170,6 +177,7 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
           <Button
             variant="outline"
             onClick={showPreview}
+            disabled={isSubmitting}
             className="bg-betting-dark-gray border-betting-light-gray"
           >
             Preview

@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { BettingSite } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TicketFormData {
   title: string;
@@ -50,6 +51,8 @@ export const useTicketForm = () => {
     ticketCode: "",
   });
   
+  const [isCheckingTicketCode, setIsCheckingTicketCode] = useState(false);
+
   const validateStep1 = () => {
     let valid = true;
     const newErrors = { ...errors };
@@ -79,7 +82,29 @@ export const useTicketForm = () => {
     return valid;
   };
   
-  const validateStep2 = () => {
+  const validateTicketCodeUniqueness = async (ticketCode: string): Promise<boolean> => {
+    setIsCheckingTicketCode(true);
+    try {
+      const { data, error, count } = await supabase
+        .from("tickets")
+        .select("ticket_code", { count: "exact" })
+        .eq("ticket_code", ticketCode)
+        .limit(1);
+      
+      if (error) {
+        throw error;
+      }
+      
+      return count === 0; // Return true if the ticket code is unique (not found)
+    } catch (error) {
+      console.error("Error checking ticket code uniqueness:", error);
+      return false; // Assume it's not unique if there's an error
+    } finally {
+      setIsCheckingTicketCode(false);
+    }
+  };
+  
+  const validateStep2 = async () => {
     let valid = true;
     const newErrors = { ...errors };
     
@@ -101,7 +126,14 @@ export const useTicketForm = () => {
       newErrors.ticketCode = "Ticket code is required";
       valid = false;
     } else {
-      newErrors.ticketCode = "";
+      // Check if ticket code is unique
+      const isUnique = await validateTicketCodeUniqueness(ticketData.ticketCode);
+      if (!isUnique) {
+        newErrors.ticketCode = "This ticket code is already in use. Please choose another.";
+        valid = false;
+      } else {
+        newErrors.ticketCode = "";
+      }
     }
     
     // Date/time validation
@@ -128,6 +160,7 @@ export const useTicketForm = () => {
     setTicketData,
     errors,
     validateStep1,
-    validateStep2
+    validateStep2,
+    isCheckingTicketCode
   };
 };

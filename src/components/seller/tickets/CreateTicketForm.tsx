@@ -16,14 +16,21 @@ const CreateTicketForm: React.FC = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { ticketData, setTicketData, errors, validateStep1, validateStep2, step, setStep } = useTicketForm();
+  const { ticketData, setTicketData, errors, validateStep1, validateStep2, step, setStep, isCheckingTicketCode } = useTicketForm();
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [validatingStep, setValidatingStep] = useState(false);
   
-  const handleNextStep = () => {
+  const handleNextStep = async () => {
     if (step === 1 && validateStep1()) {
       setStep(2);
-    } else if (step === 2 && validateStep2()) {
-      handleSubmit();
+    } else if (step === 2) {
+      setValidatingStep(true);
+      const isValid = await validateStep2();
+      setValidatingStep(false);
+      
+      if (isValid) {
+        handleSubmit();
+      }
     }
   };
   
@@ -31,8 +38,12 @@ const CreateTicketForm: React.FC = () => {
     setStep(1);
   };
   
-  const showTicketPreview = () => {
-    if (validateStep2()) {
+  const showTicketPreview = async () => {
+    setValidatingStep(true);
+    const isValid = await validateStep2();
+    setValidatingStep(false);
+    
+    if (isValid) {
       setPreviewOpen(true);
     }
   };
@@ -98,8 +109,9 @@ const CreateTicketForm: React.FC = () => {
           errors={errors}
           onPrev={handlePrevStep}
           onSubmit={handleNextStep}
-          isSubmitting={isSubmitting}
+          isSubmitting={isSubmitting || validatingStep}
           showPreview={showTicketPreview}
+          isCheckingTicketCode={isCheckingTicketCode}
         />
       )}
       

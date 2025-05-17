@@ -356,6 +356,7 @@ export type Database = {
           odds: number | null
           price: number
           seller_id: string
+          ticket_code: string
           title: string
           updated_at: string
         }
@@ -372,6 +373,7 @@ export type Database = {
           odds?: number | null
           price: number
           seller_id: string
+          ticket_code: string
           title: string
           updated_at?: string
         }
@@ -388,6 +390,7 @@ export type Database = {
           odds?: number | null
           price?: number
           seller_id?: string
+          ticket_code?: string
           title?: string
           updated_at?: string
         }
