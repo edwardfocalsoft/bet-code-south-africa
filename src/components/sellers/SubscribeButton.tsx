@@ -2,7 +2,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { useSubscriptions } from "@/hooks/useSubscriptions";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 import { Loader2 } from "lucide-react";
 
 interface SubscribeButtonProps {
@@ -20,6 +20,7 @@ const SubscribeButton: React.FC<SubscribeButtonProps> = ({
   
   const subscribed = isSubscribed(sellerId);
   const subscriptionId = getSubscriptionId(sellerId);
+  const isSelfProfile = currentUser?.id === sellerId;
   
   const handleSubscribe = async () => {
     if (!currentUser) return;
@@ -34,6 +35,19 @@ const SubscribeButton: React.FC<SubscribeButtonProps> = ({
     
     setLoading(false);
   };
+  
+  // If viewing own profile, show disabled button
+  if (isSelfProfile) {
+    return (
+      <Button
+        variant="outline"
+        disabled={true}
+        className="opacity-70"
+      >
+        Cannot Subscribe to Yourself
+      </Button>
+    );
+  }
   
   return (
     <Button

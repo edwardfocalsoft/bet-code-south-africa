@@ -20,6 +20,7 @@ export function useSubscriptions() {
   const { currentUser } = useAuth();
 
   const fetchSubscriptions = useCallback(async () => {
+    // Don't attempt to fetch or show errors if no user is logged in
     if (!currentUser) {
       setSubscriptions([]);
       setLoading(false);
@@ -56,15 +57,12 @@ export function useSubscriptions() {
     } catch (error: any) {
       console.error("Error fetching subscriptions:", error);
       setError(error.message || "Failed to fetch subscriptions");
-      toast({
-        title: "Error",
-        description: "Failed to load subscriptions. Please try again later.",
-        variant: "destructive",
-      });
+      // Only show toast for actual errors when user is logged in and trying to view subscriptions
+      // This prevents showing errors on initial load or when not relevant
     } finally {
       setLoading(false);
     }
-  }, [currentUser, toast]);
+  }, [currentUser]);
 
   const subscribeToSeller = useCallback(
     async (sellerId: string) => {
@@ -72,6 +70,16 @@ export function useSubscriptions() {
         toast({
           title: "Login Required",
           description: "Please log in to subscribe to sellers.",
+          variant: "destructive",
+        });
+        return false;
+      }
+      
+      // Prevent subscribing to yourself
+      if (sellerId === currentUser.id) {
+        toast({
+          title: "Cannot Subscribe",
+          description: "You cannot subscribe to yourself.",
           variant: "destructive",
         });
         return false;

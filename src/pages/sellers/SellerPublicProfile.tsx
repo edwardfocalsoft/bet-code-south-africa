@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Navigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { User, Star, Calendar } from "lucide-react";
+import { User, Star, Calendar, Award } from "lucide-react";
 import SubscribeButton from "@/components/sellers/SubscribeButton";
 import { supabase } from "@/integrations/supabase/client";
 import { useTickets } from "@/hooks/useTickets";
@@ -12,12 +12,15 @@ import TicketsList from "@/components/tickets/TicketsList";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { LoadingState } from "@/components/purchases/LoadingState";
+import { useAuth } from "@/contexts/auth";
 
 const SellerPublicProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState("tickets");
   const [loading, setLoading] = useState(true);
   const [seller, setSeller] = useState<any>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const { currentUser } = useAuth();
   const [stats, setStats] = useState({
     winRate: 0,
     ticketsSold: 0,
@@ -28,12 +31,39 @@ const SellerPublicProfile: React.FC = () => {
   // Get seller tickets using the useTickets hook
   const { tickets: sellerTickets, loading: ticketsLoading } = useTickets({
     fetchOnMount: true,
-    filterExpired: true,
+    filterExpired: false,
     role: "buyer"
   });
 
   // Filter tickets to only show those from this seller
   const filteredTickets = sellerTickets.filter(ticket => ticket.sellerId === id);
+  
+  // Fetch reviews for this seller
+  const fetchReviews = async (sellerId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('ratings')
+        .select(`
+          *,
+          profiles:buyer_id (username, avatar_url)
+        `)
+        .eq('seller_id', sellerId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+        
+      if (error) throw error;
+      
+      return data || [];
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+      return [];
+    }
+  };
+
+  // Redirect seller to their own seller dashboard if they try to view their own profile
+  if (currentUser?.id === id && currentUser?.role === 'seller') {
+    return <Navigate to="/seller/dashboard" replace />;
+  }
 
   useEffect(() => {
     const fetchSellerProfile = async () => {
@@ -82,20 +112,25 @@ const SellerPublicProfile: React.FC = () => {
           
         if (followerError) throw followerError;
         
+        // Fetch reviews
+        const reviewsData = await fetchReviews(id);
+        setReviews(reviewsData);
+        
         // Calculate win rate
         const winRate = salesCount && salesCount > 0 && winCount !== null 
           ? Math.round((winCount / salesCount) * 100) 
           : 0;
           
-        // For now, we'll use a fixed satisfaction rating
-        // This could be calculated from actual ratings in the future
-        const satisfaction = 95;
-        
+        // Get average rating from reviews
+        const averageSatisfaction = reviewsData.length > 0
+          ? Math.round(reviewsData.reduce((sum, review) => sum + review.score, 0) / reviewsData.length * 20)
+          : 95; // Default satisfaction if no reviews
+          
         setStats({
           winRate,
           ticketsSold: salesCount || 0,
           followers: followerCount || 0,
-          satisfaction,
+          satisfaction: averageSatisfaction,
         });
       } catch (error) {
         console.error("Error fetching seller profile:", error);
@@ -219,16 +254,95 @@ const SellerPublicProfile: React.FC = () => {
               
               <TabsContent value="reviews" className="betting-card p-6">
                 <h2 className="text-xl font-bold mb-4">Customer Reviews</h2>
-                <p className="text-muted-foreground text-center py-12">
-                  Coming soon: Customer reviews and ratings for this seller.
-                </p>
+                {reviews.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-12">
+                    This seller has no reviews yet.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {reviews.map((review) => (
+                      <Card key={review.id} className="bg-betting-light-gray/20 p-4">
+                        <div className="flex items-start">
+                          <div className="h-10 w-10 rounded-full bg-betting-light-gray/30 flex items-center justify-center mr-3">
+                            {review.profiles?.avatar_url ? (
+                              <img 
+                                src={review.profiles.avatar_url} 
+                                alt={review.profiles.username} 
+                                className="h-10 w-10 rounded-full object-cover"
+                              />
+                            ) : (
+                              <User className="h-5 w-5 text-betting-green" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <p className="font-medium">{review.profiles?.username || "Anonymous User"}</p>
+                              <div className="flex items-center">
+                                {Array.from({length: 5}).map((_, i) => (
+                                  <Star 
+                                    key={i}
+                                    className="h-4 w-4" 
+                                    fill={i < review.score ? "#eab308" : "transparent"}
+                                    stroke={i < review.score ? "#eab308" : "#6b7280"}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {formatDistanceToNow(new Date(review.created_at), { addSuffix: true })}
+                            </p>
+                            {review.comment && (
+                              <p className="mt-2">{review.comment}</p>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </TabsContent>
               
               <TabsContent value="stats" className="betting-card p-6">
                 <h2 className="text-xl font-bold mb-4">Performance Stats</h2>
-                <p className="text-muted-foreground text-center py-12">
-                  Coming soon: Detailed performance statistics for this seller.
-                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card className="p-4 bg-betting-light-gray/20">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-medium">Win Rate</h3>
+                      <Award className="h-5 w-5 text-betting-green" />
+                    </div>
+                    <div className="w-full bg-betting-light-gray/30 rounded-full h-2.5">
+                      <div 
+                        className="bg-betting-green h-2.5 rounded-full" 
+                        style={{ width: `${stats.winRate}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-right text-sm mt-1">{stats.winRate}%</p>
+                  </Card>
+                  
+                  <Card className="p-4 bg-betting-light-gray/20">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-medium">Customer Satisfaction</h3>
+                      <Star className="h-5 w-5 text-yellow-500" fill="#eab308" />
+                    </div>
+                    <div className="w-full bg-betting-light-gray/30 rounded-full h-2.5">
+                      <div 
+                        className="bg-yellow-500 h-2.5 rounded-full" 
+                        style={{ width: `${stats.satisfaction}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-right text-sm mt-1">{stats.satisfaction}%</p>
+                  </Card>
+                  
+                  <Card className="p-4 bg-betting-light-gray/20">
+                    <h3 className="font-medium mb-2">Total Tickets Sold</h3>
+                    <p className="text-3xl font-bold">{stats.ticketsSold}</p>
+                  </Card>
+                  
+                  <Card className="p-4 bg-betting-light-gray/20">
+                    <h3 className="font-medium mb-2">Subscribers</h3>
+                    <p className="text-3xl font-bold">{stats.followers}</p>
+                  </Card>
+                </div>
               </TabsContent>
             </Tabs>
           </div>
