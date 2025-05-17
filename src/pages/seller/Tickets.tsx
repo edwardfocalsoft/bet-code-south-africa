@@ -2,29 +2,17 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
-import { PlusCircle, MoreVertical, ExternalLink, Edit, Trash2, Eye, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { PlusCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { BettingTicket } from "@/types";
 import { toast } from "sonner";
-import { format, isPast } from "date-fns";
+import { isPast } from "date-fns";
+import { LoadingState } from "@/components/purchases/LoadingState";
+import TicketFilters from "@/components/seller/tickets/TicketFilters";
+import EmptyTicketsState from "@/components/seller/tickets/EmptyTicketsState";
+import TicketsTable from "@/components/seller/tickets/TicketsTable";
 
 const SellerTickets: React.FC = () => {
   const { currentUser } = useAuth();
@@ -129,16 +117,6 @@ const SellerTickets: React.FC = () => {
 
   const filteredTickets = getFilteredTickets();
 
-  const renderTicketStatusBadge = (ticket: BettingTicket) => {
-    if (ticket.isExpired) {
-      return <Badge className="bg-gray-500">Expired</Badge>;
-    } else if (ticket.isHidden) {
-      return <Badge variant="outline" className="text-muted-foreground">Hidden</Badge>;
-    } else {
-      return <Badge className="bg-betting-green">Active</Badge>;
-    }
-  };
-
   return (
     <Layout requireAuth={true} allowedRoles={["seller", "admin"]}>
       <div className="container mx-auto py-8">
@@ -153,145 +131,22 @@ const SellerTickets: React.FC = () => {
         </div>
         
         {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-betting-green" />
-          </div>
+          <LoadingState />
         ) : (
           <>
-            <div className="mb-6">
-              <div className="flex gap-2">
-                <Button 
-                  variant={activeFilter === 'all' ? "default" : "outline"} 
-                  size="sm"
-                  onClick={() => setActiveFilter('all')}
-                >
-                  All
-                </Button>
-                <Button 
-                  variant={activeFilter === 'active' ? "default" : "outline"} 
-                  size="sm"
-                  onClick={() => setActiveFilter('active')}
-                >
-                  Active
-                </Button>
-                <Button 
-                  variant={activeFilter === 'expired' ? "default" : "outline"} 
-                  size="sm"
-                  onClick={() => setActiveFilter('expired')}
-                >
-                  Expired
-                </Button>
-              </div>
-            </div>
+            <TicketFilters 
+              activeFilter={activeFilter} 
+              setActiveFilter={setActiveFilter} 
+            />
             
             {filteredTickets.length === 0 ? (
-              <Card className="betting-card">
-                <CardContent className="pt-6">
-                  <div className="text-center py-8">
-                    <div className="mb-4">
-                      {activeFilter === 'all' ? (
-                        <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground" />
-                      ) : activeFilter === 'active' ? (
-                        <CheckCircle className="h-12 w-12 mx-auto text-muted-foreground" />
-                      ) : (
-                        <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground" />
-                      )}
-                    </div>
-                    <h3 className="text-lg font-medium mb-2">No tickets found</h3>
-                    <p className="text-muted-foreground mb-6">
-                      {activeFilter === 'all' 
-                        ? "You haven't created any tickets yet."
-                        : activeFilter === 'active'
-                        ? "You don't have any active tickets."
-                        : "You don't have any expired tickets."
-                      }
-                    </p>
-                    <Button className="bg-betting-green hover:bg-betting-green-dark" asChild>
-                      <Link to="/seller/tickets/create">Create Your First Ticket</Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <EmptyTicketsState activeFilter={activeFilter} />
             ) : (
-              <Card className="betting-card">
-                <CardHeader>
-                  <CardTitle>Betting Tickets</CardTitle>
-                  <CardDescription>
-                    Manage your betting tickets
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Title</TableHead>
-                          <TableHead>Price</TableHead>
-                          <TableHead>Odds</TableHead>
-                          <TableHead>Kickoff</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredTickets.map((ticket) => (
-                          <TableRow key={ticket.id}>
-                            <TableCell className="font-medium">{ticket.title}</TableCell>
-                            <TableCell>
-                              {ticket.isFree ? (
-                                <span className="text-betting-green">Free</span>
-                              ) : (
-                                `R${ticket.price.toFixed(2)}`
-                              )}
-                            </TableCell>
-                            <TableCell>{ticket.odds?.toFixed(2)}</TableCell>
-                            <TableCell>{format(ticket.kickoffTime, "dd MMM yyyy HH:mm")}</TableCell>
-                            <TableCell>{renderTicketStatusBadge(ticket)}</TableCell>
-                            <TableCell className="text-right">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon">
-                                    <MoreVertical className="h-4 w-4" />
-                                    <span className="sr-only">Open menu</span>
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <Link to={`/tickets/${ticket.id}`}>
-                                    <DropdownMenuItem>
-                                      <Eye className="mr-2 h-4 w-4" />
-                                      <span>View</span>
-                                    </DropdownMenuItem>
-                                  </Link>
-                                  
-                                  {!ticket.isExpired && (
-                                    <>
-                                      <Link to={`/seller/tickets/edit/${ticket.id}`}>
-                                        <DropdownMenuItem>
-                                          <Edit className="mr-2 h-4 w-4" />
-                                          <span>Edit</span>
-                                        </DropdownMenuItem>
-                                      </Link>
-                                      <DropdownMenuItem onClick={() => toggleTicketVisibility(ticket.id, Boolean(ticket.isHidden))}>
-                                        <Eye className="mr-2 h-4 w-4" />
-                                        <span>{ticket.isHidden ? "Show" : "Hide"}</span>
-                                      </DropdownMenuItem>
-                                    </>
-                                  )}
-                                  
-                                  <DropdownMenuItem onClick={() => deleteTicket(ticket.id)} className="text-red-500 focus:text-red-500">
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    <span>Delete</span>
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
+              <TicketsTable 
+                tickets={filteredTickets} 
+                onToggleVisibility={toggleTicketVisibility}
+                onDelete={deleteTicket}
+              />
             )}
           </>
         )}
