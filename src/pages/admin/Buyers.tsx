@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -138,7 +137,7 @@ const AdminBuyers = () => {
                       <TableCell>{buyer.email}</TableCell>
                       <TableCell>{formatDate(buyer.createdAt)}</TableCell>
                       <TableCell>{buyer.purchasesCount || 0}</TableCell>
-                      <TableCell>{formatDate(buyer.lastActive)}</TableCell>
+                      <TableCell>{buyer.lastActive ? formatDate(buyer.lastActive) : formatDate(buyer.createdAt)}</TableCell>
                       <TableCell>
                         {buyer.suspended ? (
                           <Badge variant="destructive">Suspended</Badge>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -122,8 +121,21 @@ const CaseDetailsPage: React.FC = () => {
           setError("Case not found");
           return;
         }
+
+        // Ensure the details object conforms to CaseDetail interface
+        const processedDetails: CaseDetail = {
+          ...details,
+          replies: details.replies?.map((reply: any) => ({
+            ...reply,
+            profiles: {
+              username: reply.profiles?.username || 'Unknown User',
+              role: reply.profiles?.role || 'buyer',
+              avatar_url: reply.profiles?.avatar_url
+            }
+          })) || []
+        };
         
-        setCaseDetails(details);
+        setCaseDetails(processedDetails);
       } catch (err: any) {
         console.error("Error fetching case details:", err);
         setError(err.message || "Failed to load case details");

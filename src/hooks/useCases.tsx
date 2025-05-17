@@ -24,7 +24,7 @@ export const useCases = () => {
         .from('cases')
         .select(`
           *,
-          profiles:user_id(username, email),
+          profiles:user_id(*),
           purchases(*),
           tickets(*)
         `)
@@ -86,8 +86,24 @@ export const useCases = () => {
       console.error("Error fetching case replies:", repliesError);
       return { ...caseData, replies: [] };
     }
+
+    // Filter out any replies with error in profiles and ensure proper structure
+    const validReplies = repliesData?.map(reply => {
+      // If profiles has an error, provide default values
+      if (reply.profiles && 'error' in reply.profiles) {
+        return {
+          ...reply,
+          profiles: { 
+            username: 'Unknown User', 
+            role: 'buyer', 
+            avatar_url: null
+          }
+        };
+      }
+      return reply;
+    }) || [];
     
-    return { ...caseData, replies: repliesData || [] };
+    return { ...caseData, replies: validReplies };
   };
 
   // Create a new case

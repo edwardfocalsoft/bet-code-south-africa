@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -60,13 +59,19 @@ const AdminCasesPage: React.FC = () => {
     }
   };
 
+  // Helper function to safely get profile name
+  const getProfileName = (profiles: any): string => {
+    if (!profiles) return 'Unknown User';
+    if ('error' in profiles) return 'Unknown User';
+    return profiles.username || profiles.email || 'Unknown User';
+  };
+
   // Filter cases based on search query and status filter
   const filteredCases = userCases?.filter((caseItem: any) => {
     const matchesSearch = searchQuery
       ? (caseItem.case_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
          caseItem.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-         caseItem.profiles?.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-         caseItem.profiles?.email?.toLowerCase().includes(searchQuery.toLowerCase()))
+         getProfileName(caseItem.profiles)?.toLowerCase().includes(searchQuery.toLowerCase()))
       : true;
     
     const matchesStatus = statusFilter
@@ -85,7 +90,7 @@ const AdminCasesPage: React.FC = () => {
     userCases && userCases[0] && userCases[0].profiles ? (
       <div className="mb-4 p-4 bg-betting-dark-gray rounded-md">
         <h2 className="text-xl font-semibold">
-          Viewing cases for: {userCases[0].profiles.username || userCases[0].profiles.email}
+          Viewing cases for: {getProfileName(userCases[0].profiles)}
         </h2>
         <Button 
           variant="outline" 
@@ -181,9 +186,7 @@ const AdminCasesPage: React.FC = () => {
                     <TableRow key={caseItem.id} className="cursor-pointer hover:bg-betting-light-gray/10" onClick={() => navigate(`/user/cases/${caseItem.id}`)}>
                       <TableCell className="font-medium">{caseItem.case_number}</TableCell>
                       <TableCell>{caseItem.title}</TableCell>
-                      <TableCell>
-                        {caseItem.profiles?.username || caseItem.profiles?.email || 'Unknown User'}
-                      </TableCell>
+                      <TableCell>{getProfileName(caseItem.profiles)}</TableCell>
                       <TableCell>{format(new Date(caseItem.created_at), "PPP")}</TableCell>
                       <TableCell>
                         <Badge 

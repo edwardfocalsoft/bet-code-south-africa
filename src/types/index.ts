@@ -1,4 +1,3 @@
-
 export type UserRole = "buyer" | "seller" | "admin";
 
 export type BettingSite = 
@@ -20,6 +19,8 @@ export interface User {
   loyaltyPoints?: number;
   bankDetails?: BankDetails;
   avatar_url?: string;
+  purchasesCount?: number; // Added property 
+  lastActive?: Date;       // Added property
 }
 
 export interface BankDetails {
