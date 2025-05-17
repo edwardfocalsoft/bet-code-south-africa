@@ -11,13 +11,15 @@ interface LayoutProps {
   requireAuth?: boolean;
   allowedRoles?: string[];
   redirectIfAuth?: boolean;
+  isHomePage?: boolean; // Added property to identify home page
 }
 
 const Layout: React.FC<LayoutProps> = ({ 
   children, 
   requireAuth = false,
   allowedRoles = ["buyer", "seller", "admin"],
-  redirectIfAuth = false
+  redirectIfAuth = false,
+  isHomePage = false // Default is false
 }) => {
   const { currentUser, userRole, loading } = useAuth();
   const navigate = useNavigate();
@@ -49,8 +51,19 @@ const Layout: React.FC<LayoutProps> = ({
           navigate("/buyer/dashboard", { replace: true });
         }
       }
+      
+      // Redirect authenticated users from home page to their respective dashboards
+      if (isHomePage && currentUser && userRole) {
+        if (userRole === "admin") {
+          navigate("/admin/dashboard", { replace: true });
+        } else if (userRole === "seller") {
+          navigate("/seller/dashboard", { replace: true });
+        } else {
+          navigate("/buyer/dashboard", { replace: true });
+        }
+      }
     }
-  }, [currentUser, loading, requireAuth, allowedRoles, redirectIfAuth, userRole, navigate, location]);
+  }, [currentUser, loading, requireAuth, allowedRoles, redirectIfAuth, isHomePage, userRole, navigate, location]);
 
   if (loading && requireAuth) {
     return (

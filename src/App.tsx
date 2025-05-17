@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import AllTickets from './pages/tickets/AllTickets';
@@ -35,8 +34,8 @@ const App: React.FC = () => {
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
-          <Route path="/auth/login" element={<Login />} /> {/* Updated path */}
-          <Route path="/auth/register" element={<Register />} /> {/* Updated path */}
+          <Route path="/auth/login" element={<Login />} />
+          <Route path="/auth/register" element={<Register />} />
           <Route path="/tickets" element={<AllTickets />} />
           <Route path="/tickets/:id" element={<TicketDetails />} />
           <Route path="/sellers/:id" element={<SellerProfile />} />
@@ -56,6 +55,9 @@ const App: React.FC = () => {
 
           {/* Admin Routes */}
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/buyers" element={<AdminBuyers />} />
+          <Route path="/admin/sellers" element={<AdminSellers />} />
+          <Route path="/admin/tickets" element={<AdminTickets />} />
           <Route path="/admin/cases" element={<Cases />} />
           <Route path="/admin/users" element={<Users />} />
           

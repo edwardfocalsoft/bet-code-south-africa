@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -43,7 +42,7 @@ const Index: React.FC = () => {
   const topSellers = allSellers.slice(0, 3);
 
   return (
-    <Layout>
+    <Layout isHomePage={true}>
       {/* Hero Section with enhanced animation */}
       <section className="bg-gradient-to-br from-betting-black via-betting-dark-gray to-betting-black pt-16 pb-24 px-4 relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('/public/bg-pattern.svg')] opacity-5"></div>
