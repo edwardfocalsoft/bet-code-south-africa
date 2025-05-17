@@ -1,7 +1,7 @@
 
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,32 +48,105 @@ export default function Navbar() {
         <div className="flex items-center gap-4">
           <nav className="hidden md:flex items-center gap-6 mr-6">
             {!currentUser ? (
-              <Link
-                to="/"
-                className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
-              >
-                Home
-              </Link>
+              <>
+                <Link
+                  to="/"
+                  className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
+                >
+                  Home
+                </Link>
+                <Link
+                  to="/tickets"
+                  className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
+                >
+                  Tickets
+                </Link>
+                <Link
+                  to="/sellers"
+                  className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
+                >
+                  Sellers
+                </Link>
+              </>
             ) : (
-              <Link
-                to={getDashboardPath()}
-                className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
-              >
-                Dashboard
-              </Link>
+              <>
+                <Link
+                  to={getDashboardPath()}
+                  className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
+                >
+                  Dashboard
+                </Link>
+                
+                {userRole === "buyer" && (
+                  <>
+                    <Link
+                      to="/tickets"
+                      className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
+                    >
+                      Browse Tickets
+                    </Link>
+                    <Link
+                      to="/sellers"
+                      className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
+                    >
+                      Find Sellers
+                    </Link>
+                    <Link
+                      to="/buyer/purchases"
+                      className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
+                    >
+                      My Purchases
+                    </Link>
+                  </>
+                )}
+                
+                {userRole === "seller" && (
+                  <>
+                    <Link
+                      to="/seller/tickets"
+                      className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
+                    >
+                      My Tickets
+                    </Link>
+                    <Link
+                      to="/seller/tickets/create"
+                      className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
+                    >
+                      Create Ticket
+                    </Link>
+                    <Link
+                      to="/seller/withdrawals"
+                      className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
+                    >
+                      Withdrawals
+                    </Link>
+                  </>
+                )}
+                
+                {userRole === "admin" && (
+                  <>
+                    <Link
+                      to="/admin/tickets"
+                      className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
+                    >
+                      Tickets
+                    </Link>
+                    <Link
+                      to="/admin/sellers"
+                      className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
+                    >
+                      Sellers
+                    </Link>
+                    <Link
+                      to="/admin/withdrawals"
+                      className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
+                    >
+                      Withdrawals
+                    </Link>
+                  </>
+                )}
+              </>
             )}
-            <Link
-              to="/tickets"
-              className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
-            >
-              Tickets
-            </Link>
-            <Link
-              to="/sellers"
-              className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
-            >
-              Sellers
-            </Link>
           </nav>
           
           {currentUser ? (

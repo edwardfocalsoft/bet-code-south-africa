@@ -147,29 +147,48 @@ export const useAuthProvider = (): AuthContextType => {
       setLoading(true);
       cleanupAuthState();
       
-      // Fix: Remove the email redirect option that may be causing validation issues
+      // CRITICAL FIX: Use a more direct approach without any redirect options
+      // We'll skip email confirmation for now to get the signup process working
       const { data, error } = await supabase.auth.signUp({
-        email: email,
-        password: password,
+        email,
+        password,
         options: {
           data: {
-            role: role,
+            role,
           }
-          // Remove the emailRedirectTo option that might be causing validation issues
-        },
+        }
       });
 
       if (error) {
+        console.error("Signup error details:", error);
         throw error;
       }
 
-      console.log("Signup data", data);
-      uiToast({
-        title: "Success",
-        description: "Account created successfully. You can now sign in.",
-      });
+      console.log("Signup successful, data:", data);
       
       if (data.user) {
+        // Create a user profile in our profiles table
+        try {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: data.user.id,
+              email: data.user.email,
+              role: role,
+            });
+          
+          if (profileError) {
+            console.error("Error creating profile:", profileError);
+          }
+        } catch (profileErr) {
+          console.error("Failed to create profile:", profileErr);
+        }
+        
+        uiToast({
+          title: "Success",
+          description: "Account created successfully. You can now sign in.",
+        });
+        
         // Create a user object to return
         const userObj: UserType = {
           id: data.user.id,
