@@ -44,7 +44,7 @@ const PersonalDetailsForm: React.FC<PersonalDetailsFormProps> = ({
             <Input
               id="username"
               value={profileData.username}
-              onChange={(e) => setProfileData({...profileData, username: e.target.value})}
+              onChange={(e) => setProfileData(prev => ({...prev, username: e.target.value}))}
               placeholder="Choose a username"
               className="bg-betting-black border-betting-light-gray"
               disabled={isSaving}
@@ -71,7 +71,7 @@ const PersonalDetailsForm: React.FC<PersonalDetailsFormProps> = ({
             <Switch
               id="display-whatsapp"
               checked={profileData.displayWhatsapp}
-              onCheckedChange={(checked) => setProfileData({...profileData, displayWhatsapp: checked})}
+              onCheckedChange={(checked) => setProfileData(prev => ({...prev, displayWhatsapp: checked}))}
             />
           </div>
           
@@ -81,7 +81,7 @@ const PersonalDetailsForm: React.FC<PersonalDetailsFormProps> = ({
               <Input
                 id="whatsapp"
                 value={profileData.whatsappNumber}
-                onChange={(e) => setProfileData({...profileData, whatsappNumber: e.target.value})}
+                onChange={(e) => setProfileData(prev => ({...prev, whatsappNumber: e.target.value}))}
                 placeholder="+27 XX XXX XXXX"
                 className="bg-betting-black border-betting-light-gray"
               />
