@@ -124,7 +124,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
                                   Sales
                                 </span>
                                 <span className="font-bold text-foreground">
-                                  ${payload[0].value.toFixed(2)}
+                                  ${typeof payload[0].value === 'number' ? payload[0].value.toFixed(2) : parseFloat(String(payload[0].value)).toFixed(2)}
                                 </span>
                               </div>
                             </div>
