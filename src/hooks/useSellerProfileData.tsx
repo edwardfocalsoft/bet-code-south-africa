@@ -229,14 +229,14 @@ export const useSellerProfileData = (userId: string | undefined) => {
       // Then try to update WhatsApp fields separately if they exist
       if (whatsappFieldsExist) {
         // Since we confirmed the fields exist, we can update them directly
-        const whatsappUpdateData = {
-          display_whatsapp: profileData.displayWhatsapp,
-          whatsapp_number: profileData.displayWhatsapp ? profileData.whatsappNumber : null
-        };
-        
+        // We need to use a type assertion to bypass TypeScript's strict checking
         const { error: whatsappError } = await supabase
           .from("profiles")
-          .update(whatsappUpdateData)
+          .update({
+            // Use "as any" to bypass type checking since these fields exist at runtime but not in the TypeScript definition
+            display_whatsapp: profileData.displayWhatsapp,
+            whatsapp_number: profileData.displayWhatsapp ? profileData.whatsappNumber : null
+          } as any)
           .eq("id", userId);
           
         if (whatsappError) {
