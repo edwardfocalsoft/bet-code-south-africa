@@ -19,7 +19,7 @@ const SellerDashboard: React.FC = () => {
   const { currentUser } = useAuth();
   const { creditBalance } = useWallet();
   const { 
-    loading, 
+    isLoading, 
     totalSales,
     totalRevenue,
     ticketsSold, 
@@ -27,7 +27,8 @@ const SellerDashboard: React.FC = () => {
     monthlyGrowth,
     profileComplete,
     performanceData,
-    recentSales
+    recentSales,
+    subscribersCount
   } = useSellerDashboard(currentUser);
 
   return (
@@ -51,17 +52,17 @@ const SellerDashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
             title="Total Sales"
-            value={formatCurrency(totalSales)}
+            value={formatCurrency(totalRevenue || 0)}
             icon={Ticket}
             subtitle="Lifetime earnings"
-            loading={loading}
+            loading={isLoading}
           />
           
           <StatCard
             title="Tickets Sold"
             value={ticketsSold}
             icon={CreditCard}
-            loading={loading}
+            loading={isLoading}
             action={
               <Link to="/seller/tickets" className="text-xs hover:underline text-betting-green">
                 View tickets
@@ -74,32 +75,21 @@ const SellerDashboard: React.FC = () => {
             value={`${winRate.toFixed(0)}%`}
             icon={Award}
             subtitle="Based on rated tickets"
-            loading={loading}
+            loading={isLoading}
           />
           
           <StatCard
-            title="Available Balance"
-            value={creditBalance !== null ? formatCurrency(creditBalance) : ""}
+            title="Subscribers"
+            value={subscribersCount}
             icon={Wallet}
-            subtitle={
-              creditBalance >= 1000 
-                ? "Eligible for withdrawal" 
-                : `R${(1000 - (creditBalance || 0)).toFixed(2)} more until withdrawal`
-            }
-            loading={creditBalance === null || loading}
-            action={
-              creditBalance >= 1000 ? (
-                <Button size="sm" variant="outline" asChild>
-                  <Link to="/seller/withdrawals">Withdraw</Link>
-                </Button>
-              ) : null
-            }
+            subtitle="People following you"
+            loading={isLoading}
           />
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <PerformanceChart 
-            loading={loading} 
+            loading={isLoading} 
             monthlyGrowth={monthlyGrowth} 
             data={performanceData} 
           />
@@ -107,7 +97,7 @@ const SellerDashboard: React.FC = () => {
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <RecentSalesCard loading={loading} sales={recentSales} />
+          <RecentSalesCard loading={isLoading} sales={recentSales} />
           <SupportCard />
         </div>
       </div>
