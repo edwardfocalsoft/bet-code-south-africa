@@ -23,6 +23,12 @@ export interface BuyerStats {
   totalProcessedAmount: number;
 }
 
+// Define the auth user structure from Supabase auth.users table
+interface AuthUser {
+  id: string;
+  email_confirmed_at: string | null;
+}
+
 export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page: 1, pageSize: 10 }) {
   const [buyers, setBuyers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -152,7 +158,7 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
       }
 
       // Get email verification status from auth.users table
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
       
       if (authError) {
         console.error("Error fetching auth users:", authError);
@@ -161,8 +167,8 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
       
       // Create a map of user IDs to email verification status
       const verificationStatus: Record<string, boolean> = {};
-      if (authUsers) {
-        authUsers.users.forEach((user) => {
+      if (authData && authData.users) {
+        authData.users.forEach((user: AuthUser) => {
           verificationStatus[user.id] = user.email_confirmed_at !== null;
         });
       }
