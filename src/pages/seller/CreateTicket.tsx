@@ -28,6 +28,12 @@ const bettingSites: BettingSite[] = [
   "Easybet",
 ];
 
+const ticketTypes = [
+  "Standard Ticket",
+  "High Stake Ticket",
+  "Long Ticket",
+];
+
 const CreateTicket: React.FC = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
@@ -60,7 +66,7 @@ const CreateTicket: React.FC = () => {
     const newErrors = { ...errors };
     
     if (!ticketData.title.trim()) {
-      newErrors.title = "Title is required";
+      newErrors.title = "Ticket type is required";
       valid = false;
     } else {
       newErrors.title = "";
@@ -228,15 +234,23 @@ const CreateTicket: React.FC = () => {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="title">
-                    Ticket Title
+                    Ticket Type
                   </Label>
-                  <Input 
-                    id="title"
-                    placeholder="e.g. EPL Multi Bet - Manchester United vs Arsenal"
+                  <Select
                     value={ticketData.title}
-                    onChange={(e) => setTicketData({...ticketData, title: e.target.value})}
-                    className="bg-betting-black border-betting-light-gray"
-                  />
+                    onValueChange={(value) => setTicketData({...ticketData, title: value})}
+                  >
+                    <SelectTrigger id="title" className="bg-betting-black border-betting-light-gray">
+                      <SelectValue placeholder="Select ticket type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ticketTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
                 </div>
                 
@@ -246,7 +260,7 @@ const CreateTicket: React.FC = () => {
                   </Label>
                   <Textarea 
                     id="description"
-                    placeholder="Provide details about your betting ticket..."
+                    placeholder="Describe your ticket strategy: BTS, straight wins, corners, 10 minute draws, etc."
                     value={ticketData.description}
                     onChange={(e) => setTicketData({...ticketData, description: e.target.value})}
                     className="bg-betting-black border-betting-light-gray min-h-[120px]"
