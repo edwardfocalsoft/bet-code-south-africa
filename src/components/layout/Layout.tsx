@@ -1,6 +1,6 @@
 
 import React, { ReactNode, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,25 +10,47 @@ interface LayoutProps {
   children: ReactNode;
   requireAuth?: boolean;
   allowedRoles?: string[];
+  redirectIfAuth?: boolean;
 }
 
 const Layout: React.FC<LayoutProps> = ({ 
   children, 
   requireAuth = false,
-  allowedRoles = ["buyer", "seller", "admin"] 
+  allowedRoles = ["buyer", "seller", "admin"],
+  redirectIfAuth = false
 }) => {
-  const { currentUser, loading } = useAuth();
+  const { currentUser, userRole, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   
   useEffect(() => {
-    if (!loading && requireAuth && !currentUser) {
-      navigate("/login", { replace: true });
+    if (!loading) {
+      // Redirect if not authenticated but auth is required
+      if (requireAuth && !currentUser) {
+        navigate("/auth/login", { 
+          replace: true,
+          state: { from: location.pathname }
+        });
+      }
+      
+      // Redirect if role not allowed
+      if (currentUser && userRole && allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
+        navigate("/", { replace: true });
+      }
+      
+      // Redirect if authenticated but should redirect (e.g., login page)
+      if (redirectIfAuth && currentUser) {
+        // Redirect to appropriate dashboard based on role
+        if (userRole === "admin") {
+          navigate("/admin/dashboard", { replace: true });
+        } else if (userRole === "seller") {
+          navigate("/seller/dashboard", { replace: true });
+        } else {
+          navigate("/buyer/dashboard", { replace: true });
+        }
+      }
     }
-    
-    if (!loading && currentUser && allowedRoles.length > 0 && currentUser.role && !allowedRoles.includes(currentUser.role)) {
-      navigate("/", { replace: true });
-    }
-  }, [currentUser, loading, requireAuth, allowedRoles, navigate]);
+  }, [currentUser, loading, requireAuth, allowedRoles, redirectIfAuth, userRole, navigate, location]);
 
   if (loading && requireAuth) {
     return (

@@ -1,34 +1,21 @@
 
 import React from "react";
-import { Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import RegisterForm from "@/components/auth/RegisterForm";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Register: React.FC = () => {
   return (
-    <Layout>
-      <div className="container max-w-md mx-auto py-12 px-4">
-        <Card className="bg-betting-dark-gray border-betting-light-gray">
-          <CardHeader>
-            <CardTitle className="text-2xl">Create Account</CardTitle>
-            <CardDescription>
-              Join BetCode ZA as a buyer or seller
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <RegisterForm />
-            
-            <div className="mt-6 text-center">
-              <p className="text-sm text-muted-foreground">
-                Already have an account?{" "}
-                <Link to="/login" className="text-betting-green hover:underline">
-                  Log in
-                </Link>
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+    <Layout redirectIfAuth={true}>
+      <div className="container mx-auto max-w-md py-12">
+        <div className="betting-card space-y-6 p-8">
+          <div className="text-center space-y-2 mb-4">
+            <h1 className="text-2xl font-bold">Create an Account</h1>
+            <p className="text-muted-foreground">
+              Join our community of bettors and sellers
+            </p>
+          </div>
+          <RegisterForm />
+        </div>
       </div>
     </Layout>
   );

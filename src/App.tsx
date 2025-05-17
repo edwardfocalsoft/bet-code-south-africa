@@ -1,5 +1,5 @@
 
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Register from "./pages/auth/Register";
 import Login from "./pages/auth/Login";
@@ -35,15 +35,33 @@ import { ThemeProvider } from "./components/ui/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 
-import { AuthProvider } from "./contexts/auth";
+import { AuthProvider, useAuth } from "./contexts/auth";
 import ProfileSetup from "./pages/auth/ProfileSetup";
+
+// Create a wrapper component for route redirection
+const HomeRedirect = () => {
+  const { currentUser, userRole } = useAuth();
+  
+  if (!currentUser) {
+    return <Index />;
+  }
+  
+  // Redirect based on user role
+  if (userRole === "admin") {
+    return <Navigate to="/admin/dashboard" replace />;
+  } else if (userRole === "seller") {
+    return <Navigate to="/seller/dashboard" replace />;
+  } else {
+    return <Navigate to="/buyer/dashboard" replace />;
+  }
+};
 
 function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="betting-theme">
       <AuthProvider>
         <Routes>
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={<HomeRedirect />} />
           
           {/* Auth Routes */}
           <Route path="/auth/register" element={<Register />} />

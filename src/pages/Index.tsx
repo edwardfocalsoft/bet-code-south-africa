@@ -6,13 +6,15 @@ import TicketsList from "@/components/tickets/TicketsList";
 import TicketsTable from "@/components/tickets/TicketsTable";
 import SellerCard from "@/components/sellers/SellerCard";
 import { BettingTicket, User } from "@/types";
-import { mockTickets, mockUsers, BETTING_SITES } from "@/data/mockData";
+import { BETTING_SITES } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, TrendingUp, Award, CheckCircle, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useTickets } from "@/hooks/useTickets";
+import { useSellers } from "@/hooks/useSellers";
 
 const BettingSiteLogo = ({ site }: { site: string }) => {
   // In a real app, we would fetch these from Supabase storage
@@ -27,50 +29,18 @@ const BettingSiteLogo = ({ site }: { site: string }) => {
 };
 
 const Index: React.FC = () => {
-  const [featuredTickets, setFeaturedTickets] = useState<BettingTicket[]>([]);
-  const [topSellers, setTopSellers] = useState<User[]>([]);
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const { toast } = useToast();
+  const { tickets: allTickets, loading: ticketsLoading } = useTickets();
+  const { sellers: allSellers, loading: sellersLoading } = useSellers();
   
-  useEffect(() => {
-    const fetchTickets = async () => {
-      try {
-        // In production, this would be replaced with actual Supabase query
-        const now = new Date();
-        const validTickets = mockTickets.filter(
-          (ticket) => new Date(ticket.kickoffTime) > now
-        );
-        setFeaturedTickets(validTickets.slice(0, 6));
-      } catch (error) {
-        console.error("Error fetching tickets:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load tickets. Please try again later.",
-          variant: "destructive",
-        });
-      }
-    };
-    
-    const fetchSellers = async () => {
-      try {
-        // In production, this would be replaced with actual Supabase query
-        const sellers = mockUsers.filter(
-          (user) => user.role === "seller" && user.approved
-        );
-        setTopSellers(sellers.slice(0, 3));
-      } catch (error) {
-        console.error("Error fetching sellers:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load sellers. Please try again later.",
-          variant: "destructive",
-        });
-      }
-    };
-    
-    fetchTickets();
-    fetchSellers();
-  }, [toast]);
+  // Filter for featured tickets (non-expired tickets, limit to 6)
+  const featuredTickets = allTickets
+    .filter(ticket => !ticket.isExpired)
+    .slice(0, 6);
+  
+  // Filter for top sellers (limit to 3)
+  const topSellers = allSellers.slice(0, 3);
 
   return (
     <Layout>
@@ -151,7 +121,11 @@ const Index: React.FC = () => {
             </div>
           </div>
           
-          {viewMode === "cards" ? (
+          {ticketsLoading ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Loading tickets...</p>
+            </div>
+          ) : viewMode === "cards" ? (
             <TicketsList
               tickets={featuredTickets}
               emptyMessage="No featured tickets available at the moment."
@@ -178,11 +152,23 @@ const Index: React.FC = () => {
             </Link>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {topSellers.map((seller) => (
-              <SellerCard key={seller.id} seller={seller} />
-            ))}
-          </div>
+          {sellersLoading ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Loading sellers...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {topSellers.length > 0 ? (
+                topSellers.map((seller) => (
+                  <SellerCard key={seller.id} seller={seller} />
+                ))
+              ) : (
+                <div className="col-span-3 text-center py-12">
+                  <p className="text-muted-foreground">No sellers available at the moment.</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </section>
       
@@ -233,14 +219,14 @@ const Index: React.FC = () => {
             Join our community of smart bettors and get access to premium betting codes from South Africa's top predictors.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/register">
+            <Link to="/auth/register">
               <Button className="bg-betting-green hover:bg-betting-green-dark text-white px-8 py-6 text-lg">
                 Sign Up Now
               </Button>
             </Link>
-            <Link to="/how-it-works">
+            <Link to="/tickets">
               <Button variant="outline" className="border-betting-green text-betting-green hover:bg-betting-green/10 px-8 py-6 text-lg">
-                Learn More
+                Browse Tickets
               </Button>
             </Link>
           </div>

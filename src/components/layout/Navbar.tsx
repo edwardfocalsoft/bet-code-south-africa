@@ -1,5 +1,5 @@
 
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -24,9 +24,18 @@ import {
 
 export default function Navbar() {
   const { currentUser, logout, userRole } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
+  };
+
+  // Get dashboard path based on user role
+  const getDashboardPath = () => {
+    if (userRole === "admin") return "/admin/dashboard";
+    if (userRole === "seller") return "/seller/dashboard";
+    if (userRole === "buyer") return "/buyer/dashboard";
+    return "/";
   };
 
   return (
@@ -38,12 +47,21 @@ export default function Navbar() {
         
         <div className="flex items-center gap-4">
           <nav className="hidden md:flex items-center gap-6 mr-6">
-            <Link
-              to="/"
-              className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
-            >
-              Home
-            </Link>
+            {!currentUser ? (
+              <Link
+                to="/"
+                className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
+              >
+                Home
+              </Link>
+            ) : (
+              <Link
+                to={getDashboardPath()}
+                className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
+              >
+                Dashboard
+              </Link>
+            )}
             <Link
               to="/tickets"
               className="text-sm font-medium text-gray-200 transition-colors hover:text-white"
