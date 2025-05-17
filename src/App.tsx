@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import AllTickets from './pages/tickets/AllTickets';
@@ -5,6 +6,7 @@ import TicketDetails from './pages/tickets/TicketDetails';
 import UserSettings from './pages/user/Settings';
 import UserWallet from './pages/user/Wallet';
 import BuyerPurchases from './pages/buyer/Purchases';
+import BuyerDashboard from './pages/buyer/Dashboard'; // Added import for BuyerDashboard
 import SellerDashboard from './pages/seller/Dashboard';
 import CreateTicket from './pages/seller/CreateTicket';
 import SellerTickets from './pages/seller/Tickets';
@@ -39,6 +41,9 @@ const App: React.FC = () => {
           {/* User Routes */}
           <Route path="/user/settings" element={<UserSettings />} />
           <Route path="/user/wallet" element={<UserWallet />} />
+          
+          {/* Buyer Routes */}
+          <Route path="/buyer/dashboard" element={<BuyerDashboard />} />
           <Route path="/buyer/purchases" element={<BuyerPurchases />} />
 
           {/* Seller Routes */}
