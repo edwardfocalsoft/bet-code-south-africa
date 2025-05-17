@@ -9,10 +9,13 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export const addCredits = async (userId: string, amount: number): Promise<number | null> => {
   try {
+    // Convert userId to string if it's not already (fixes the type error)
+    const userIdStr = String(userId);
+    
     const { data, error } = await supabase.rpc(
       'add_credits', 
       { 
-        user_id: userId, 
+        user_id: userIdStr, 
         amount_to_add: amount 
       }
     );
