@@ -28,6 +28,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { BettingSite } from "@/types";
 
 const AllTickets: React.FC = () => {
   const [viewMode, setViewMode] = useState<"cards" | "table">("table");
@@ -56,7 +57,9 @@ const AllTickets: React.FC = () => {
   };
 
   const handleBettingSiteChange = (value: string) => {
-    updateFilters({ bettingSite: value === "all" ? undefined : value });
+    updateFilters({ 
+      bettingSite: value === "all" ? "all" : value as BettingSite 
+    });
   };
   
   return (

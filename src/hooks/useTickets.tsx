@@ -2,11 +2,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { BettingTicket } from "@/types";
+import { BettingTicket, BettingSite } from "@/types";
 import { useAuth } from "@/contexts/auth";
 
 interface FilterOptions {
-  bettingSite?: string;
+  bettingSite?: BettingSite | "all";
   isFree?: boolean;
   maxPrice?: number;
   showExpired?: boolean;
@@ -57,7 +57,7 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
         profiles:seller_id (username)
       `);
 
-      if (mergedFilters?.bettingSite) {
+      if (mergedFilters?.bettingSite && mergedFilters.bettingSite !== "all") {
         query = query.eq("betting_site", mergedFilters.bettingSite);
       }
 
