@@ -1,4 +1,3 @@
-
 export type UserRole = "buyer" | "seller" | "admin";
 
 export type BettingSite = 
@@ -31,6 +30,13 @@ export interface BankDetails {
   accountNumber: string;
   branchCode: string;
   accountType: string;
+}
+
+export interface ProfileData {
+  username: string;
+  avatarUrl: string;
+  displayWhatsapp: boolean;
+  whatsappNumber: string;
 }
 
 export interface BettingTicket {
