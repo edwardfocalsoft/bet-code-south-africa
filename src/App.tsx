@@ -20,8 +20,8 @@ import NotFound from './pages/NotFound';
 
 // Import statements that need correction
 import Home from './pages/Index'; // Changed from './pages/Home'
-import Login from './pages/auth/Login'; // Changed from './pages/Login'
-import Register from './pages/auth/Register'; // Changed from './pages/Register'
+import Login from './pages/Login'; // Changed from './pages/Login'
+import Register from './pages/Register'; // Changed from './pages/Register'
 import SellerProfile from './pages/sellers/SellerPublicProfile'; // Changed from './pages/sellers/SellerProfile'
 import Users from './pages/admin/Buyers'; // Changed from './pages/admin/Users'
 
