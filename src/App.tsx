@@ -18,12 +18,12 @@ import PaymentSettings from "./pages/admin/PaymentSettings";
 import { AuthProvider } from './contexts/auth';
 import NotFound from './pages/NotFound';
 
-// Import statements that need correction
-import Home from './pages/Index'; // Changed from './pages/Home'
-import Login from './pages/Login'; // Changed from './pages/Login'
-import Register from './pages/Register'; // Changed from './pages/Register'
-import SellerProfile from './pages/sellers/SellerPublicProfile'; // Changed from './pages/sellers/SellerProfile'
-import Users from './pages/admin/Buyers'; // Changed from './pages/admin/Users'
+// Import statements with corrected paths
+import Home from './pages/Index'; // Home page
+import Login from './pages/auth/Login'; // Corrected path
+import Register from './pages/auth/Register'; // Corrected path
+import SellerProfile from './pages/sellers/SellerPublicProfile';
+import Users from './pages/admin/Buyers';
 
 const App: React.FC = () => {
   return (
@@ -32,8 +32,8 @@ const App: React.FC = () => {
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/auth/login" element={<Login />} /> {/* Updated path */}
+          <Route path="/auth/register" element={<Register />} /> {/* Updated path */}
           <Route path="/tickets" element={<AllTickets />} />
           <Route path="/tickets/:id" element={<TicketDetails />} />
           <Route path="/sellers/:id" element={<SellerProfile />} />
