@@ -1,3 +1,4 @@
+
 /**
  * Email validation regex pattern
  * This pattern validates that:
