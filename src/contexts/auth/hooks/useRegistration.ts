@@ -3,7 +3,6 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User as UserType, UserRole } from "@/types";
 import { cleanupAuthState } from "../authUtils";
-import { validateEmail } from "@/utils/validation";
 
 /**
  * Hook for handling user registration functionality
@@ -18,20 +17,11 @@ export const useRegistration = () => {
       // First cleanup any existing auth state
       cleanupAuthState();
       
-      // Log the email for debugging
-      console.log("Registration attempt with email:", email);
-      
-      // Validate email format using improved validation
-      if (!validateEmail(email)) {
-        console.error("Email validation failed for:", email);
-        throw new Error("Please enter a valid email address");
-      }
-      
-      console.log("Starting signup for validated email:", email);
+      // Skip email validation - rely on Supabase's built-in validation
       
       // Create account without any redirects to avoid auth state issues
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(), // Ensure no whitespace and lowercase
+        email: email.trim().toLowerCase(),
         password,
         options: {
           // Avoid anything that might interfere with signup flow
@@ -44,8 +34,6 @@ export const useRegistration = () => {
         console.error("Signup error details:", error);
         throw error;
       }
-
-      console.log("Signup successful, data:", data);
       
       if (data.user) {
         // Create a user profile in our profiles table
@@ -60,8 +48,6 @@ export const useRegistration = () => {
           
           if (profileError) {
             console.error("Error creating profile:", profileError);
-          } else {
-            console.log("Profile created successfully for", data.user.email);
           }
         } catch (profileErr) {
           console.error("Failed to create profile:", profileErr);
@@ -81,14 +67,7 @@ export const useRegistration = () => {
       return null;
     } catch (error: any) {
       console.error("Signup error", error);
-      
-      // Ensure we get a clear error message for email validation
-      if (error.message.includes("email") || error.message.includes("Email")) {
-        throw new Error("The email address is invalid. Please check and try again.");
-      }
-      
-      // For other errors
-      throw new Error(error.message || "Failed to create account");
+      throw error;
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,7 +7,6 @@ import { useAuth } from "@/contexts/auth";
 import { useToast } from "@/hooks/use-toast";
 import { toast } from "sonner";
 import { UserRole } from "@/types";
-import { EMAIL_REGEX } from "@/utils/validation";
 
 // Form schema with validation
 const formSchema = z.object({
@@ -16,9 +14,8 @@ const formSchema = z.object({
     .string()
     .min(1, "Email is required")
     .refine((email) => {
-      // Log validation attempt for debugging
-      console.log("Form validation for email:", email);
-      return EMAIL_REGEX.test(email.trim());
+      // Simple check for @ and .
+      return email.includes('@') && email.includes('.');
     }, "Please enter a valid email address"),
   password: z
     .string()
@@ -81,22 +78,8 @@ export const useRegisterForm = () => {
     } catch (error: any) {
       console.error("Registration error:", error);
       
-      // Handle email-specific errors specially
-      if (error.message?.toLowerCase().includes("email")) {
-        setServerError(error.message);
-        form.setError("email", { 
-          type: "manual", 
-          message: error.message || "Invalid email format" 
-        });
-        toast.error(error.message || "Invalid email format");
-      } else {
-        setServerError(error.message || "Registration failed");
-        uiToast({
-          title: "Registration failed",
-          description: error.message || "Something went wrong. Please try again.",
-          variant: "destructive"
-        });
-      }
+      setServerError(error.message || "Registration failed");
+      toast.error(error.message || "Registration failed");
     } finally {
       setIsLoading(false);
     }
