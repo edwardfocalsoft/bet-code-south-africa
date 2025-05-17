@@ -33,8 +33,8 @@ export const useTicketFilters = () => {
   // Apply maximum price filter to the query
   const applyMaxPriceFilter = useCallback((query: any, maxPrice: number | undefined) => {
     if (maxPrice !== undefined) {
-      // Ensure we're passing a string to Supabase for numeric comparisons
-      return query.lte("price", String(maxPrice));
+      // Fix: Don't convert to string for numeric comparisons in Supabase
+      return query.lte("price", maxPrice);
     }
     return query;
   }, []);

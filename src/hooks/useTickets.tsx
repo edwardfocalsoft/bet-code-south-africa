@@ -76,7 +76,7 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
 
       if (error) throw error;
 
-      const mappedTickets = ticketMapper.mapDatabaseTickets(data);
+      const mappedTickets = ticketMapper.mapDatabaseTickets(data || []);
       
       // Extra filter to ensure no expired tickets are shown to buyers
       const finalTickets = options.role === "buyer" 
@@ -96,11 +96,11 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
       setLoading(false);
     }
   }, [
-    toast,
-    options.role,
     filters,
     ticketFilters,
-    ticketMapper
+    ticketMapper,
+    options.role,
+    toast
   ]);
 
   useEffect(() => {
@@ -112,15 +112,19 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
         fetchTickets();
       }
     }
-  }, [options.fetchOnMount, fetchTickets, options.role, currentUser]);
+    // Important: Don't include fetchTickets in the dependency array to prevent infinite loops
+  }, [options.fetchOnMount, options.role, currentUser]);
 
   // Update filters and refetch
   const updateFilters = useCallback((newFilters: FilterOptions) => {
     setFilters(prevFilters => {
       const updatedFilters = { ...prevFilters, ...newFilters };
-      fetchTickets(updatedFilters);
+      // Don't call fetchTickets here to prevent infinite loop
       return updatedFilters;
     });
+    
+    // Call fetchTickets separately with the new filters
+    fetchTickets(newFilters);
   }, [fetchTickets]);
 
   return { 

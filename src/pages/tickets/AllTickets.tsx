@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { useTickets } from "@/hooks/useTickets";
 import { BettingSite } from "@/types";
@@ -21,9 +21,12 @@ const AllTickets: React.FC = () => {
 
   const handleSiteChange = (site: BettingSite | "all") => {
     setSelectedSite(site);
-    updateFilters({
-      bettingSite: site === "all" ? undefined : site,
-    });
+    // Only pass defined filters to prevent sending undefined values
+    const filters: Record<string, any> = {};
+    if (site !== "all") {
+      filters.bettingSite = site;
+    }
+    updateFilters(filters);
   };
 
   return (
