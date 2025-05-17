@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserRole } from "@/types";
 import { User, Users } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const RegisterForm: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -15,12 +16,30 @@ const RegisterForm: React.FC = () => {
   const [role, setRole] = useState<"buyer" | "seller">("buyer");
   const [isLoading, setIsLoading] = useState(false);
   const [passwordError, setPasswordError] = useState("");
+  const [emailError, setEmailError] = useState("");
   
   const { register } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const validateEmail = (email: string): boolean => {
+    // Simple email validation regex
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailPattern.test(email);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Reset errors
+    setPasswordError("");
+    setEmailError("");
+    
+    // Validate email
+    if (!validateEmail(email)) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
     
     // Validate passwords match
     if (password !== confirmPassword) {
@@ -34,21 +53,32 @@ const RegisterForm: React.FC = () => {
       return;
     }
     
-    setPasswordError("");
     setIsLoading(true);
     
     try {
       const user = await register(email, password, role);
       
       if (user) {
+        toast({
+          title: "Account created",
+          description: "Your account has been created successfully.",
+        });
+        
         if (role === "seller") {
           // Sellers must wait for approval
           navigate("/auth/register/confirmation", { state: { role } });
         } else {
           // Buyers can proceed to dashboard
-          navigate("/buyer/dashboard");
+          navigate("/auth/register/confirmation");
         }
       }
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      toast({
+        title: "Registration failed",
+        description: error.message || "Something went wrong. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -114,6 +144,9 @@ const RegisterForm: React.FC = () => {
             required
             className="bg-betting-light-gray border-betting-light-gray focus:border-betting-green text-white"
           />
+          {emailError && (
+            <p className="mt-1 text-sm text-destructive">{emailError}</p>
+          )}
         </div>
         
         <div>

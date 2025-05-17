@@ -147,14 +147,15 @@ export const useAuthProvider = (): AuthContextType => {
       setLoading(true);
       cleanupAuthState();
       
+      // Fix: Remove the email redirect option that may be causing validation issues
       const { data, error } = await supabase.auth.signUp({
         email: email,
         password: password,
         options: {
           data: {
             role: role,
-          },
-          emailRedirectTo: `${window.location.origin}/auth/register/confirmation`,
+          }
+          // Remove the emailRedirectTo option that might be causing validation issues
         },
       });
 
@@ -165,7 +166,7 @@ export const useAuthProvider = (): AuthContextType => {
       console.log("Signup data", data);
       uiToast({
         title: "Success",
-        description: "Please check your email to confirm your registration.",
+        description: "Account created successfully. You can now sign in.",
       });
       
       if (data.user) {
