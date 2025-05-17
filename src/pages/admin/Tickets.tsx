@@ -88,6 +88,69 @@ const AdminTickets: React.FC = () => {
     role: "admin"
   });
 
+  // Add the missing functions for toggling visibility and marking as expired
+  const toggleTicketVisibility = async (ticketId: string, isHidden: boolean) => {
+    try {
+      setLoading(true);
+      
+      const { error: updateError } = await supabase
+        .from("tickets")
+        .update({ is_hidden: isHidden })
+        .eq("id", ticketId);
+      
+      if (updateError) throw updateError;
+      
+      toast({
+        title: "Success",
+        description: isHidden ? "Ticket has been hidden." : "Ticket is now visible."
+      });
+      
+      // Refetch the tickets to update the list
+      fetchTickets(activeTab);
+    } catch (err: any) {
+      console.error("Error updating ticket visibility:", err);
+      toast({
+        title: "Error",
+        description: "Failed to update ticket visibility.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const markTicketAsExpired = async (ticketId: string, isExpired: boolean) => {
+    try {
+      setLoading(true);
+      
+      const { error: updateError } = await supabase
+        .from("tickets")
+        .update({ is_expired: isExpired })
+        .eq("id", ticketId);
+      
+      if (updateError) throw updateError;
+      
+      toast({
+        title: "Success",
+        description: isExpired 
+          ? "Ticket has been marked as expired." 
+          : "Ticket has been restored to active status."
+      });
+      
+      // Refetch the tickets to update the list
+      fetchTickets(activeTab);
+    } catch (err: any) {
+      console.error("Error updating ticket expiration:", err);
+      toast({
+        title: "Error",
+        description: "Failed to update ticket status.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchTickets = async (filter: TicketFilter = "active") => {
     try {
       setLoading(true);
@@ -420,6 +483,18 @@ const AdminTickets: React.FC = () => {
   };
 
   const uniqueBettingSites = [...new Set(allTickets.map(ticket => ticket.bettingSite))];
+
+  useEffect(() => {
+    fetchTickets(activeTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+  
+  useEffect(() => {
+    if (showStats) {
+      generateStats();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showStats]);
 
   return (
     <Layout requireAuth={true} allowedRoles={["admin"]}>
