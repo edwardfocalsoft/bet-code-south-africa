@@ -45,7 +45,6 @@ export const useCases = () => {
           .from('cases')
           .select(`
             *,
-            profiles:user_id(username, email, role, avatar_url),
             purchases(*),
             tickets(*)
           `)
@@ -61,14 +60,37 @@ export const useCases = () => {
           query = query.eq('user_id', currentUser.id);
         }
         
-        const { data, error } = await query;
+        const { data: casesData, error } = await query;
         
         if (error) {
           console.error("Error fetching cases:", error);
           return [];
         }
         
-        return data || [];
+        if (!casesData || casesData.length === 0) {
+          return [];
+        }
+        
+        // Get user profiles in a separate query
+        const userIds = Array.from(new Set(casesData.map(c => c.user_id)));
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, username, email, role, avatar_url')
+          .in('id', userIds);
+          
+        // Create a map of user_id to profile data
+        const profilesMap = (profilesData || []).reduce((map: Record<string, any>, profile) => {
+          map[profile.id] = profile;
+          return map;
+        }, {});
+        
+        // Attach profile data to cases
+        const enrichedCases = casesData.map((caseItem: any) => ({
+          ...caseItem,
+          profiles: profilesMap[caseItem.user_id] || { error: true }
+        }));
+        
+        return enrichedCases;
       } catch (error) {
         console.error("Error in userCases query:", error);
         return [];
@@ -98,13 +120,10 @@ export const useCases = () => {
         return null;
       }
       
-      // Get case replies with profile information
+      // Get case replies
       const { data: repliesData, error: repliesError } = await supabase
         .from('case_replies')
-        .select(`
-          *,
-          profiles:user_id(username, role, avatar_url)
-        `)
+        .select(`*`)
         .eq('case_id', caseId)
         .order('created_at', { ascending: true });
       
@@ -113,10 +132,23 @@ export const useCases = () => {
         return { ...caseData, replies: [] };
       }
       
+      // Get user profiles for the replies in a separate query
+      const userIds = Array.from(new Set(repliesData?.map(reply => reply.user_id) || []));
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, username, role, avatar_url')
+        .in('id', userIds);
+        
+      // Create a map of user_id to profile data
+      const profilesMap = (profilesData || []).reduce((map: Record<string, any>, profile) => {
+        map[profile.id] = profile;
+        return map;
+      }, {});
+      
       // Process replies to ensure profile data is safe
       const processedReplies = repliesData?.map(reply => ({
         ...reply,
-        profiles: safeProfileData(reply.profiles)
+        profiles: safeProfileData(profilesMap[reply.user_id])
       })) || [];
       
       // Return the combined data

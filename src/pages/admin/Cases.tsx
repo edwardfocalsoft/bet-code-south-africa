@@ -43,7 +43,7 @@ const AdminCasesPage: React.FC = () => {
   const filterUserId = urlParams.get('userId');
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase() || '') {
       case "open":
         return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
       case "in_progress":
@@ -61,47 +61,48 @@ const AdminCasesPage: React.FC = () => {
   };
 
   // Helper function to safely get profile name
-  const getProfileName = (profiles: any): string => {
-    if (!profiles) return 'Unknown User';
-    if (profiles.error) return 'Unknown User';
-    return profiles.username || profiles.email || 'Unknown User';
+  const getProfileName = (profile: any): string => {
+    if (!profile) return 'Unknown User';
+    if (profile.error) return 'Unknown User';
+    return profile.username || profile.email || 'Unknown User';
   };
 
   // Filter cases based on search query and status filter
   const filteredCases = userCases?.filter((caseItem: any) => {
+    if (!caseItem) return false;
+    
     const matchesSearch = searchQuery
-      ? (caseItem.case_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-         caseItem.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-         getProfileName(caseItem.profiles)?.toLowerCase().includes(searchQuery.toLowerCase()))
+      ? ((caseItem.case_number && caseItem.case_number.toLowerCase().includes(searchQuery.toLowerCase())) ||
+         (caseItem.title && caseItem.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
+         (caseItem.profiles && getProfileName(caseItem.profiles)?.toLowerCase().includes(searchQuery.toLowerCase())))
       : true;
     
     const matchesStatus = statusFilter === "all" 
       ? true 
-      : caseItem.status.toLowerCase() === statusFilter.toLowerCase();
+      : (caseItem.status && caseItem.status.toLowerCase() === statusFilter.toLowerCase());
     
     return matchesSearch && matchesStatus;
-  });
+  }) || [];
 
   const handleStatusChange = async (caseId: string, newStatus: string) => {
+    if (!caseId || !newStatus) return;
     await updateCaseStatus(caseId, newStatus);
   };
 
   // A heading to show when filtering by user ID
-  const userFilterHeading = filterUserId ? (
-    userCases && userCases[0] && userCases[0].profiles ? (
-      <div className="mb-4 p-4 bg-betting-dark-gray rounded-md">
-        <h2 className="text-xl font-semibold">
-          Viewing cases for: {getProfileName(userCases[0].profiles)}
-        </h2>
-        <Button 
-          variant="outline" 
-          className="mt-2"
-          onClick={() => navigate('/admin/cases')}
-        >
-          View All Cases
-        </Button>
-      </div>
-    ) : null
+  const userFilterHeading = filterUserId && userCases && userCases[0]?.profiles ? (
+    <div className="mb-4 p-4 bg-betting-dark-gray rounded-md">
+      <h2 className="text-xl font-semibold">
+        Viewing cases for: {getProfileName(userCases[0].profiles)}
+      </h2>
+      <Button 
+        variant="outline" 
+        className="mt-2"
+        onClick={() => navigate('/admin/cases')}
+      >
+        View All Cases
+      </Button>
+    </div>
   ) : null;
 
   return (
@@ -186,15 +187,15 @@ const AdminCasesPage: React.FC = () => {
                   {filteredCases.map((caseItem: any) => (
                     <TableRow key={caseItem.id} className="cursor-pointer hover:bg-betting-light-gray/10" onClick={() => navigate(`/user/cases/${caseItem.id}`)}>
                       <TableCell className="font-medium">{caseItem.case_number || 'N/A'}</TableCell>
-                      <TableCell>{caseItem.title}</TableCell>
+                      <TableCell>{caseItem.title || 'No title'}</TableCell>
                       <TableCell>{getProfileName(caseItem.profiles)}</TableCell>
-                      <TableCell>{format(new Date(caseItem.created_at), "PPP")}</TableCell>
+                      <TableCell>{caseItem.created_at ? format(new Date(caseItem.created_at), "PPP") : 'Unknown date'}</TableCell>
                       <TableCell>
                         <Badge 
                           variant="outline" 
                           className={getStatusColor(caseItem.status)}
                         >
-                          {caseItem.status.charAt(0).toUpperCase() + caseItem.status.slice(1).replace('_', ' ')}
+                          {caseItem.status ? caseItem.status.charAt(0).toUpperCase() + caseItem.status.slice(1).replace('_', ' ') : 'Unknown'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">

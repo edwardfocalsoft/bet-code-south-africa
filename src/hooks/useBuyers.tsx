@@ -40,47 +40,40 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
 
       const { data, error: fetchError } = await supabase
         .from("profiles")
-        .select(`
-          *,
-          purchases:purchases(
-            count,
-            purchase_date
-          )
-        `)
+        .select("*")
         .eq("role", "buyer")
         .range(from, to);
 
       if (fetchError) throw fetchError;
 
       if (data) {
-        const mappedBuyers = data.map((buyer: any) => {
-          // Get the most recent purchase date, if any
-          let lastActive = buyer.updated_at;
-          let purchasesCount = 0;
+        // Get purchases count in a separate query to avoid join issues
+        const buyerIds = data.map((buyer: any) => buyer.id);
+        
+        // Get purchase counts for each buyer
+        const { data: purchasesData, error: purchasesError } = await supabase
+          .from("purchases")
+          .select("buyer_id, count")
+          .in("buyer_id", buyerIds)
+          .group("buyer_id");
           
-          if (buyer.purchases && buyer.purchases.length > 0) {
-            purchasesCount = buyer.purchases.length;
-            // Find the most recent purchase date
-            const purchaseDates = buyer.purchases.map((p: any) => new Date(p.purchase_date).getTime());
-            if (purchaseDates.length > 0) {
-              const mostRecentDate = new Date(Math.max(...purchaseDates));
-              lastActive = mostRecentDate.toISOString();
-            }
-          }
+        const purchaseCounts = purchasesData?.reduce((acc: Record<string, number>, curr: any) => {
+          acc[curr.buyer_id] = parseInt(curr.count);
+          return acc;
+        }, {}) || {};
 
-          return {
-            id: buyer.id,
-            email: buyer.email,
-            role: buyer.role,
-            username: buyer.username || "Anonymous",
-            createdAt: new Date(buyer.created_at),
-            approved: buyer.approved,
-            suspended: buyer.suspended,
-            lastActive: new Date(lastActive),
-            purchasesCount: purchasesCount,
-            loyaltyPoints: buyer.loyalty_points || 0,
-          };
-        });
+        const mappedBuyers = data.map((buyer: any) => ({
+          id: buyer.id,
+          email: buyer.email,
+          role: buyer.role,
+          username: buyer.username || "Anonymous",
+          createdAt: new Date(buyer.created_at),
+          approved: buyer.approved,
+          suspended: buyer.suspended,
+          lastActive: new Date(buyer.updated_at),
+          purchasesCount: purchaseCounts[buyer.id] || 0,
+          loyaltyPoints: buyer.loyalty_points || 0,
+        }));
 
         setBuyers(mappedBuyers);
       }
@@ -92,6 +85,8 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
         description: "Failed to load buyers. Please try again later.",
         variant: "destructive",
       });
+      // Set empty array to prevent infinite loading state
+      setBuyers([]);
     } finally {
       setLoading(false);
     }
