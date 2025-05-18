@@ -50,9 +50,11 @@ const CreditBalanceCard: React.FC<CreditBalanceCardProps> = ({
       try {
         const result = await onTopUp(amount);
         if (!result) {
-          throw new Error("Payment processing failed");
+          console.error("Top-up failed");
+          setProcessing(false);
+          setConfirmDialogOpen(false);
         }
-        // The redirection happens in usePayFast
+        // Redirect handled in usePayFast
       } catch (error) {
         console.error("Top-up error:", error);
         setProcessing(false);

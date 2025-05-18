@@ -34,8 +34,13 @@ const TicketPurchaseDialog: React.FC<TicketPurchaseDialogProps> = ({
   creditBalance,
   onConfirm
 }) => {
+  const handleConfirm = () => {
+    // Call onConfirm directly, the parent component will handle the payment flow
+    onConfirm();
+  };
+  
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={processingPurchase ? undefined : onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Confirm Purchase</DialogTitle>
@@ -45,14 +50,14 @@ const TicketPurchaseDialog: React.FC<TicketPurchaseDialogProps> = ({
         </DialogHeader>
         
         <div className="py-4">
-          <h3 className="font-medium">{ticket.title}</h3>
-          <p className="text-sm text-muted-foreground">Seller: {ticket.profiles?.username || "Unknown Seller"}</p>
+          <h3 className="font-medium">{ticket?.title}</h3>
+          <p className="text-sm text-muted-foreground">Seller: {ticket?.profiles?.username || "Unknown Seller"}</p>
           <p className="text-lg font-bold mt-4">
-            Price: R {Number(ticket.price).toFixed(2)}
+            Price: R {Number(ticket?.price || 0).toFixed(2)}
           </p>
           
           {/* Payment method selection */}
-          {!ticket.is_free && (
+          {!ticket?.is_free && (
             <div className="mt-6 border-t border-betting-light-gray pt-4">
               <h4 className="text-sm font-medium mb-3">Payment Method</h4>
               
@@ -120,7 +125,7 @@ const TicketPurchaseDialog: React.FC<TicketPurchaseDialogProps> = ({
           </Button>
           <Button
             className="bg-betting-green hover:bg-betting-green-dark"
-            onClick={onConfirm}
+            onClick={handleConfirm}
             disabled={processingPurchase || (!canAffordWithCredit && paymentMethod === 'credit')}
           >
             {processingPurchase ? (

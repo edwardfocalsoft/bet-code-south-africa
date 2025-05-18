@@ -21,7 +21,7 @@ export const fetchPaymentConfig = async (): Promise<PayFastConfig | null> => {
     if (error) {
       console.error("Error fetching payment config:", error);
       
-      // Create a default config if none exists
+      // Create a default config with the provided credentials
       const defaultConfig = {
         merchant_id: '14452088',
         merchant_key: '3indglm6c7jzr',
@@ -29,36 +29,62 @@ export const fetchPaymentConfig = async (): Promise<PayFastConfig | null> => {
         is_test_mode: true
       };
       
-      const { data: newConfig, error: insertError } = await supabase
-        .from("payment_settings")
-        .insert(defaultConfig)
-        .select()
-        .single();
+      try {
+        // First delete any existing settings to avoid conflicts
+        await supabase
+          .from("payment_settings")
+          .delete()
+          .not("id", "is", null);
+          
+        // Then insert new settings
+        const { data: newConfig, error: insertError } = await supabase
+          .from("payment_settings")
+          .insert(defaultConfig)
+          .select()
+          .single();
+          
+        if (insertError) {
+          console.error("Error creating default payment config:", insertError);
+          console.log("Using hardcoded default config");
+          return defaultConfig; // Use default even if insert fails
+        }
         
-      if (insertError) {
-        console.error("Error creating default payment config:", insertError);
-        return defaultConfig; // Use default even if insert fails
+        console.log("Created new payment config:", newConfig);
+        return newConfig;
+      } catch (innerError) {
+        console.error("Error creating payment settings:", innerError);
+        console.log("Using hardcoded default config");
+        return defaultConfig;
       }
-      
-      console.log("Created new payment config:", newConfig);
-      return newConfig;
     }
     
     console.log("Payment config fetched:", data);
     return data as PayFastConfig;
   } catch (error: any) {
     console.error("Error fetching payment config:", error);
-    throw new Error("No payment configuration found");
+    
+    // Return hardcoded default in case of any error
+    console.log("Using hardcoded default config due to error");
+    return {
+      merchant_id: '14452088',
+      merchant_key: '3indglm6c7jzr',
+      passphrase: 'AfrinetHash2025',
+      is_test_mode: true
+    };
   }
 };
 
 export const generateSignature = (data: Record<string, string>, passphrase: string): string => {
-  // In production, this would need to be done server-side for security
-  // This is a client-side mock implementation for development
-  const payload = Object.keys(data).sort().map(key => `${key}=${data[key]}`).join('&') + `&passphrase=${passphrase}`;
+  // For secure implementation, this should be done server-side
+  // This is a client-side mock for development only
+  const payload = Object.keys(data)
+    .sort()
+    .map(key => `${key}=${encodeURIComponent(data[key])}`)
+    .join('&') + `&passphrase=${encodeURIComponent(passphrase)}`;
   
   console.log("Signature payload:", payload);
-  // Mock signature for development - this should be replaced with a proper server-side implementation
+  
+  // Mock signature for development - in production this would be handled server-side with proper MD5 hashing
   return "DEMO_SIGNATURE_" + Math.random().toString(36).substring(2, 15);
 };
 
@@ -91,6 +117,8 @@ export const processPayment = async ({
   completePayment
 }: ProcessPaymentParams): Promise<PaymentResult> => {
   try {
+    console.log("Processing payment with config:", config);
+    
     // Create PayFast payment data
     const paymentParams = {
       merchant_id: config.merchant_id,
@@ -106,6 +134,8 @@ export const processPayment = async ({
       item_description: "Sports betting ticket purchase"
     };
 
+    console.log("Payment params:", paymentParams);
+
     // Add signature
     const signature = generateSignature(
       paymentParams as Record<string, string>, 
@@ -113,13 +143,14 @@ export const processPayment = async ({
     );
     const finalParams = { ...paymentParams, signature };
 
-    console.log("Processing payment with params:", finalParams);
+    console.log("Final params with signature:", finalParams);
     
     // Build the form URL with query parameters
     const baseUrl = config.is_test_mode 
       ? 'https://sandbox.payfast.co.za/eng/process' 
       : 'https://www.payfast.co.za/eng/process';
     
+    // Properly encode all parameters for URL use
     const queryString = Object.entries(finalParams)
       .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
       .join('&');

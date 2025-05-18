@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
@@ -165,13 +166,16 @@ export const useWallet = () => {
       });
 
       console.log("Payment initiation result:", paymentResult);
+      
+      if (!paymentResult || !paymentResult.paymentUrl) {
+        throw new Error("Failed to initialize payment");
+      }
 
-      // The redirect to PayFast happens automatically in initiatePayment
-      // We just need to return success to indicate process started correctly
-      return paymentResult !== null;
-    } catch (error) {
+      // Redirect happens in initiatePayment now
+      return true;
+    } catch (error: any) {
       console.error("Error adding credits:", error);
-      toast.error("An unexpected error occurred while processing your payment");
+      toast.error(error.message || "An unexpected error occurred while processing your payment");
       return false;
     } finally {
       setIsLoading(false);
