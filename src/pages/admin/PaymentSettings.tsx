@@ -99,11 +99,18 @@ const PaymentSettings: React.FC = () => {
               </CardHeader>
               
               <CardContent className="space-y-6">
-                {formData.is_test_mode && (
+                {formData.is_test_mode ? (
                   <Alert className="bg-yellow-900/20 text-yellow-300 border border-yellow-900">
                     <AlertTitle>Test Mode Active</AlertTitle>
                     <AlertDescription>
                       Payment gateway is in test mode. No real transactions will be processed.
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <Alert className="bg-green-900/20 text-green-300 border border-green-900">
+                    <AlertTitle>Live Mode Active</AlertTitle>
+                    <AlertDescription>
+                      Payment gateway is in live mode. Real transactions will be processed.
                     </AlertDescription>
                   </Alert>
                 )}

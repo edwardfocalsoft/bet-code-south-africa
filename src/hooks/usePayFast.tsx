@@ -34,11 +34,15 @@ export const usePayFast = () => {
         .from("payment_settings")
         .select("merchant_id, merchant_key, passphrase, is_test_mode")
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error("Error fetching payment config:", error);
         throw error;
+      }
+      
+      if (!data) {
+        throw new Error("No payment configuration found");
       }
       
       console.log("Payment config fetched:", data);
@@ -58,12 +62,11 @@ export const usePayFast = () => {
 
   const generateSignature = (data: Record<string, string>, passphrase: string): string => {
     // In production, this would need to be done server-side for security
-    // For now, we'll implement a simple client-side version for demonstration
-    const values = Object.values(data);
-    values.push(passphrase);
+    // This is a client-side mock implementation for development
+    const payload = Object.keys(data).sort().map(key => `${key}=${data[key]}`).join('&') + `&passphrase=${passphrase}`;
     
-    // This is a placeholder - in production use a proper hashing function
-    // via an edge function or other secure method
+    console.log("Signature payload:", payload);
+    // Mock signature for development - this should be replaced with a proper server-side implementation
     return "DEMO_SIGNATURE_" + Math.random().toString(36).substring(2, 15);
   };
 
@@ -171,6 +174,8 @@ export const usePayFast = () => {
       // In test mode, simulate a successful payment
       if (config.is_test_mode) {
         console.log("Test mode payment initiated");
+        console.log("Payment parameters:", finalParams);
+        
         // Simulate a successful payment completion
         setTimeout(async () => {
           await completePayment(purchaseId!, "SIMULATED_" + Date.now());
@@ -180,14 +185,17 @@ export const usePayFast = () => {
           purchaseId,
           success: true,
           testMode: true,
-          paymentUrl: "https://sandbox.payfast.co.za/eng/process" // Add this for the test mode
+          paymentUrl: "https://sandbox.payfast.co.za/eng/process",
+          formData: finalParams // Include form data for test mode too
         };
       }
 
+      console.log("Live payment initiated with params:", finalParams);
+      
       // Return payment data for actual PayFast integration
       return {
         purchaseId,
-        paymentUrl: "https://sandbox.payfast.co.za/eng/process",
+        paymentUrl: "https://www.payfast.co.za/eng/process",
         formData: finalParams,
         testMode: config.is_test_mode
       };

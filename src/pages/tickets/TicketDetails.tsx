@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -201,8 +200,26 @@ const TicketDetails: React.FC = () => {
         }
 
         if (result.paymentUrl) {
-          // Open in the same tab
-          window.location.href = result.paymentUrl;
+          // Create a form to post data to PayFast
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = result.paymentUrl;
+          form.style.display = 'none';
+          
+          // Add form fields
+          if (result.formData) {
+            Object.entries(result.formData).forEach(([key, value]) => {
+              const input = document.createElement('input');
+              input.type = 'hidden';
+              input.name = key;
+              input.value = value as string;
+              form.appendChild(input);
+            });
+          }
+          
+          // Append the form to the body and submit it
+          document.body.appendChild(form);
+          form.submit();
         } else if (result.testMode) {
           toast.success("Test mode payment successful!");
           setPurchaseDialogOpen(false);
