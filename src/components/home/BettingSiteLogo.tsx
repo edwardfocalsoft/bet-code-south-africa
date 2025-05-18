@@ -6,12 +6,13 @@ interface BettingSiteLogoProps {
 }
 
 const BettingSiteLogo = ({ site }: BettingSiteLogoProps) => {
-  // In a real app, we would fetch these from Supabase storage
-  // But for now, we'll use a placeholder with the name
   return (
-    <div className="betting-card flex items-center justify-center py-6 font-medium text-center">
-      <div className="bg-betting-dark-gray p-2 rounded-lg flex items-center justify-center h-16">
-        <span className="font-bold text-betting-green">{site}</span>
+    <div className="betting-site-logo transition-all duration-200 hover:scale-105">
+      <div className="bg-betting-dark-gray rounded-lg p-4 h-[90px] flex items-center justify-center shadow-md">
+        <div className="text-center">
+          <span className="font-bold text-xl text-betting-green">{site}</span>
+          <div className="mt-1 w-12 h-1 bg-betting-accent mx-auto rounded-full"></div>
+        </div>
       </div>
     </div>
   );

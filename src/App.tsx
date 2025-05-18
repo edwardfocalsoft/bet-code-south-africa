@@ -26,6 +26,7 @@ import Home from './pages/Index';
 import Login from './pages/auth/Login'; 
 import Register from './pages/auth/Register'; 
 import SellerPublicProfile from './pages/sellers/SellerPublicProfile';
+import SellersLeaderboard from './pages/sellers/SellersLeaderboard';
 import Users from './pages/admin/Buyers';
 import Notifications from './pages/user/Notifications';
 import SellerWithdrawals from './pages/seller/Withdrawals';
@@ -45,6 +46,7 @@ const App: React.FC = () => {
           <Route path="/tickets" element={<AllTickets />} />
           <Route path="/tickets/:id" element={<TicketDetails />} />
           <Route path="/sellers/:id" element={<SellerPublicProfile />} />
+          <Route path="/sellers/leaderboard" element={<SellersLeaderboard />} />
 
           {/* User Routes */}
           <Route path="/user/settings" element={<UserSettings />} />

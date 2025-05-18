@@ -5,9 +5,9 @@ import { BETTING_SITES } from "@/data/mockData";
 
 const BettingSitesSection: React.FC = () => {
   return (
-    <section className="py-16 px-4 bg-betting-black">
+    <section className="py-16 px-4 bg-betting-black border-t border-betting-light-gray">
       <div className="container mx-auto">
-        <h2 className="text-xl font-medium mb-8 text-center">
+        <h2 className="text-2xl font-medium mb-8 text-center">
           Compatible with All Major South African Betting Sites
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
