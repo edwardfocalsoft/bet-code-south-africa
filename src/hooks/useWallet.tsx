@@ -150,6 +150,7 @@ export const useWallet = () => {
       
       // Use the Supabase function to create the transaction
       // This bypasses RLS and handles the database changes securely
+      // Make sure the parameter names and order match what's on the database
       const { data, error } = await supabase.rpc(
         "create_wallet_top_up" as any,
         {
