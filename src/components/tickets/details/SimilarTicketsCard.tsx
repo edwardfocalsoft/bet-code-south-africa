@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { format, isValid } from "date-fns";
+import { format, isValid, isPast } from "date-fns";
 import { BettingTicket } from "@/types";
 import { useTicketMapper } from "@/hooks/tickets/useTicketMapper";
 
@@ -25,7 +25,9 @@ const SimilarTicketsCard: React.FC<SimilarTicketsCardProps> = ({ ticketId, selle
       
       setLoading(true);
       try {
-        // Get tickets by the same seller, excluding current ticket
+        const now = new Date().toISOString();
+        
+        // Get tickets by the same seller, excluding current ticket and those with past kickoff
         const { data: ticketsData, error: ticketsError } = await supabase
           .from("tickets")
           .select(`
@@ -36,6 +38,7 @@ const SimilarTicketsCard: React.FC<SimilarTicketsCardProps> = ({ ticketId, selle
           .neq("id", ticketId)
           .eq("is_hidden", false)
           .eq("is_expired", false)
+          .gt("kickoff_time", now) // Only get tickets where kickoff is in the future
           .order("created_at", { ascending: false })
           .limit(3);
           
@@ -43,9 +46,12 @@ const SimilarTicketsCard: React.FC<SimilarTicketsCardProps> = ({ ticketId, selle
         
         if (ticketsData && ticketsData.length > 0) {
           setSimilarTickets(mapDatabaseTickets(ticketsData));
+        } else {
+          setSimilarTickets([]);
         }
       } catch (err) {
         console.error("Error fetching similar tickets:", err);
+        setSimilarTickets([]);
       } finally {
         setLoading(false);
       }
