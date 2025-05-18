@@ -20,6 +20,19 @@ export const useCaseReply = () => {
     setIsLoading(true);
 
     try {
+      // First, fetch the case to verify the current user has permissions
+      const { data: caseData, error: caseError } = await supabase
+        .from('cases')
+        .select('id, user_id, purchase_id')
+        .eq('id', caseId)
+        .single();
+
+      if (caseError) {
+        console.error("Error fetching case:", caseError);
+        throw new Error("Failed to verify case access");
+      }
+
+      // Now add the reply
       const { data: newReply, error } = await supabase
         .from('case_replies')
         .insert({
@@ -30,7 +43,10 @@ export const useCaseReply = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error details:", error);
+        throw error;
+      }
 
       // Update the case's updated_at timestamp
       await supabase
