@@ -26,6 +26,7 @@ export interface PaymentResult {
   purchaseId: string;
   success: boolean;
   error?: string;
+  paymentComplete?: boolean;  // Added this property to fix the type error
 }
 
 interface ProcessPaymentParams {
