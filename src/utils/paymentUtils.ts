@@ -16,7 +16,7 @@ export const fetchPaymentConfig = async (): Promise<PayFastConfig | null> => {
       .from("payment_settings")
       .select("merchant_id, merchant_key, passphrase, is_test_mode")
       .limit(1)
-      .maybeSingle();
+      .single();
 
     if (error) {
       console.error("Error fetching payment config:", error);
@@ -24,7 +24,26 @@ export const fetchPaymentConfig = async (): Promise<PayFastConfig | null> => {
     }
     
     if (!data) {
-      throw new Error("No payment configuration found");
+      // Create a default config if none exists
+      const defaultConfig = {
+        merchant_id: '10030614',
+        merchant_key: '85onulw93ercm',
+        passphrase: 'testpassphrase',
+        is_test_mode: true
+      };
+      
+      const { data: newConfig, error: insertError } = await supabase
+        .from("payment_settings")
+        .insert(defaultConfig)
+        .select()
+        .single();
+        
+      if (insertError) {
+        console.error("Error creating default payment config:", insertError);
+        return defaultConfig; // Use default even if insert fails
+      }
+      
+      return newConfig;
     }
     
     console.log("Payment config fetched:", data);

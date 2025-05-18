@@ -50,7 +50,7 @@ const TicketContent: React.FC<TicketContentProps> = ({
           )}
         </div>
         
-        <div className="prose prose-invert max-w-none">
+        <div className="prose prose-invert max-w-none bg-betting-light-gray/5">
           <h3>Description</h3>
           <p>{ticket.description}</p>
           

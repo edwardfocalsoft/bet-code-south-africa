@@ -55,10 +55,14 @@ export const usePayFast = () => {
         purchaseId = creditResult?.purchaseId;
       }
       
+      if (!purchaseId) {
+        throw new Error("Failed to create purchase record");
+      }
+      
       // Create payment with PayFast
       return await processPayment({
         config,
-        purchaseId: purchaseId!,
+        purchaseId: purchaseId,
         currentUser,
         amount: remainingAmount,
         ticketTitle: paymentData.ticketTitle,

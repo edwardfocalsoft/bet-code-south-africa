@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { LoadingState } from "@/components/purchases/LoadingState";
 
 const AllTickets: React.FC = () => {
-  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "table">("table"); // Changed default to table
   const [selectedSite, setSelectedSite] = useState<BettingSite | "all">("all");
 
   const { tickets, loading, updateFilters } = useTickets({

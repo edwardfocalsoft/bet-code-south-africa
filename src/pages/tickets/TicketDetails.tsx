@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -13,11 +13,10 @@ import TicketContent from "@/components/tickets/details/TicketContent";
 import TicketPurchaseDialog from "@/components/tickets/details/TicketPurchaseDialog";
 import SellerInfoCard from "@/components/tickets/details/SellerInfoCard";
 import SimilarTicketsCard from "@/components/tickets/details/SimilarTicketsCard";
-import { PaymentResult } from "@/utils/paymentUtils";
 
 const TicketDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { ticket, seller, loading, error, purchaseLoading, alreadyPurchased, purchaseTicket } = useTicket(id);
+  const { ticket, seller, loading, error, purchaseLoading, alreadyPurchased, purchaseTicket, refreshTicket } = useTicket(id);
   const { currentUser } = useAuth();
   const { creditBalance } = useWallet();
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
@@ -38,7 +37,10 @@ const TicketDetails: React.FC = () => {
     
     // Check if it's a free ticket
     if (ticket.is_free) {
-      await purchaseTicket();
+      const result = await purchaseTicket();
+      if (result && result.success) {
+        refreshTicket();
+      }
       return;
     }
     
@@ -59,21 +61,26 @@ const TicketDetails: React.FC = () => {
     setProcessingPurchase(true);
     
     try {
-      if (paymentMethod === 'credit') {
-        // Use credit balance
-        const result = await purchaseTicket();
+      const result = await purchaseTicket();
+      
+      if (!result) {
+        throw new Error("Purchase failed");
+      }
+      
+      if (result.paymentComplete) {
+        toast.success("Purchase successful!");
         setPurchaseDialogOpen(false);
-      } else {
-        // Use PayFast
-        const result = await purchaseTicket();
-        
-        if (result && 'testMode' in result && result.testMode) {
-          toast.success("Test mode payment successful!");
-          setPurchaseDialogOpen(false);
-        } else if (result && 'paymentUrl' in result) {
-          // Redirect to payment gateway
-          window.location.href = result.paymentUrl;
-        }
+      } else if (result.paymentUrl) {
+        // Redirect to payment gateway
+        window.location.href = result.paymentUrl;
+      } else if (result.testMode) {
+        // Handle test mode
+        toast.success("Test mode payment successful!");
+        setPurchaseDialogOpen(false);
+        // Refresh ticket data to update purchase status
+        setTimeout(() => {
+          refreshTicket();
+        }, 2000);
       }
     } catch (error: any) {
       console.error("Purchase error:", error);
@@ -84,6 +91,11 @@ const TicketDetails: React.FC = () => {
       setProcessingPurchase(false);
     }
   };
+
+  // Refresh ticket details when user logs in/out
+  useEffect(() => {
+    refreshTicket();
+  }, [currentUser?.id, refreshTicket]);
 
   if (loading) {
     return (

@@ -161,11 +161,11 @@ export const useWallet = () => {
         useCredit: false // Don't use existing credit for top-ups
       });
 
-      if (paymentResult && 'paymentUrl' in paymentResult) {
+      if (paymentResult && paymentResult.paymentUrl) {
         // Redirect to payment page
         window.location.href = paymentResult.paymentUrl;
         return true;
-      } else if (paymentResult && 'testMode' in paymentResult && paymentResult.testMode) {
+      } else if (paymentResult && paymentResult.testMode) {
         // In test mode, simulate successful payment and update credit balance
         const newBalance = await addCredits(currentUser.id, amount);
         

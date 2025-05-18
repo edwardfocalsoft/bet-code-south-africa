@@ -55,6 +55,8 @@ export const useTicket = (ticketId: string | undefined) => {
           
         if (!purchaseError && purchaseData) {
           setAlreadyPurchased(true);
+        } else {
+          setAlreadyPurchased(false);
         }
       }
       
@@ -75,7 +77,7 @@ export const useTicket = (ticketId: string | undefined) => {
     fetchTicketDetails();
   }, [fetchTicketDetails]);
 
-  const purchaseTicket = async (): Promise<PaymentResult | null> => {
+  const purchaseTicket = async () => {
     if (!currentUser) {
       toast.error("Please log in to purchase this ticket");
       return null;
@@ -148,13 +150,20 @@ export const useTicket = (ticketId: string | undefined) => {
       }
       
       // User needs to pay with PayFast
-      return await initiatePayment({
+      const result = await initiatePayment({
         ticketId: ticketId || "",
         ticketTitle: ticket.title,
         amount: ticket.price,
         buyerId: currentUser.id,
         sellerId: ticket.seller_id
       });
+      
+      // Mark as purchased if payment was completed
+      if (result && result.paymentComplete) {
+        setAlreadyPurchased(true);
+      }
+      
+      return result;
 
     } catch (error: any) {
       console.error("Purchase error:", error);
