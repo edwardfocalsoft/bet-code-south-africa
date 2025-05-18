@@ -1,39 +1,24 @@
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { AlertCircle, Loader2, Clock, RefreshCw } from "lucide-react";
-import { format } from "date-fns";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 import { useCases } from "@/hooks/useCases";
 import { useAuth } from "@/contexts/auth";
-import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+
+// Import refactored components
+import CaseDetailsHeader from "@/components/cases/CaseDetailsHeader";
+import AdminCaseActions from "@/components/cases/AdminCaseActions";
+import RelatedTicketInfo from "@/components/cases/RelatedTicketInfo";
+import CaseReplies from "@/components/cases/CaseReplies";
+import ReplyForm from "@/components/cases/ReplyForm";
+import RefundDialog from "@/components/cases/RefundDialog";
+import CaseError from "@/components/cases/CaseError";
+import CaseNotFound from "@/components/cases/CaseNotFound";
+import LoadingState from "@/components/cases/LoadingState";
 
 // Case status options
 const caseStatusOptions = [
@@ -76,7 +61,6 @@ const CaseDetailsPage: React.FC = () => {
   } = useCases();
 
   const [caseDetails, setCaseDetails] = useState<any>(null);
-  const [replyContent, setReplyContent] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
@@ -134,13 +118,11 @@ const CaseDetailsPage: React.FC = () => {
     loadCaseDetails();
   }, [caseId, fetchCaseDetails, currentUser, initialLoadComplete]);
 
-  const handleSubmitReply = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!caseId || !replyContent.trim()) return;
+  const handleSubmitReply = async (content: string) => {
+    if (!caseId || !content.trim()) return;
     
     try {
-      const result = await addReply(caseId, replyContent);
+      const result = await addReply(caseId, content);
       if (result) {
         // Refresh case details to show the new reply
         setInitialLoadComplete(false);
@@ -148,13 +130,10 @@ const CaseDetailsPage: React.FC = () => {
         
         if (updatedDetails) {
           setCaseDetails(updatedDetails);
-          setReplyContent("");
-          toast.success("Reply added successfully");
         }
       }
     } catch (err: any) {
       console.error("Error submitting reply:", err);
-      toast.error(err.message || "Failed to add reply");
     }
   };
 
@@ -171,12 +150,10 @@ const CaseDetailsPage: React.FC = () => {
         
         if (updatedDetails) {
           setCaseDetails(updatedDetails);
-          toast.success(`Case status updated to ${newStatus}`);
         }
       }
     } catch (err: any) {
       console.error("Error updating status:", err);
-      toast.error(err.message || "Failed to update status");
     }
   };
 
@@ -209,7 +186,6 @@ const CaseDetailsPage: React.FC = () => {
       }
     } catch (err: any) {
       console.error("Error processing refund:", err);
-      toast.error(err.message || "Failed to process refund");
     }
   };
 
@@ -217,9 +193,7 @@ const CaseDetailsPage: React.FC = () => {
     return (
       <Layout requireAuth={true}>
         <div className="container mx-auto py-8 px-4">
-          <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-betting-green" />
-          </div>
+          <LoadingState />
         </div>
       </Layout>
     );
@@ -229,20 +203,7 @@ const CaseDetailsPage: React.FC = () => {
     return (
       <Layout requireAuth={true}>
         <div className="container mx-auto py-8 px-4">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex flex-col items-center py-8">
-                <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
-                <h2 className="text-xl font-bold mb-2">{error}</h2>
-                <Button
-                  className="mt-4 bg-betting-green hover:bg-betting-green-dark"
-                  onClick={() => navigate("/user/cases")}
-                >
-                  Back to Cases
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <CaseError errorMessage={error} />
         </div>
       </Layout>
     );
@@ -252,23 +213,7 @@ const CaseDetailsPage: React.FC = () => {
     return (
       <Layout requireAuth={true}>
         <div className="container mx-auto py-8 px-4">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex flex-col items-center py-8">
-                <AlertCircle className="h-12 w-12 text-yellow-500 mb-4" />
-                <h2 className="text-xl font-bold mb-2">Case not found</h2>
-                <p className="text-muted-foreground mb-4">
-                  The case you're looking for doesn't exist or has been removed.
-                </p>
-                <Button
-                  className="bg-betting-green hover:bg-betting-green-dark"
-                  onClick={() => navigate("/user/cases")}
-                >
-                  Back to Cases
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <CaseNotFound />
         </div>
       </Layout>
     );
@@ -287,167 +232,42 @@ const CaseDetailsPage: React.FC = () => {
 
         <Card className="mb-6">
           <CardHeader>
-            <div className="flex justify-between items-start">
-              <div>
-                <CardTitle className="text-2xl">
-                  {caseDetails.title}
-                  {caseDetails.case_number && (
-                    <span className="text-sm text-muted-foreground ml-2">
-                      (#{caseDetails.case_number})
-                    </span>
-                  )}
-                </CardTitle>
-                <CardDescription className="mt-2 flex items-center">
-                  <Clock className="h-4 w-4 mr-1" />
-                  {format(new Date(caseDetails.created_at), "PPP p")}
-                </CardDescription>
-              </div>
-              <Badge
-                variant="outline"
-                className={getStatusColor(caseDetails.status)}
-              >
-                {caseDetails.status.charAt(0).toUpperCase() +
-                  caseDetails.status.slice(1).replace('_', ' ')}
-              </Badge>
-            </div>
+            <CaseDetailsHeader 
+              caseDetails={caseDetails} 
+              getStatusColor={getStatusColor} 
+            />
           </CardHeader>
           <CardContent>
             <div className="bg-betting-light-gray p-4 rounded-md mb-6 whitespace-pre-line">
               {caseDetails.description}
             </div>
 
-            {isAdmin && (
-              <div className="bg-betting-dark-gray/50 p-4 rounded-md mb-6">
-                <h3 className="font-bold mb-2">Admin Actions</h3>
-                <div className="flex flex-wrap gap-3">
-                  <Select
-                    value={caseDetails.status}
-                    onValueChange={handleStatusChange}
-                  >
-                    <SelectTrigger className="w-[200px]">
-                      <SelectValue placeholder="Change status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {caseStatusOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+            <AdminCaseActions
+              isAdmin={isAdmin}
+              caseDetails={caseDetails}
+              handleStatusChange={handleStatusChange}
+              canProcessRefund={canProcessRefund}
+              setRefundDialogOpen={setRefundDialogOpen}
+              caseStatusOptions={caseStatusOptions}
+            />
 
-                  {canProcessRefund && (
-                    <Button
-                      variant="outline"
-                      className="bg-purple-500/10 text-purple-500 border-purple-500/20 hover:bg-purple-500/20"
-                      onClick={() => setRefundDialogOpen(true)}
-                    >
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Process Refund
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {ticketData && (
-              <div className="bg-betting-dark-gray/50 p-4 rounded-md mb-6">
-                <h3 className="font-bold mb-2">Related Ticket</h3>
-                <p>
-                  <strong>Title:</strong> {ticketData.title}
-                </p>
-                {purchaseData && (
-                  <p className="mt-1">
-                    <strong>Price:</strong> R{Number(purchaseData.price).toFixed(2)}
-                  </p>
-                )}
-                <Button
-                  variant="outline"
-                  className="mt-2"
-                  onClick={() => navigate(`/tickets/${ticketData.id}`)}
-                >
-                  View Ticket
-                </Button>
-              </div>
-            )}
+            <RelatedTicketInfo 
+              ticketData={ticketData} 
+              purchaseData={purchaseData} 
+            />
 
             <div className="mt-8">
               <h3 className="text-lg font-bold mb-4">Case Discussion</h3>
 
-              {caseDetails.replies && caseDetails.replies.length > 0 ? (
-                <div className="space-y-4">
-                  {caseDetails.replies.map((reply: any) => (
-                    <div
-                      key={reply.id}
-                      className="bg-betting-light-gray p-4 rounded-md"
-                    >
-                      <div className="flex items-center mb-2">
-                        <Avatar className="h-8 w-8 mr-2">
-                          {reply.profiles.avatar_url ? (
-                            <AvatarImage src={reply.profiles.avatar_url} />
-                          ) : (
-                            <AvatarFallback>
-                              {reply.profiles.username
-                                ? reply.profiles.username.charAt(0).toUpperCase()
-                                : "U"}
-                            </AvatarFallback>
-                          )}
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">
-                            {reply.profiles.username || "User"}
-                            {reply.profiles.role === "admin" && (
-                              <Badge
-                                variant="outline"
-                                className="ml-2 bg-red-500/10 text-red-500 border-red-500/20"
-                              >
-                                Admin
-                              </Badge>
-                            )}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {format(new Date(reply.created_at), "PPP p")}
-                          </p>
-                        </div>
-                      </div>
-                      <p className="whitespace-pre-line">{reply.content}</p>
-                    </div>
-                  ))}
-                </div>
+              <CaseReplies replies={caseDetails.replies || []} />
+
+              {caseDetails.status !== "closed" ? (
+                <ReplyForm 
+                  caseStatus={caseDetails.status}
+                  onSubmit={handleSubmitReply}
+                  isLoading={isLoading}
+                />
               ) : (
-                <div className="text-center py-6 bg-betting-dark-gray/20 rounded-md">
-                  <p className="text-muted-foreground">
-                    No replies yet. Be the first to respond.
-                  </p>
-                </div>
-              )}
-
-              {caseDetails.status !== "closed" && (
-                <form onSubmit={handleSubmitReply} className="mt-6">
-                  <Textarea
-                    placeholder="Type your reply here..."
-                    className="min-h-[100px] bg-betting-light-gray border-betting-light-gray"
-                    value={replyContent}
-                    onChange={(e) => setReplyContent(e.target.value)}
-                  />
-                  <Button
-                    type="submit"
-                    className="mt-3 bg-betting-green hover:bg-betting-green-dark"
-                    disabled={isLoading || !replyContent.trim()}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      "Add Reply"
-                    )}
-                  </Button>
-                </form>
-              )}
-
-              {caseDetails.status === "closed" && (
                 <Alert className="mt-4">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
@@ -459,64 +279,16 @@ const CaseDetailsPage: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Refund Dialog */}
         {canProcessRefund && (
-          <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Process Refund</DialogTitle>
-                <DialogDescription>
-                  This will refund the customer and deduct the amount from the
-                  seller's account.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="py-4">
-                <p className="font-medium">Refund Details:</p>
-                <ul className="mt-2 space-y-1">
-                  <li>
-                    <span className="text-muted-foreground">Amount: </span>
-                    <span className="font-medium">
-                      R{Number(purchaseData?.price).toFixed(2)}
-                    </span>
-                  </li>
-                  <li>
-                    <span className="text-muted-foreground">Ticket: </span>
-                    <span className="font-medium">{ticketData?.title}</span>
-                  </li>
-                  <li>
-                    <span className="text-muted-foreground">Case #: </span>
-                    <span className="font-medium">
-                      {caseDetails.case_number}
-                    </span>
-                  </li>
-                </ul>
-              </div>
-
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setRefundDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="bg-purple-600 hover:bg-purple-700"
-                  onClick={handleRefund}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    "Confirm Refund"
-                  )}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <RefundDialog
+            open={refundDialogOpen}
+            onOpenChange={setRefundDialogOpen}
+            handleRefund={handleRefund}
+            isLoading={isLoading}
+            purchaseData={purchaseData}
+            ticketData={ticketData}
+            caseNumber={caseDetails.case_number}
+          />
         )}
       </div>
     </Layout>
