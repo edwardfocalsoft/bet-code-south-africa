@@ -53,7 +53,7 @@ const ShareTicket: React.FC<ShareTicketProps> = ({
         console.error("Could not copy text: ", err);
         toast("Failed to copy", {
           description: "Could not copy the link to clipboard",
-          variant: "destructive",
+          style: { backgroundColor: "hsl(var(--destructive))", color: "hsl(var(--destructive-foreground))" },
         });
       }
     );
