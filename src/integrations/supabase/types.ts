@@ -528,6 +528,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      complete_wallet_transaction: {
+        Args: {
+          p_transaction_id: string
+          p_payment_id: string
+          p_payment_data?: Json
+        }
+        Returns: boolean
+      }
+      create_wallet_top_up: {
+        Args: { p_amount: number; p_description: string; p_user_id: string }
+        Returns: string
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean

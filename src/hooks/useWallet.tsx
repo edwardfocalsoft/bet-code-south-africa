@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
@@ -153,9 +152,9 @@ export const useWallet = () => {
       const { data, error } = await supabase.rpc(
         "create_wallet_top_up" as any, // Use type assertion to bypass TypeScript checks
         {
-          p_user_id: currentUser.id,
           p_amount: amount,
-          p_description: "Wallet top-up (pending)"
+          p_description: "Wallet top-up (pending)",
+          p_user_id: currentUser.id
         }
       );
       
