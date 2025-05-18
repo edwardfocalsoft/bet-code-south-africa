@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { format } from "date-fns";
 import { 
@@ -40,6 +39,7 @@ const TicketContent: React.FC<TicketContentProps> = ({
   onPurchase,
   purchaseId
 }) => {
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [rateDialogOpen, setRateDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
 
@@ -201,7 +201,13 @@ const TicketContent: React.FC<TicketContentProps> = ({
         </div>
       </CardContent>
       
-      {/* Dialogs */}
+      <ShareTicket 
+        ticketId={ticket.id}
+        ticketTitle={ticket.title}
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+      />
+      
       {canRate && purchaseId && (
         <RateTicketDialog
           open={rateDialogOpen}
