@@ -80,6 +80,13 @@ export const usePayFast = () => {
       });
       
       console.log("PayFast payment result:", result);
+      
+      // Important! Redirect to payment URL if available
+      if (result.paymentUrl) {
+        console.log("Redirecting to payment URL:", result.paymentUrl);
+        window.location.href = result.paymentUrl;
+      }
+      
       return result;
     } catch (error: any) {
       console.error("Payment initiation error:", error);

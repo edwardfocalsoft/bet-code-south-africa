@@ -23,9 +23,9 @@ export const fetchPaymentConfig = async (): Promise<PayFastConfig | null> => {
       
       // Create a default config if none exists
       const defaultConfig = {
-        merchant_id: '10000100',
-        merchant_key: 'pb8iz6kkctyzm',
-        passphrase: 'TestPayFastPassphrase',
+        merchant_id: '14452088',
+        merchant_key: '3indglm6c7jzr',
+        passphrase: 'AfrinetHash2025',
         is_test_mode: true
       };
       
@@ -90,65 +90,55 @@ export const processPayment = async ({
   ticketTitle,
   completePayment
 }: ProcessPaymentParams): Promise<PaymentResult> => {
-  // Create PayFast payment data
-  const paymentParams = {
-    merchant_id: config.merchant_id,
-    merchant_key: config.merchant_key,
-    return_url: `${window.location.origin}/payment/success`,
-    cancel_url: `${window.location.origin}/payment/cancel`,
-    notify_url: `${window.location.origin}/api/payment-notification`,
-    name_first: currentUser.username || "User",
-    email_address: currentUser.email || "",
-    m_payment_id: purchaseId,
-    amount: amount.toFixed(2),
-    item_name: `Ticket: ${ticketTitle}`.substring(0, 100),
-    item_description: "Sports betting ticket purchase"
-  };
+  try {
+    // Create PayFast payment data
+    const paymentParams = {
+      merchant_id: config.merchant_id,
+      merchant_key: config.merchant_key,
+      return_url: `${window.location.origin}/payment/success`,
+      cancel_url: `${window.location.origin}/payment/cancel`,
+      notify_url: `${window.location.origin}/api/payment-notification`,
+      name_first: currentUser.username || "User",
+      email_address: currentUser.email || "",
+      m_payment_id: purchaseId,
+      amount: amount.toFixed(2),
+      item_name: `${ticketTitle}`.substring(0, 100),
+      item_description: "Sports betting ticket purchase"
+    };
 
-  // Add signature
-  const signature = generateSignature(
-    paymentParams as Record<string, string>, 
-    config.passphrase
-  );
-  const finalParams = { ...paymentParams, signature };
+    // Add signature
+    const signature = generateSignature(
+      paymentParams as Record<string, string>, 
+      config.passphrase
+    );
+    const finalParams = { ...paymentParams, signature };
 
-  // In test mode, simulate a successful payment
-  if (config.is_test_mode) {
-    console.log("Test mode payment initiated");
-    console.log("Payment parameters:", finalParams);
+    console.log("Processing payment with params:", finalParams);
     
-    // Build the form URL with query parameters for test mode
-    const formUrl = 'https://sandbox.payfast.co.za/eng/process?' + 
-      Object.entries(finalParams)
-        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
-        .join('&');
+    // Build the form URL with query parameters
+    const baseUrl = config.is_test_mode 
+      ? 'https://sandbox.payfast.co.za/eng/process' 
+      : 'https://www.payfast.co.za/eng/process';
     
-    // For test mode, redirect to sandbox URL instead of simulating
+    const queryString = Object.entries(finalParams)
+      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+      .join('&');
+    
+    const formUrl = `${baseUrl}?${queryString}`;
+    
+    console.log("PayFast URL created:", formUrl);
+    
     return {
       purchaseId,
       success: true,
-      testMode: true,
+      testMode: config.is_test_mode,
       paymentUrl: formUrl,
       formData: finalParams
     };
+  } catch (error) {
+    console.error("Payment processing error:", error);
+    throw error;
   }
-
-  console.log("Live payment initiated with params:", finalParams);
-  
-  // Build the form URL with query parameters for live mode
-  const formUrl = 'https://www.payfast.co.za/eng/process?' + 
-    Object.entries(finalParams)
-      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
-      .join('&');
-  
-  // Return payment data for actual PayFast integration
-  return {
-    purchaseId,
-    success: true,
-    testMode: false,
-    paymentUrl: formUrl,
-    formData: finalParams
-  };
 };
 
 export const completePaymentTransaction = async (

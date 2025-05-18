@@ -133,6 +133,7 @@ export const useWallet = () => {
     
     try {
       setIsLoading(true);
+      console.log("Starting wallet top-up for amount:", amount);
       
       // Initialize a pending transaction
       const { data: transactionData, error: transactionError } = await supabase
@@ -147,6 +148,7 @@ export const useWallet = () => {
         .single();
       
       if (transactionError) {
+        console.error("Failed to create transaction record:", transactionError);
         throw transactionError;
       }
       
@@ -164,19 +166,12 @@ export const useWallet = () => {
 
       console.log("Payment initiation result:", paymentResult);
 
-      if (paymentResult && paymentResult.paymentUrl) {
-        // Redirect to payment page - important to use full page redirect
-        console.log("Redirecting to payment URL:", paymentResult.paymentUrl);
-        window.location.href = paymentResult.paymentUrl;
-        return true;
-      }
-      
-      // If we reached here, something went wrong
-      toast.error("Payment processing failed");
-      return false;
+      // The redirect to PayFast happens automatically in initiatePayment
+      // We just need to return success to indicate process started correctly
+      return paymentResult !== null;
     } catch (error) {
       console.error("Error adding credits:", error);
-      toast.error("An unexpected error occurred");
+      toast.error("An unexpected error occurred while processing your payment");
       return false;
     } finally {
       setIsLoading(false);

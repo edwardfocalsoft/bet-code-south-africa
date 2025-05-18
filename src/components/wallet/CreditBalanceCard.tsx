@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { TrendingUp, Loader2 } from "lucide-react";
 import {
@@ -42,14 +43,22 @@ const CreditBalanceCard: React.FC<CreditBalanceCardProps> = ({
   };
 
   const handleConfirmTopUp = async () => {
-    setProcessing(true);
     const amount = parseFloat(topUpAmount);
     if (!isNaN(amount) && amount > 0) {
+      setProcessing(true);
       console.log("Processing top-up for amount:", amount);
-      await onTopUp(amount);
-      // Don't clear amount or close dialog here since we're redirecting
+      try {
+        const result = await onTopUp(amount);
+        if (!result) {
+          throw new Error("Payment processing failed");
+        }
+        // The redirection happens in usePayFast
+      } catch (error) {
+        console.error("Top-up error:", error);
+        setProcessing(false);
+        setConfirmDialogOpen(false);
+      }
     }
-    setProcessing(false);
   };
 
   return (

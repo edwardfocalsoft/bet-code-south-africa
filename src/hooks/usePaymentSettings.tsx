@@ -30,6 +30,8 @@ export const usePaymentSettings = () => {
   const fetchSettings = async () => {
     try {
       setLoading(true);
+      console.log("Fetching payment settings...");
+      
       const { data, error } = await supabase
         .from("payment_settings")
         .select("*")
@@ -40,10 +42,12 @@ export const usePaymentSettings = () => {
         // If no settings exist, we should create a default one
         if (error.code === 'PGRST116') {
           console.log("No payment settings found, creating default");
+          
+          // Use the provided merchant credentials
           const defaultSettings = {
-            merchant_id: "10000100",
-            merchant_key: "pb8iz6kkctyzm",
-            passphrase: "TestPayFastPassphrase",
+            merchant_id: "14452088",
+            merchant_key: "3indglm6c7jzr",
+            passphrase: "AfrinetHash2025",
             is_test_mode: true,
             updated_at: new Date().toISOString()
           };
@@ -59,6 +63,20 @@ export const usePaymentSettings = () => {
     } catch (error: any) {
       console.error("Error fetching payment settings:", error);
       toast.error("Failed to load payment settings");
+      
+      // If we hit any error, try to create default settings
+      try {
+        const defaultSettings = {
+          merchant_id: "14452088",
+          merchant_key: "3indglm6c7jzr",
+          passphrase: "AfrinetHash2025",
+          is_test_mode: true,
+          updated_at: new Date().toISOString()
+        };
+        await createInitialSettings(defaultSettings);
+      } catch (innerError) {
+        console.error("Failed to create default settings:", innerError);
+      }
     } finally {
       setLoading(false);
     }
@@ -66,6 +84,15 @@ export const usePaymentSettings = () => {
 
   const createInitialSettings = async (initialSettings: Omit<PaymentSettings, 'id'>) => {
     try {
+      console.log("Creating initial payment settings:", initialSettings);
+      
+      // First try to delete any existing settings to avoid conflicts
+      await supabase
+        .from("payment_settings")
+        .delete()
+        .not("id", "is", null);
+      
+      // Then insert the new settings
       const { data, error } = await supabase
         .from("payment_settings")
         .insert(initialSettings)
@@ -76,7 +103,7 @@ export const usePaymentSettings = () => {
       
       console.log("Settings created:", data);
       setSettings(data);
-      toast.success("Default payment settings have been created");
+      toast.success("Payment settings have been configured");
       
     } catch (error: any) {
       console.error("Error creating initial payment settings:", error);
@@ -92,24 +119,32 @@ export const usePaymentSettings = () => {
 
     try {
       setLoading(true);
+      console.log("Updating payment settings:", updatedSettings);
 
       // If we don't have existing settings yet, create them
       if (!settings?.id) {
         const initialSettings = {
-          merchant_id: updatedSettings.merchant_id || "10000100",
-          merchant_key: updatedSettings.merchant_key || "pb8iz6kkctyzm",
-          passphrase: updatedSettings.passphrase || "TestPayFastPassphrase",
+          merchant_id: updatedSettings.merchant_id || "14452088",
+          merchant_key: updatedSettings.merchant_key || "3indglm6c7jzr",
+          passphrase: updatedSettings.passphrase || "AfrinetHash2025",
           is_test_mode: updatedSettings.is_test_mode !== undefined ? updatedSettings.is_test_mode : true,
           updated_at: new Date().toISOString()
         };
         
+        // First try to delete any existing settings to avoid conflicts
+        await supabase
+          .from("payment_settings")
+          .delete()
+          .not("id", "is", null);
+        
+        // Then create new settings
         await createInitialSettings(initialSettings);
         return true;
       }
 
-      console.log("Updating settings:", updatedSettings);
-
       // Otherwise update existing settings
+      console.log("Updating existing settings with ID:", settings.id);
+      
       const { error } = await supabase
         .from("payment_settings")
         .update({
@@ -124,6 +159,7 @@ export const usePaymentSettings = () => {
       }
 
       // Fetch the updated settings
+      toast.success("Payment settings updated successfully");
       await fetchSettings();
       return true;
     } catch (error: any) {

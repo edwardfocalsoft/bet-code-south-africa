@@ -60,7 +60,7 @@ const TicketDetails: React.FC = () => {
     setProcessingPurchase(true);
     
     try {
-      console.log("Starting purchase process...");
+      console.log("Starting purchase process with payment method:", paymentMethod);
       const result = await purchaseTicket();
       console.log("Purchase result:", result);
       
@@ -71,17 +71,15 @@ const TicketDetails: React.FC = () => {
       if (result.paymentComplete) {
         toast.success("Purchase successful!");
         setPurchaseDialogOpen(false);
-      } else if (result.paymentUrl) {
-        console.log("Redirecting to payment URL:", result.paymentUrl);
-        // Redirect to payment gateway - Use window.location.href for a full page redirect
-        window.location.href = result.paymentUrl;
+        refreshTicket();
       }
+      // The redirect to PayFast happens in usePayFast if needed
+      
     } catch (error: any) {
       console.error("Purchase error:", error);
       toast.error("Purchase Failed", {
         description: error.message || "There was an error processing your purchase. Please try again."
       });
-    } finally {
       setProcessingPurchase(false);
     }
   };

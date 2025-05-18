@@ -1,10 +1,17 @@
 
 import React from "react";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { useAuth } from "@/contexts/auth";
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Loader2 } from "lucide-react";
-import TicketHeader from "./TicketHeader";
+import { Loader2 } from "lucide-react";
+import ShareTicket from "../ShareTicket";
 
 interface TicketContentProps {
   ticket: any;
@@ -17,71 +24,97 @@ interface TicketContentProps {
   onPurchase: () => void;
 }
 
-const TicketContent: React.FC<TicketContentProps> = ({
-  ticket,
-  seller,
-  isSeller,
-  isPastKickoff,
+const TicketContent: React.FC<TicketContentProps> = ({ 
+  ticket, 
+  seller, 
+  isSeller, 
+  isPastKickoff, 
   alreadyPurchased,
-  currentUser,
-  purchaseLoading,
-  onPurchase
+  currentUser, 
+  purchaseLoading, 
+  onPurchase 
 }) => {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-ZA", {
+      day: "numeric",
+      month: "long", 
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  };
+  
+  const showTicketCode = alreadyPurchased || isSeller;
+  
   return (
-    <Card className="betting-card mb-6">
-      <CardContent className="pt-6">
-        <TicketHeader 
-          ticket={ticket} 
-          isPastKickoff={isPastKickoff} 
-          isSeller={isSeller}
-          isAdmin={currentUser?.role === "admin"}
-        />
-        
-        <div className="flex items-center gap-2 mb-8">
-          <Badge className="bg-betting-dark-gray text-white">
-            {ticket.betting_site}
-          </Badge>
+    <Card className="betting-card">
+      <CardHeader>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle className="text-2xl">{ticket.title}</CardTitle>
+            <CardDescription>
+              Posted by {seller?.username || "Unknown"} 
+              • {formatDate(ticket.created_at)}
+            </CardDescription>
+          </div>
+          
+          <ShareTicket ticket={ticket} />
+        </div>
+      </CardHeader>
+      
+      <CardContent className="space-y-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div>
+            <p className="text-sm text-muted-foreground">Betting Site</p>
+            <p className="font-medium">{ticket.betting_site}</p>
+          </div>
+          
+          <div>
+            <p className="text-sm text-muted-foreground">Kickoff Time</p>
+            <p className="font-medium">{formatDate(ticket.kickoff_time)}</p>
+          </div>
+          
+          <div>
+            <p className="text-sm text-muted-foreground">Price</p>
+            <p className="font-medium">{ticket.is_free ? "Free" : `R${Number(ticket.price).toFixed(2)}`}</p>
+          </div>
           
           {ticket.odds && (
-            <div className="flex items-center gap-1 text-sm">
-              <TrendingUp className="h-4 w-4 text-betting-green" />
-              <span>Odds: {Number(ticket.odds).toFixed(2)}</span>
+            <div>
+              <p className="text-sm text-muted-foreground">Odds</p>
+              <p className="font-medium">{ticket.odds}</p>
             </div>
           )}
         </div>
         
-        <div className="prose prose-invert max-w-none bg-betting-light-gray/5">
-          <h3>Description</h3>
-          <p>{ticket.description}</p>
-          
-          <div className="bg-betting-dark-gray p-4 rounded-lg mt-6 mb-6">
-            <h3 className="mt-0">Ticket Code</h3>
-            <p className="mb-0">
-              {currentUser ? (
-                alreadyPurchased ? ticket.ticket_code : "Content will be visible after purchase."
-              ) : (
-                "Please log in and purchase this ticket to view its content."
-              )}
-            </p>
-          </div>
+        <div>
+          <h3 className="font-medium mb-2">Description</h3>
+          <p className="text-sm whitespace-pre-line">{ticket.description}</p>
         </div>
+        
+        {showTicketCode && (
+          <div>
+            <h3 className="font-medium mb-2">Ticket Code</h3>
+            <div className="bg-betting-light-gray p-4 rounded-md">
+              <pre className="text-sm whitespace-pre-wrap break-all">{ticket.ticket_code}</pre>
+            </div>
+          </div>
+        )}
+        
+        {isPastKickoff && ticket.event_results && (
+          <div>
+            <h3 className="font-medium mb-2">Event Results</h3>
+            <p className="text-sm">{ticket.event_results}</p>
+          </div>
+        )}
       </CardContent>
       
-      <CardFooter className="flex justify-between border-t border-betting-light-gray pt-4">
-        <div className="flex items-baseline gap-2">
-          <span className="text-xl font-bold">
-            {ticket.is_free ? (
-              <span className="text-green-400">Free</span>
-            ) : (
-              <>R {Number(ticket.price).toFixed(2)}</>
-            )}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button 
-            className="bg-betting-green hover:bg-betting-green-dark"
-            disabled={isPastKickoff || purchaseLoading || isSeller || alreadyPurchased}
+      {currentUser && !isSeller && !isPastKickoff && (
+        <CardFooter>
+          <Button
+            className="w-full bg-betting-green hover:bg-betting-green-dark"
+            disabled={purchaseLoading || alreadyPurchased}
             onClick={onPurchase}
           >
             {purchaseLoading ? (
@@ -90,15 +123,13 @@ const TicketContent: React.FC<TicketContentProps> = ({
                 Processing...
               </>
             ) : alreadyPurchased ? (
-              "Purchased"
-            ) : ticket.is_free ? (
-              "Get for Free"
+              "Purchased ✓"
             ) : (
-              "Purchase Ticket"
+              `${ticket.is_free ? "Get for Free" : "Purchase for R" + Number(ticket.price).toFixed(2)}`
             )}
           </Button>
-        </div>
-      </CardFooter>
+        </CardFooter>
+      )}
     </Card>
   );
 };
