@@ -31,8 +31,8 @@ export const useCases = () => {
 
   // Get user cases with support for userId filter for admin
   const { data: userCases, refetch: refetchCases } = useQuery({
-    queryKey: ['user-cases', currentUser?.id],
-    queryFn: async ({ queryKey }) => {
+    queryKey: ['user-cases', currentUser?.id, isAdmin],
+    queryFn: async () => {
       if (!currentUser) return [];
       
       // Extract any params from querystring
@@ -54,6 +54,7 @@ export const useCases = () => {
           if (filterUserId) {
             query = query.eq('user_id', filterUserId);
           }
+          // For admin, we don't add any filter when filterUserId is not provided
         } else {
           // Non-admin users can only see their own cases
           query = query.eq('user_id', currentUser.id);

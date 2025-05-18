@@ -92,6 +92,7 @@ const CaseDetailsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false); // Track if we've already fetched the data
 
   const isAdmin = userRole === 'admin';
   
@@ -126,9 +127,10 @@ const CaseDetailsPage: React.FC = () => {
   }, [showRefundOption]);
 
   useEffect(() => {
-    const loadCaseDetails = async () => {
-      if (!caseId) return;
+    // Only fetch once or when caseId changes
+    if (!caseId || hasFetched) return;
 
+    const loadCaseDetails = async () => {
       try {
         setLoading(true);
         setError(null);
@@ -157,11 +159,12 @@ const CaseDetailsPage: React.FC = () => {
         setError(err.message || "Failed to load case details");
       } finally {
         setLoading(false);
+        setHasFetched(true); // Mark that we've fetched data
       }
     };
 
     loadCaseDetails();
-  }, [caseId, fetchCaseDetails]);
+  }, [caseId, fetchCaseDetails]); // Remove hasFetched from dependency array
 
   const handleSubmitReply = async (e: React.FormEvent) => {
     e.preventDefault();

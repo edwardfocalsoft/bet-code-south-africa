@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import Layout from "@/components/layout/Layout";
@@ -33,7 +32,7 @@ import {
 import { Loader2, Search, ExternalLink, RefreshCw } from "lucide-react";
 
 const AdminCasesPage: React.FC = () => {
-  const { userCases, isLoading, updateCaseStatus } = useCases();
+  const { userCases, isLoading, updateCaseStatus, refetchCases } = useCases();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -41,6 +40,11 @@ const AdminCasesPage: React.FC = () => {
   // Get userId from query params if it exists
   const urlParams = new URLSearchParams(window.location.search);
   const filterUserId = urlParams.get('userId');
+
+  // Ensure cases are loaded
+  useEffect(() => {
+    refetchCases();
+  }, [refetchCases]);
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase() || '') {
@@ -168,92 +172,121 @@ const AdminCasesPage: React.FC = () => {
               <div className="flex justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-betting-green" />
               </div>
-            ) : filteredCases && filteredCases.length > 0 ? (
-              <Table>
-                <TableCaption>
-                  Support case list {filteredCases.length < (userCases?.length || 0) ? `(${filteredCases.length} of ${userCases?.length})` : ''}
-                </TableCaption>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Case #</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredCases.map((caseItem: any) => (
-                    <TableRow key={caseItem.id} className="cursor-pointer hover:bg-betting-light-gray/10" onClick={() => navigate(`/user/cases/${caseItem.id}`)}>
-                      <TableCell className="font-medium">{caseItem.case_number || 'N/A'}</TableCell>
-                      <TableCell>{caseItem.title || 'No title'}</TableCell>
-                      <TableCell>{getProfileName(caseItem.profiles)}</TableCell>
-                      <TableCell>{caseItem.created_at ? format(new Date(caseItem.created_at), "PPP") : 'Unknown date'}</TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant="outline" 
-                          className={getStatusColor(caseItem.status)}
-                        >
-                          {caseItem.status ? caseItem.status.charAt(0).toUpperCase() + caseItem.status.slice(1).replace('_', ' ') : 'Unknown'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          {caseItem.status === "open" && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleStatusChange(caseItem.id, "in_progress");
-                              }}
+            ) : userCases && userCases.length > 0 ? (
+              <>
+                {filteredCases && filteredCases.length > 0 ? (
+                  <Table>
+                    <TableCaption>
+                      Support case list {filteredCases.length < (userCases?.length || 0) ? `(${filteredCases.length} of ${userCases?.length})` : ''}
+                    </TableCaption>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Case #</TableHead>
+                        <TableHead>Title</TableHead>
+                        <TableHead>User</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredCases.map((caseItem: any) => (
+                        <TableRow key={caseItem.id} className="cursor-pointer hover:bg-betting-light-gray/10" onClick={() => navigate(`/user/cases/${caseItem.id}`)}>
+                          <TableCell className="font-medium">{caseItem.case_number || 'N/A'}</TableCell>
+                          <TableCell>{caseItem.title || 'No title'}</TableCell>
+                          <TableCell>{getProfileName(caseItem.profiles)}</TableCell>
+                          <TableCell>{caseItem.created_at ? format(new Date(caseItem.created_at), "PPP") : 'Unknown date'}</TableCell>
+                          <TableCell>
+                            <Badge 
+                              variant="outline" 
+                              className={getStatusColor(caseItem.status)}
                             >
-                              Process
-                            </Button>
-                          )}
-                          
-                          {(caseItem.status === "open" || caseItem.status === "in_progress") && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="bg-purple-500/10 text-purple-500 border-purple-500/20 hover:bg-purple-500/20"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/user/cases/${caseItem.id}?refund=true`);
-                              }}
-                            >
-                              <RefreshCw className="h-3 w-3 mr-1" />
-                              Refund
-                            </Button>
-                          )}
-                          
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/user/cases/${caseItem.id}`);
-                            }}
-                          >
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            View
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                              {caseItem.status ? caseItem.status.charAt(0).toUpperCase() + caseItem.status.slice(1).replace('_', ' ') : 'Unknown'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              {caseItem.status === "open" && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStatusChange(caseItem.id, "in_progress");
+                                  }}
+                                >
+                                  Process
+                                </Button>
+                              )}
+                              
+                              {(caseItem.status === "open" || caseItem.status === "in_progress") && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="bg-purple-500/10 text-purple-500 border-purple-500/20 hover:bg-purple-500/20"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigate(`/user/cases/${caseItem.id}?refund=true`);
+                                  }}
+                                >
+                                  <RefreshCw className="h-3 w-3 mr-1" />
+                                  Refund
+                                </Button>
+                              )}
+                              
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate(`/user/cases/${caseItem.id}`);
+                                }}
+                              >
+                                <ExternalLink className="h-3 w-3 mr-1" />
+                                View
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-lg font-medium mb-2">No cases match your filters</p>
+                    <p className="text-muted-foreground">
+                      Try adjusting your search criteria.
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      className="mt-4"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setStatusFilter("all");
+                      }}
+                    >
+                      Clear Filters
+                    </Button>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="text-center py-8">
                 <p className="text-lg font-medium mb-2">No cases found</p>
                 <p className="text-muted-foreground">
-                  {(searchQuery || statusFilter !== "all" || filterUserId)
-                    ? "No cases match your search criteria. Try adjusting your filters."
-                    : "There are no support cases in the system."}
+                  {filterUserId
+                    ? "No cases found for this user."
+                    : "There are no support cases in the system yet."}
                 </p>
+                <Button 
+                  variant="outline" 
+                  className="mt-4"
+                  onClick={() => refetchCases()}
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh Cases
+                </Button>
               </div>
             )}
           </CardContent>
