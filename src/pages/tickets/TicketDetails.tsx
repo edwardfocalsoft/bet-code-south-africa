@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -22,7 +21,6 @@ const TicketDetails: React.FC = () => {
   const { creditBalance, error: walletError } = useWallet();
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [processingPurchase, setProcessingPurchase] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'credit' | 'payfast'>('credit');
   const [localError, setLocalError] = useState<string | null>(null);
   const navigate = useNavigate();
 
@@ -57,15 +55,8 @@ const TicketDetails: React.FC = () => {
       return;
     }
     
-    // Otherwise, open the purchase dialog
+    // Otherwise, open the purchase dialog for confirmation
     setPurchaseDialogOpen(true);
-    
-    // Default to credit if there's enough balance
-    if (creditBalance >= ticket.price) {
-      setPaymentMethod('credit');
-    } else {
-      setPaymentMethod('payfast');
-    }
   };
 
   const confirmPurchase = async () => {
@@ -75,9 +66,8 @@ const TicketDetails: React.FC = () => {
     setLocalError(null);
     
     try {
-      console.log("Starting purchase process with payment method:", paymentMethod);
-      // Pass the selected payment method to the purchase function
-      const result = await purchaseTicket(paymentMethod === 'payfast' ? false : true);
+      console.log("Starting purchase process with credits");
+      const result = await purchaseTicket();
       console.log("Purchase result:", result);
       
       if (!result) {
@@ -89,11 +79,11 @@ const TicketDetails: React.FC = () => {
         setPurchaseDialogOpen(false);
         refreshTicket();
       }
-      // The redirect to PayFast happens in usePayFast if needed
-      
     } catch (error: any) {
       console.error("Purchase error:", error);
       setLocalError(error.message || "There was an error processing your purchase. Please try again.");
+    } finally {
+      setProcessingPurchase(false);
     }
   };
 
@@ -185,8 +175,8 @@ const TicketDetails: React.FC = () => {
         onOpenChange={setPurchaseDialogOpen}
         ticket={ticket}
         processingPurchase={processingPurchase}
-        paymentMethod={paymentMethod}
-        setPaymentMethod={setPaymentMethod}
+        paymentMethod="credit"
+        setPaymentMethod={() => {}} // No need to change payment method anymore
         canAffordWithCredit={canAffordWithCredit}
         creditBalance={creditBalance}
         onConfirm={confirmPurchase}

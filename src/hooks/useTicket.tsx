@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/auth";
-import { usePayFast } from "./usePayFast";
 import { toast } from "sonner";
 import { PaymentResult } from "@/utils/paymentUtils";
 
@@ -16,7 +15,6 @@ export const useTicket = (ticketId: string | undefined) => {
   const [error, setError] = useState<Error | null>(null);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const { currentUser } = useAuth();
-  const { initiatePayment } = usePayFast();
   const { toast: uiToast } = useToast();
 
   const fetchTicketDetails = useCallback(async () => {
@@ -87,7 +85,7 @@ export const useTicket = (ticketId: string | undefined) => {
     fetchTicketDetails();
   }, [fetchTicketDetails]);
 
-  const purchaseTicket = async (useCredit = true) => {
+  const purchaseTicket = async () => {
     setPurchaseError(null);
     
     if (!currentUser) {
@@ -151,59 +149,44 @@ export const useTicket = (ticketId: string | undefined) => {
         return { purchaseId: purchaseData, success: true, paymentComplete: true };
       }
       
-      // If user has enough credits and wants to use them, use credits
-      if (useCredit && creditBalance >= ticketPrice) {
-        console.log("Using credit balance to purchase ticket");
-        // First create a purchase record
-        const { data: purchaseData, error: purchaseError } = await supabase
-          .rpc('purchase_ticket', {
-            p_ticket_id: ticketId,
-            p_buyer_id: currentUser.id
-          });
+      // Check if user has enough credits
+      if (creditBalance < ticketPrice) {
+        throw new Error(`Insufficient credit balance. You need ${ticketPrice.toFixed(2)} credits but have ${creditBalance.toFixed(2)}`);
+      }
+      
+      // User has enough credits, process the purchase
+      console.log("Using credit balance to purchase ticket");
+      // First create a purchase record
+      const { data: purchaseData, error: purchaseError } = await supabase
+        .rpc('purchase_ticket', {
+          p_ticket_id: ticketId,
+          p_buyer_id: currentUser.id
+        });
 
-        if (purchaseError) {
-          console.error("Ticket purchase error:", purchaseError);
-          throw purchaseError;
-        }
-        
-        console.log("Purchase record created with ID:", purchaseData);
-        
-        // Complete the purchase using credits
-        const { data: completeData, error: completeError } = await supabase
-          .rpc('complete_ticket_purchase', {
-            p_purchase_id: purchaseData,
-            p_payment_id: `credit_${Date.now()}`,
-            p_payment_data: { payment_method: 'credit' }
-          });
-        
-        if (completeError) {
-          console.error("Complete purchase error:", completeError);
-          throw completeError;
-        }
-        
-        console.log("Credit purchase completed successfully");
-        toast.success("Ticket purchased using your credit balance!");
-        setAlreadyPurchased(true);
-        return { purchaseId: purchaseData, success: true, creditUsed: true, paymentComplete: true };
+      if (purchaseError) {
+        console.error("Ticket purchase error:", purchaseError);
+        throw purchaseError;
       }
       
-      // User wants to pay with PayFast
-      console.log("Initiating PayFast payment for ticket");
-      const result = await initiatePayment({
-        ticketId: ticketId || "",
-        ticketTitle: ticket.title,
-        amount: ticket.price,
-        buyerId: currentUser.id,
-        sellerId: ticket.seller_id,
-        useCredit: useCredit // Pass the useCredit flag
-      });
+      console.log("Purchase record created with ID:", purchaseData);
       
-      // Mark as purchased if payment was completed
-      if (result && result.paymentComplete) {
-        setAlreadyPurchased(true);
+      // Complete the purchase using credits
+      const { data: completeData, error: completeError } = await supabase
+        .rpc('complete_ticket_purchase', {
+          p_purchase_id: purchaseData,
+          p_payment_id: `credit_${Date.now()}`,
+          p_payment_data: { payment_method: 'credit' }
+        });
+      
+      if (completeError) {
+        console.error("Complete purchase error:", completeError);
+        throw completeError;
       }
       
-      return result;
+      console.log("Credit purchase completed successfully");
+      toast.success("Ticket purchased using your credit balance!");
+      setAlreadyPurchased(true);
+      return { purchaseId: purchaseData, success: true, paymentComplete: true };
 
     } catch (error: any) {
       console.error("Purchase error:", error);

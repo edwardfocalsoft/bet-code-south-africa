@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
@@ -21,7 +22,7 @@ export const useWallet = () => {
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { initiatePayment } = usePayFast();
+  const { processTopUp } = usePayFast();
 
   // Fetch both credit balance and transactions
   useEffect(() => {
@@ -167,14 +168,10 @@ export const useWallet = () => {
       
       console.log("Created transaction record:", transactionData);
       
-      // Initiate payment via PayFast - this will handle the form submission and redirect
-      await initiatePayment({
-        ticketId: 'wallet-topup',
-        ticketTitle: 'Wallet Credit Top-up',
+      // Process the top-up using PayFast
+      await processTopUp({
         amount: amount,
-        buyerId: currentUser.id,
-        purchaseId: transactionData.id,
-        useCredit: false // Don't use existing credit for top-ups
+        transactionId: transactionData.id,
       });
 
       // If execution reaches here, it means the form submission didn't redirect

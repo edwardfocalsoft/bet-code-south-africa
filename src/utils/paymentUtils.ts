@@ -38,8 +38,8 @@ interface ProcessPaymentParams {
   cancelUrl?: string;
 }
 
-// Simplified payment processing function that creates and submits a form
-export const processDirectPayment = (params: ProcessPaymentParams): void => {
+// Process wallet top-up with PayFast using form submission
+export const processWalletTopUp = (params: ProcessPaymentParams): void => {
   try {
     const { purchaseId, currentUser, amount, itemName } = params;
     
@@ -57,7 +57,7 @@ export const processDirectPayment = (params: ProcessPaymentParams): void => {
       name_first: currentUser.username || "User"
     };
 
-    console.log("Submitting payment with data:", paymentData);
+    console.log("Submitting wallet top-up with data:", paymentData);
     
     // Create the form element
     const form = document.createElement("form");

@@ -17,8 +17,8 @@ interface TicketPurchaseDialogProps {
   onOpenChange: (open: boolean) => void;
   ticket: any;
   processingPurchase: boolean;
-  paymentMethod: 'credit' | 'payfast';
-  setPaymentMethod: (method: 'credit' | 'payfast') => void;
+  paymentMethod: 'credit';
+  setPaymentMethod: (method: 'credit') => void;
   canAffordWithCredit: boolean;
   creditBalance: number;
   onConfirm: () => void;
@@ -30,8 +30,6 @@ const TicketPurchaseDialog: React.FC<TicketPurchaseDialogProps> = ({
   onOpenChange,
   ticket,
   processingPurchase,
-  paymentMethod,
-  setPaymentMethod,
   canAffordWithCredit,
   creditBalance,
   onConfirm,
@@ -41,7 +39,7 @@ const TicketPurchaseDialog: React.FC<TicketPurchaseDialogProps> = ({
   
   const handleConfirm = () => {
     setLocalError(null);
-    console.log("TicketPurchaseDialog - Confirming purchase with method:", paymentMethod);
+    console.log("TicketPurchaseDialog - Confirming purchase with credits");
     // Call onConfirm directly, the parent component will handle the payment flow
     onConfirm();
   };
@@ -63,63 +61,25 @@ const TicketPurchaseDialog: React.FC<TicketPurchaseDialogProps> = ({
             Price: R {Number(ticket?.price || 0).toFixed(2)}
           </p>
           
-          {/* Payment method selection */}
-          {!ticket?.is_free && (
-            <div className="mt-6 border-t border-betting-light-gray pt-4">
-              <h4 className="text-sm font-medium mb-3">Payment Method</h4>
-              
-              <div className="space-y-3">
-                {/* Credit balance option */}
-                <div 
-                  className={`p-3 border rounded-lg cursor-pointer ${
-                    paymentMethod === 'credit' 
-                      ? 'border-betting-green bg-betting-green/10' 
-                      : 'border-betting-light-gray'
-                  }`}
-                  onClick={() => canAffordWithCredit && setPaymentMethod('credit')}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="h-4 w-4 rounded-full flex items-center justify-center border border-gray-400">
-                        {paymentMethod === 'credit' && (
-                          <div className="h-2 w-2 rounded-full bg-betting-green" />
-                        )}
-                      </div>
-                      <span>Wallet Credit</span>
-                    </div>
-                    <span className={`text-sm ${canAffordWithCredit ? 'text-green-400' : 'text-red-400'}`}>
-                      R {creditBalance.toFixed(2)} available
-                    </span>
-                  </div>
-                  
-                  {!canAffordWithCredit && (
-                    <p className="text-xs text-red-400 mt-1">
-                      Insufficient credit balance
-                    </p>
-                  )}
-                </div>
-                
-                {/* PayFast option */}
-                <div 
-                  className={`p-3 border rounded-lg cursor-pointer ${
-                    paymentMethod === 'payfast' 
-                      ? 'border-betting-green bg-betting-green/10' 
-                      : 'border-betting-light-gray'
-                  }`}
-                  onClick={() => setPaymentMethod('payfast')}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 rounded-full flex items-center justify-center border border-gray-400">
-                      {paymentMethod === 'payfast' && (
-                        <div className="h-2 w-2 rounded-full bg-betting-green" />
-                      )}
-                    </div>
-                    <span>PayFast</span>
-                  </div>
-                </div>
-              </div>
+          {/* Credit balance information */}
+          <div className="mt-6 border-t border-betting-light-gray pt-4">
+            <div className="flex items-center justify-between">
+              <span>Your credit balance:</span>
+              <span className={`${canAffordWithCredit ? 'text-green-500' : 'text-red-500'} font-medium`}>
+                R {creditBalance.toFixed(2)}
+              </span>
             </div>
-          )}
+            
+            {!canAffordWithCredit && (
+              <Alert variant="destructive" className="mt-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  You don't have enough credits to purchase this ticket.
+                  Please top up your wallet before making this purchase.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
 
           {/* Display errors */}
           {(error || localError) && (
@@ -144,7 +104,7 @@ const TicketPurchaseDialog: React.FC<TicketPurchaseDialogProps> = ({
           <Button
             className="bg-betting-green hover:bg-betting-green-dark"
             onClick={handleConfirm}
-            disabled={processingPurchase && !error && !localError || (!canAffordWithCredit && paymentMethod === 'credit')}
+            disabled={processingPurchase && !error && !localError || !canAffordWithCredit}
           >
             {processingPurchase && !error && !localError ? (
               <>
