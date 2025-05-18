@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -132,24 +131,34 @@ export const useCases = () => {
         return { ...caseData, replies: [] };
       }
       
+      if (!repliesData) {
+        return { ...caseData, replies: [] };
+      }
+      
       // Get user profiles for the replies in a separate query
-      const userIds = Array.from(new Set(repliesData?.map(reply => reply.user_id) || []));
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, username, role, avatar_url')
-        .in('id', userIds);
-        
-      // Create a map of user_id to profile data
-      const profilesMap = (profilesData || []).reduce((map: Record<string, any>, profile) => {
-        map[profile.id] = profile;
-        return map;
-      }, {});
+      const userIds = Array.from(new Set(repliesData.map(reply => reply.user_id) || []));
+      
+      // Only fetch profiles if there are user IDs
+      let profilesMap: Record<string, any> = {};
+      
+      if (userIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, username, role, avatar_url')
+          .in('id', userIds);
+          
+        // Create a map of user_id to profile data
+        profilesMap = (profilesData || []).reduce((map: Record<string, any>, profile) => {
+          map[profile.id] = profile;
+          return map;
+        }, {});
+      }
       
       // Process replies to ensure profile data is safe
-      const processedReplies = repliesData?.map(reply => ({
+      const processedReplies = repliesData.map(reply => ({
         ...reply,
         profiles: safeProfileData(profilesMap[reply.user_id])
-      })) || [];
+      }));
       
       // Return the combined data
       return { 
