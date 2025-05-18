@@ -104,7 +104,7 @@ export interface DashboardStats {
 // Added a specific interface for case reply profiles to handle error cases
 export interface CaseReplyProfile {
   username?: string;
-  role: string;
+  role?: string;
   avatar_url?: string;
   error?: boolean;
 }
