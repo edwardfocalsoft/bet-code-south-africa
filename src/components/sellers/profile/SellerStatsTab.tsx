@@ -8,6 +8,8 @@ interface SellerStats {
   ticketsSold: number;
   followers: number;
   satisfaction: number;
+  averageRating?: number;
+  totalRatings?: number;
 }
 
 interface SellerStatsTabProps {
@@ -45,6 +47,9 @@ const SellerStatsTab: React.FC<SellerStatsTabProps> = ({ stats }) => {
             ></div>
           </div>
           <p className="text-right text-sm mt-1">{stats.satisfaction}%</p>
+          <p className="text-xs text-muted-foreground text-right mt-1">
+            Based on {stats.totalRatings || 0} ratings
+          </p>
         </Card>
         
         <Card className="p-4 bg-betting-light-gray/20">

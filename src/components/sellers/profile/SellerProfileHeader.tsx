@@ -10,6 +10,8 @@ interface SellerStats {
   ticketsSold: number;
   followers: number;
   satisfaction: number;
+  averageRating: number;
+  totalRatings: number;
 }
 
 interface SellerProfileHeaderProps {
@@ -41,15 +43,19 @@ const SellerProfileHeader: React.FC<SellerProfileHeaderProps> = ({
           </h1>
           <div className="flex items-center text-sm text-muted-foreground">
             <Star className="h-4 w-4 text-yellow-500 mr-1" fill="#eab308" />
-            <span>{stats.winRate}% Win Rate</span>
+            <span>
+              {stats.averageRating > 0 
+                ? `${stats.averageRating.toFixed(1)} Rating (${stats.totalRatings} reviews)` 
+                : "No ratings yet"}
+            </span>
           </div>
           <div className="flex items-center text-sm text-muted-foreground mt-1">
             <Calendar className="h-4 w-4 mr-1" />
             <span>
               Member since {
-                formatDistanceToNow(new Date(seller.created_at), { 
+                seller.created_at ? formatDistanceToNow(new Date(seller.created_at), { 
                   addSuffix: true 
-                })
+                }) : "unknown date"
               }
             </span>
           </div>

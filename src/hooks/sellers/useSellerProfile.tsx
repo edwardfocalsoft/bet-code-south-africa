@@ -8,6 +8,8 @@ interface SellerStats {
   ticketsSold: number;
   followers: number;
   satisfaction: number;
+  averageRating: number;
+  totalRatings: number;
 }
 
 export const useSellerProfile = (sellerId: string | undefined) => {
@@ -19,6 +21,8 @@ export const useSellerProfile = (sellerId: string | undefined) => {
     ticketsSold: 0,
     followers: 0,
     satisfaction: 0,
+    averageRating: 0,
+    totalRatings: 0
   });
 
   // Fetch reviews for this seller
@@ -31,8 +35,7 @@ export const useSellerProfile = (sellerId: string | undefined) => {
           profiles:buyer_id (username, avatar_url)
         `)
         .eq('seller_id', sellerId)
-        .order('created_at', { ascending: false })
-        .limit(10);
+        .order('created_at', { ascending: false });
         
       if (error) throw error;
       
@@ -99,16 +102,23 @@ export const useSellerProfile = (sellerId: string | undefined) => {
           ? Math.round((winCount / salesCount) * 100) 
           : 0;
           
-        // Get average rating from reviews
-        const averageSatisfaction = reviewsData.length > 0
-          ? Math.round(reviewsData.reduce((sum, review) => sum + review.score, 0) / reviewsData.length * 20)
-          : 95; // Default satisfaction if no reviews
+        // Calculate average rating from reviews
+        let averageRating = 0;
+        let satisfactionPercentage = 0;
+        
+        if (reviewsData.length > 0) {
+          const totalScore = reviewsData.reduce((sum, review) => sum + review.score, 0);
+          averageRating = parseFloat((totalScore / reviewsData.length).toFixed(1));
+          satisfactionPercentage = Math.round(averageRating * 20); // Convert 5-star rating to percentage
+        }
           
         setStats({
           winRate,
           ticketsSold: salesCount || 0,
           followers: followerCount || 0,
-          satisfaction: averageSatisfaction,
+          satisfaction: satisfactionPercentage || 0,
+          averageRating: averageRating,
+          totalRatings: reviewsData.length
         });
       } catch (error) {
         console.error("Error fetching seller profile:", error);

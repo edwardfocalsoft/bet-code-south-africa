@@ -16,7 +16,9 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
   const [sellerStats, setSellerStats] = useState({
     winRate: 0,
     ticketsSold: 0,
-    memberSince: ''
+    memberSince: '',
+    ratingScore: 0,
+    totalRatings: 0
   });
 
   // Helper function to safely format dates
@@ -59,12 +61,30 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
           .eq("id", ticket.seller_id)
           .single();
           
+        // Get ratings data
+        const { data: ratingsData } = await supabase
+          .from("ratings")
+          .select("score")
+          .eq("seller_id", ticket.seller_id);
+          
+        // Calculate rating score
+        let ratingScore = 0;
+        let totalRatings = 0;
+        
+        if (ratingsData && ratingsData.length > 0) {
+          totalRatings = ratingsData.length;
+          const sumRatings = ratingsData.reduce((sum, item) => sum + item.score, 0);
+          ratingScore = parseFloat((sumRatings / totalRatings).toFixed(1));
+        }
+          
         setSellerStats({
-          winRate: totalCount && winCount ? Math.round((winCount / totalCount) * 100) : 78,
-          ticketsSold: totalCount || 156,
+          winRate: totalCount && winCount !== null ? Math.round((winCount / totalCount) * 100) : 0,
+          ticketsSold: totalCount || 0,
           memberSince: sellerProfile?.created_at 
-            ? safeFormat(sellerProfile.created_at, 'MMMM yyyy', 'June 2023')
-            : 'June 2023'
+            ? safeFormat(sellerProfile.created_at, 'MMMM yyyy')
+            : 'Unknown',
+          ratingScore: ratingScore,
+          totalRatings: totalRatings
         });
       } catch (err) {
         console.error("Error fetching seller stats:", err);
@@ -94,7 +114,11 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
             </h4>
             <div className="flex items-center text-sm">
               <Star className="h-4 w-4 text-yellow-500 mr-1" />
-              <span>4.8 Rating</span>
+              <span>
+                {sellerStats.ratingScore > 0 
+                  ? `${sellerStats.ratingScore} Rating (${sellerStats.totalRatings} reviews)` 
+                  : "No ratings yet"}
+              </span>
             </div>
           </div>
         </div>
