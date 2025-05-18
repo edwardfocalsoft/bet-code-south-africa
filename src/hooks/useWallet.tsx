@@ -151,7 +151,7 @@ export const useWallet = () => {
       // Use the Supabase function to create the transaction
       // This bypasses RLS and handles the database changes securely
       const { data, error } = await supabase.rpc(
-        "create_wallet_top_up",
+        "create_wallet_top_up" as any,
         {
           p_user_id: currentUser.id,
           p_amount: amount,
@@ -165,7 +165,8 @@ export const useWallet = () => {
         throw error;
       }
       
-      const transactionId = data;
+      // Cast the returned data to string to ensure it's treated as a transaction ID
+      const transactionId = String(data);
       console.log("Created transaction record:", transactionId);
       
       // Process the top-up using PayFast
