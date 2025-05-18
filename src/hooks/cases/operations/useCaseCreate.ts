@@ -1,0 +1,59 @@
+
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/auth";
+import { toast } from "sonner";
+
+export const useCaseCreate = () => {
+  const { currentUser } = useAuth();
+  const queryClient = useQueryClient();
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Create a new case
+  const createCase = async (data: {
+    ticketId: string,
+    purchaseId: string,
+    title: string,
+    description: string
+  }) => {
+    if (!currentUser) {
+      toast.error("You must be logged in to report an issue");
+      return null;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { data: newCase, error } = await supabase
+        .from('cases')
+        .insert({
+          user_id: currentUser.id,
+          ticket_id: data.ticketId,
+          purchase_id: data.purchaseId,
+          title: data.title,
+          description: data.description
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success("Issue reported successfully");
+      queryClient.invalidateQueries({ queryKey: ['user-cases', currentUser.id] });
+      
+      return newCase;
+    } catch (error: any) {
+      console.error("Error creating case:", error);
+      toast.error("Failed to report issue: " + (error.message || "Unknown error"));
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    createCase,
+    isLoading
+  };
+};
