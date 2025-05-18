@@ -12,6 +12,7 @@ export const useTicket = (ticketId: string | undefined) => {
   const [loading, setLoading] = useState(true);
   const [purchaseLoading, setPurchaseLoading] = useState(false);
   const [alreadyPurchased, setAlreadyPurchased] = useState(false);
+  const [purchaseId, setPurchaseId] = useState<string | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const { currentUser } = useAuth();
@@ -63,8 +64,10 @@ export const useTicket = (ticketId: string | undefined) => {
         if (purchaseData && purchaseData.payment_status === 'completed') {
           console.log("User has already purchased this ticket:", purchaseData);
           setAlreadyPurchased(true);
+          setPurchaseId(purchaseData.id);
         } else {
           setAlreadyPurchased(false);
+          setPurchaseId(null);
         }
       }
       
@@ -146,6 +149,7 @@ export const useTicket = (ticketId: string | undefined) => {
         console.log("Free ticket purchase successful:", purchaseData);
         toast.success("Free ticket added to your purchases!");
         setAlreadyPurchased(true);
+        setPurchaseId(purchaseData);
         return { purchaseId: purchaseData, success: true, paymentComplete: true };
       }
       
@@ -186,6 +190,7 @@ export const useTicket = (ticketId: string | undefined) => {
       console.log("Credit purchase completed successfully");
       toast.success("Ticket purchased using your credit balance!");
       setAlreadyPurchased(true);
+      setPurchaseId(purchaseData);
       return { purchaseId: purchaseData, success: true, paymentComplete: true };
 
     } catch (error: any) {
@@ -205,6 +210,7 @@ export const useTicket = (ticketId: string | undefined) => {
     loading,
     purchaseLoading,
     alreadyPurchased,
+    purchaseId,
     error,
     purchaseError,
     purchaseTicket,

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
@@ -13,6 +14,7 @@ export type WalletTransaction = {
   description?: string;
   created_at: string;
   reference_id?: string;
+  status?: "pending" | "completed" | "cancelled"; // Add status field
 };
 
 export const useWallet = () => {
@@ -126,7 +128,7 @@ export const useWallet = () => {
     };
   }, [currentUser]);
 
-  // Add top up wallet function using PayFast
+  // Update wallet top-up function to track cancelled payments
   const topUpWallet = async (amount: number): Promise<boolean> => {
     if (!currentUser) {
       const errorMessage = "You must be logged in to add credits";
@@ -147,10 +149,9 @@ export const useWallet = () => {
       setError(null);
       console.log("Starting wallet top-up for amount:", amount);
       
-      // Use the Supabase function to create the transaction
-      // IMPORTANT: Parameter order must match the function definition in the database
+      // Use the Supabase function to create the transaction with correct parameter order
       const { data, error } = await supabase.rpc(
-        "create_wallet_top_up" as any, // Use type assertion to bypass TypeScript checks
+        "create_wallet_top_up" as any,
         {
           p_amount: amount,
           p_description: "Wallet top-up (pending)",
@@ -168,10 +169,14 @@ export const useWallet = () => {
       const transactionId = String(data);
       console.log("Created transaction record:", transactionId);
       
+      // Store the transaction ID in sessionStorage for access after redirect
+      sessionStorage.setItem('pendingTopUpId', transactionId);
+      
       // Process the top-up using PayFast
       await processTopUp({
         amount: amount,
         transactionId: transactionId,
+        cancelUrl: `${window.location.origin}/payment/cancel?transactionId=${transactionId}` // Pass transaction ID to cancel URL
       });
 
       // If execution reaches here, it means the form submission didn't redirect
@@ -188,11 +193,49 @@ export const useWallet = () => {
     }
   };
 
+  // Add a method to cancel pending transactions
+  const cancelTransaction = async (transactionId: string): Promise<boolean> => {
+    if (!currentUser) {
+      return false;
+    }
+    
+    try {
+      setIsLoading(true);
+      
+      // Update the transaction status to cancelled
+      const { error } = await supabase
+        .from('wallet_transactions')
+        .update({ 
+          description: "Wallet top-up (cancelled)"
+        })
+        .eq('id', transactionId)
+        .eq('user_id', currentUser.id)
+        .eq('type', 'topup');
+      
+      if (error) {
+        console.error("Failed to cancel transaction:", error);
+        return false;
+      }
+      
+      toast.info("Payment was cancelled", {
+        description: "Your wallet top-up was cancelled. No charges were made."
+      });
+      
+      return true;
+    } catch (error) {
+      console.error("Error cancelling transaction:", error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return { 
     creditBalance: creditBalance ?? 0, 
     transactions, 
     isLoading,
     error, 
-    topUpWallet 
+    topUpWallet,
+    cancelTransaction 
   };
 };

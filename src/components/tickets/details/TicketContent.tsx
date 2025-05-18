@@ -1,17 +1,21 @@
 
-import React from "react";
-import { useAuth } from "@/contexts/auth";
+import React, { useState } from "react";
+import { format } from "date-fns";
 import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
+  Calendar, 
+  Clock, 
+  CircleDollarSign, 
+  Share2, 
+  Star, 
+  AlertCircle,
+  Flag
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import ShareTicket from "../ShareTicket";
+import RateTicketDialog from "../RateTicketDialog";
+import ReportTicketDialog from "../ReportTicketDialog";
 
 interface TicketContentProps {
   ticket: any;
@@ -22,113 +26,212 @@ interface TicketContentProps {
   currentUser: any;
   purchaseLoading: boolean;
   onPurchase: () => void;
+  purchaseId?: string;
 }
 
 const TicketContent: React.FC<TicketContentProps> = ({ 
   ticket, 
   seller, 
-  isSeller, 
-  isPastKickoff, 
+  isSeller,
+  isPastKickoff,
   alreadyPurchased,
-  currentUser, 
-  purchaseLoading, 
-  onPurchase 
+  currentUser,
+  purchaseLoading,
+  onPurchase,
+  purchaseId
 }) => {
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-ZA", {
-      day: "numeric",
-      month: "long", 
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    });
-  };
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [rateDialogOpen, setRateDialogOpen] = useState(false);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+
+  // Calculate if user can rate ticket (purchased, past kickoff, not seller)
+  const canRate = alreadyPurchased && isPastKickoff && !isSeller && currentUser;
   
-  const showTicketCode = alreadyPurchased || isSeller;
-  
+  // Calculate if user can report ticket (purchased, past kickoff)
+  const canReport = alreadyPurchased && currentUser;
+
   return (
-    <Card className="betting-card">
-      <CardHeader>
-        <div className="flex justify-between items-start">
+    <Card>
+      <CardContent className="p-6">
+        <div className="flex flex-col gap-6">
           <div>
-            <CardTitle className="text-2xl">{ticket.title}</CardTitle>
-            <CardDescription>
-              Posted by {seller?.username || "Unknown"} 
-              • {formatDate(ticket.created_at)}
-            </CardDescription>
-          </div>
-          
-          <ShareTicket ticketId={ticket.id} ticketTitle={ticket.title} />
-        </div>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div>
-            <p className="text-sm text-muted-foreground">Betting Site</p>
-            <p className="font-medium">{ticket.betting_site}</p>
-          </div>
-          
-          <div>
-            <p className="text-sm text-muted-foreground">Kickoff Time</p>
-            <p className="font-medium">{formatDate(ticket.kickoff_time)}</p>
-          </div>
-          
-          <div>
-            <p className="text-sm text-muted-foreground">Price</p>
-            <p className="font-medium">{ticket.is_free ? "Free" : `R${Number(ticket.price).toFixed(2)}`}</p>
-          </div>
-          
-          {ticket.odds && (
-            <div>
-              <p className="text-sm text-muted-foreground">Odds</p>
-              <p className="font-medium">{ticket.odds}</p>
+            <div className="flex justify-between items-start">
+              <h1 className="text-2xl font-bold mb-1">{ticket.title}</h1>
+              <div className="flex gap-2">
+                {!isSeller && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    className="flex gap-1.5"
+                    onClick={() => setShareDialogOpen(true)}
+                  >
+                    <Share2 className="h-4 w-4" />
+                    <span>Share</span>
+                  </Button>
+                )}
+              </div>
             </div>
-          )}
-        </div>
-        
-        <div>
-          <h3 className="font-medium mb-2">Description</h3>
-          <p className="text-sm whitespace-pre-line">{ticket.description}</p>
-        </div>
-        
-        {showTicketCode && (
-          <div>
-            <h3 className="font-medium mb-2">Ticket Code</h3>
-            <div className="bg-betting-light-gray p-4 rounded-md">
-              <pre className="text-sm whitespace-pre-wrap break-all">{ticket.ticket_code}</pre>
+            
+            <div className="flex items-center gap-2 mb-4 flex-wrap">
+              <Badge className="bg-betting-green hover:bg-betting-green-dark">
+                {ticket.betting_site}
+              </Badge>
+              
+              {isPastKickoff ? (
+                <Badge variant="outline" className="text-gray-500 border-gray-500/30 bg-gray-500/10">
+                  Event has started
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-blue-500 border-blue-500/30 bg-blue-500/10">
+                  Upcoming
+                </Badge>
+              )}
+              
+              {ticket.is_free && (
+                <Badge className="bg-purple-600 hover:bg-purple-700">
+                  Free
+                </Badge>
+              )}
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Calendar className="h-4 w-4 text-betting-green" />
+                <span>{format(new Date(ticket.kickoff_time), 'PPP')}</span>
+              </div>
+              
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Clock className="h-4 w-4 text-betting-green" />
+                <span>{format(new Date(ticket.kickoff_time), 'p')}</span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <CircleDollarSign className="h-4 w-4 text-betting-green" />
+                <span className="font-medium">
+                  {ticket.is_free 
+                    ? "Free" 
+                    : `R${ticket.price ? Number(ticket.price).toFixed(2) : "0.00"}`}
+                </span>
+              </div>
+              
+              {ticket.odds && (
+                <div className="flex items-center gap-2">
+                  <Star className="h-4 w-4 text-betting-green" />
+                  <span className="font-medium">
+                    Odds: {ticket.odds}
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            <div className="bg-betting-light-gray p-4 rounded-md mb-6 whitespace-pre-line">
+              {ticket.description}
+            </div>
+            
+            <div className="bg-betting-dark-gray/50 p-4 rounded-md mb-6">
+              <h3 className="font-bold mb-2">Ticket Code</h3>
+              {alreadyPurchased ? (
+                <div className="font-mono bg-betting-dark-gray p-3 rounded-md text-green-400">
+                  {ticket.ticket_code}
+                </div>
+              ) : (
+                <div className="blur-sm bg-betting-dark-gray p-3 rounded-md text-gray-300 select-none">
+                  ** Purchase to reveal ticket code **
+                </div>
+              )}
+            </div>
+            
+            {isPastKickoff && ticket.event_results && (
+              <div className="bg-betting-dark-gray/50 p-4 rounded-md mb-6">
+                <h3 className="font-bold mb-2">Event Results</h3>
+                <p>{ticket.event_results}</p>
+              </div>
+            )}
+            
+            <div className="flex flex-wrap gap-3 justify-between">
+              {alreadyPurchased ? (
+                <div className="flex gap-3">
+                  {canRate && (
+                    <Button 
+                      variant="outline" 
+                      className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 hover:bg-yellow-500/20"
+                      onClick={() => setRateDialogOpen(true)}
+                    >
+                      <Star className="h-4 w-4 mr-2" />
+                      Rate this Ticket
+                    </Button>
+                  )}
+                  
+                  {canReport && (
+                    <Button 
+                      variant="outline" 
+                      className="bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20"
+                      onClick={() => setReportDialogOpen(true)}
+                    >
+                      <Flag className="h-4 w-4 mr-2" />
+                      Report Issue
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <Button 
+                  className="bg-betting-green hover:bg-betting-green-dark"
+                  onClick={onPurchase}
+                  disabled={purchaseLoading || isSeller || isPastKickoff || !currentUser}
+                >
+                  {purchaseLoading ? (
+                    <>
+                      <span className="animate-pulse">Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      {isSeller ? "You own this ticket" : 
+                       isPastKickoff ? "Event has started" :
+                       !currentUser ? "Log in to purchase" : 
+                       ticket.is_free ? "Get for Free" : "Purchase for R" + ticket.price}
+                    </>
+                  )}
+                </Button>
+              )}
+              
+              {isPastKickoff && !alreadyPurchased && (
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <span className="text-sm text-red-500">
+                    Event has started, ticket not available
+                  </span>
+                </div>
+              )}
             </div>
           </div>
-        )}
-        
-        {isPastKickoff && ticket.event_results && (
-          <div>
-            <h3 className="font-medium mb-2">Event Results</h3>
-            <p className="text-sm">{ticket.event_results}</p>
-          </div>
-        )}
+        </div>
       </CardContent>
       
-      {currentUser && !isSeller && !isPastKickoff && (
-        <CardFooter>
-          <Button
-            className="w-full bg-betting-green hover:bg-betting-green-dark"
-            disabled={purchaseLoading || alreadyPurchased}
-            onClick={onPurchase}
-          >
-            {purchaseLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : alreadyPurchased ? (
-              "Purchased ✓"
-            ) : (
-              `${ticket.is_free ? "Get for Free" : "Purchase for R" + Number(ticket.price).toFixed(2)}`
-            )}
-          </Button>
-        </CardFooter>
+      <ShareTicket 
+        open={shareDialogOpen} 
+        onOpenChange={setShareDialogOpen}
+        ticketId={ticket.id}
+        ticketTitle={ticket.title}
+      />
+      
+      {canRate && purchaseId && (
+        <RateTicketDialog
+          open={rateDialogOpen}
+          onOpenChange={setRateDialogOpen}
+          ticketId={ticket.id}
+          sellerId={ticket.seller_id}
+          buyerId={currentUser?.id}
+          purchaseId={purchaseId}
+        />
+      )}
+      
+      {canReport && purchaseId && (
+        <ReportTicketDialog
+          open={reportDialogOpen}
+          onOpenChange={setReportDialogOpen}
+          ticketId={ticket.id}
+          purchaseId={purchaseId}
+        />
       )}
     </Card>
   );

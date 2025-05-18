@@ -1,12 +1,32 @@
 
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useWallet } from "@/hooks/useWallet";
+import { toast } from "sonner";
 
 const PaymentCancel: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { cancelTransaction } = useWallet();
+  
+  useEffect(() => {
+    const handleCancelledPayment = async () => {
+      // Get transaction ID from URL or session storage
+      const transactionId = searchParams.get('transactionId') || sessionStorage.getItem('pendingTopUpId');
+      
+      if (transactionId) {
+        // Mark transaction as cancelled in database
+        await cancelTransaction(transactionId);
+        // Clear pending transaction ID from session storage
+        sessionStorage.removeItem('pendingTopUpId');
+      }
+    };
+    
+    handleCancelledPayment();
+  }, [searchParams, cancelTransaction]);
   
   return (
     <Layout>
@@ -34,9 +54,9 @@ const PaymentCancel: React.FC = () => {
             <Button 
               variant="outline"
               className="w-full"
-              onClick={() => navigate("/tickets")}
+              onClick={() => navigate("/user/wallet")}
             >
-              Browse Tickets
+              Go to Wallet
             </Button>
           </div>
         </div>

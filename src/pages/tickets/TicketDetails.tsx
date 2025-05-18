@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -16,7 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const TicketDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { ticket, seller, loading, error, purchaseLoading, alreadyPurchased, purchaseTicket, refreshTicket, purchaseError } = useTicket(id);
+  const { ticket, seller, loading, error, purchaseLoading, alreadyPurchased, purchaseId, purchaseTicket, refreshTicket, purchaseError } = useTicket(id);
   const { currentUser } = useAuth();
   const { creditBalance, error: walletError } = useWallet();
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
@@ -160,6 +161,7 @@ const TicketDetails: React.FC = () => {
               currentUser={currentUser}
               purchaseLoading={purchaseLoading}
               onPurchase={handlePurchase}
+              purchaseId={purchaseId}
             />
           </div>
 

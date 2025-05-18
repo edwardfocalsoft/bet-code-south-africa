@@ -14,6 +14,7 @@ import {
 interface TopUpData {
   amount: number;
   transactionId: string;
+  cancelUrl?: string;
 }
 
 export const usePayFast = () => {
@@ -46,7 +47,8 @@ export const usePayFast = () => {
         purchaseId: purchaseId,
         currentUser,
         amount: topUpData.amount,
-        itemName: "Wallet Credit Top-up"
+        itemName: "Wallet Credit Top-up",
+        cancelUrl: topUpData.cancelUrl // Pass custom cancel URL if provided
       });
       
       // Return a result object, but the actual redirect happens in processWalletTopUp

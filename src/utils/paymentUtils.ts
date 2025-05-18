@@ -97,7 +97,7 @@ export const completePaymentTransaction = async (
     
     // Call the complete_wallet_transaction function with correct parameter order
     const { data, error } = await supabase.rpc(
-      "complete_wallet_transaction" as any, // Use type assertion to bypass TypeScript checks
+      "complete_wallet_transaction" as any,
       {
         p_transaction_id: purchaseId,
         p_payment_id: paymentId,
