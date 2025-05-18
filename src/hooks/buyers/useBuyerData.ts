@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@/types";
+import { User, Purchase as AppPurchase } from "@/types";
 import { format } from "date-fns";
 
 export interface Transaction {
@@ -19,7 +19,8 @@ export interface Subscription {
   sellerName: string;
 }
 
-export interface Purchase {
+// Define our local Purchase type that matches what we get from the database
+interface DbPurchase {
   id: string;
   price: number;
   purchase_date: string;
@@ -30,7 +31,7 @@ export const useBuyerData = () => {
   const [buyer, setBuyer] = useState<User | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-  const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [purchases, setPurchases] = useState<AppPurchase[]>([]); // Changed to use the Application Purchase type
   const [loading, setLoading] = useState(true);
 
   const fetchBuyerData = async (buyerId: string) => {
@@ -106,6 +107,8 @@ export const useBuyerData = () => {
           price, 
           purchase_date,
           ticket_id,
+          buyer_id,
+          seller_id,
           tickets!ticket_id(title)
         `)
         .eq("buyer_id", buyerId)
@@ -114,11 +117,17 @@ export const useBuyerData = () => {
       if (purchasesError) throw purchasesError;
       console.log("Purchases fetched:", purchasesData?.length || 0);
       
-      const mappedPurchases = (purchasesData || []).map((purchase: any) => ({
+      // Transform the purchases data to match the AppPurchase type from the types/index.ts
+      const mappedPurchases: AppPurchase[] = (purchasesData || []).map((purchase: any) => ({
         id: purchase.id,
+        ticketId: purchase.ticket_id,
+        buyerId: purchase.buyer_id,
+        sellerId: purchase.seller_id,
         price: purchase.price,
-        purchase_date: purchase.purchase_date,
-        ticket_title: purchase.tickets?.title || "Unknown Ticket"
+        purchaseDate: purchase.purchase_date,
+        // These fields are optional in the Purchase type from types/index.ts
+        isWinner: null,
+        isRated: false,
       }));
       
       setPurchases(mappedPurchases);

@@ -9,13 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-interface Purchase {
-  id: string;
-  price: number;
-  purchase_date: string;
-  ticket_title: string;
-}
+import { Purchase } from "@/types";
 
 interface PurchasesTableProps {
   purchases: Purchase[];
@@ -33,7 +27,7 @@ export const PurchasesTable: React.FC<PurchasesTableProps> = ({
       <TableCaption>Recent purchases</TableCaption>
       <TableHeader>
         <TableRow>
-          <TableHead>Ticket</TableHead>
+          <TableHead>ID</TableHead>
           <TableHead>Date</TableHead>
           <TableHead className="text-right">Amount</TableHead>
         </TableRow>
@@ -42,8 +36,8 @@ export const PurchasesTable: React.FC<PurchasesTableProps> = ({
         {purchases.length > 0 ? (
           purchases.map((purchase) => (
             <TableRow key={purchase.id}>
-              <TableCell>{purchase.ticket_title}</TableCell>
-              <TableCell>{formatDate(purchase.purchase_date)}</TableCell>
+              <TableCell>{purchase.id.substring(0, 8)}...</TableCell>
+              <TableCell>{formatDate(purchase.purchaseDate)}</TableCell>
               <TableCell className="text-right">{formatCurrency(purchase.price)}</TableCell>
             </TableRow>
           ))

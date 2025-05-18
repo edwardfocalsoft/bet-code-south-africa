@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TransactionsTable } from "./TransactionsTable";
 import { PurchasesTable } from "./PurchasesTable";
 import { SubscriptionsTable } from "./SubscriptionsTable";
+import { Purchase } from "@/types";
 
 interface Transaction {
   id: string;
@@ -11,13 +12,6 @@ interface Transaction {
   type: string;
   description: string;
   created_at: string;
-}
-
-interface Purchase {
-  id: string;
-  price: number;
-  purchase_date: string;
-  ticket_title: string;
 }
 
 interface Subscription {
