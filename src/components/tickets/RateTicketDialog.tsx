@@ -16,6 +16,8 @@ import { AlertCircle, Loader2, Star } from "lucide-react";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface RateTicketDialogProps {
   open: boolean;
@@ -38,6 +40,7 @@ const RateTicketDialog: React.FC<RateTicketDialogProps> = ({
 }) => {
   const [rating, setRating] = useState<number>(0);
   const [comment, setComment] = useState<string>("");
+  const [isWinner, setIsWinner] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -45,6 +48,11 @@ const RateTicketDialog: React.FC<RateTicketDialogProps> = ({
     try {
       if (rating === 0) {
         setError("Please select a rating");
+        return;
+      }
+      
+      if (isWinner === null) {
+        setError("Please select whether the ticket won or lost");
         return;
       }
       
@@ -66,10 +74,13 @@ const RateTicketDialog: React.FC<RateTicketDialogProps> = ({
         throw ratingError;
       }
       
-      // Mark the purchase as rated
+      // Mark the purchase as rated and update the win/loss status
       const { error: purchaseError } = await supabase
         .from('purchases')
-        .update({ is_rated: true })
+        .update({ 
+          is_rated: true,
+          is_winner: isWinner 
+        })
         .eq('id', purchaseId);
         
       if (purchaseError) {
@@ -113,6 +124,28 @@ const RateTicketDialog: React.FC<RateTicketDialogProps> = ({
         )}
         
         <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label>Ticket Result</Label>
+            <RadioGroup 
+              onValueChange={(value) => setIsWinner(value === 'win')} 
+              className="flex space-x-4"
+              required
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="win" id="win" />
+                <Label htmlFor="win" className="font-normal cursor-pointer">
+                  Win
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="loss" id="loss" />
+                <Label htmlFor="loss" className="font-normal cursor-pointer">
+                  Loss
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+
           <div className="space-y-2">
             <Label>Your Rating</Label>
             <div className="flex gap-2 items-center">
@@ -161,7 +194,7 @@ const RateTicketDialog: React.FC<RateTicketDialogProps> = ({
           <Button 
             variant="default" 
             onClick={handleSubmit}
-            disabled={isLoading || rating === 0}
+            disabled={isLoading || rating === 0 || isWinner === null}
             className="bg-betting-green hover:bg-betting-green-dark"
           >
             {isLoading ? (

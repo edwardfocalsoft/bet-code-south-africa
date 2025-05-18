@@ -11,11 +11,13 @@ import { useAuth } from "@/contexts/auth";
 interface ExpiredTicketsSectionProps {
   purchases: Purchase[];
   emptyMessage?: string;
+  onRateSuccess?: () => void;
 }
 
 const ExpiredTicketsSection: React.FC<ExpiredTicketsSectionProps> = ({
   purchases,
-  emptyMessage = "No expired tickets found."
+  emptyMessage = "No expired tickets found.",
+  onRateSuccess
 }) => {
   const { currentUser } = useAuth();
   const [selectedTicket, setSelectedTicket] = useState<{
@@ -37,7 +39,10 @@ const ExpiredTicketsSection: React.FC<ExpiredTicketsSectionProps> = ({
   };
 
   const handleRateSuccess = () => {
-    // You might want to refresh the purchases list here
+    // Call the onRateSuccess callback if provided
+    if (onRateSuccess) {
+      onRateSuccess();
+    }
   };
 
   if (expiredTickets.length === 0) {

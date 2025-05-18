@@ -16,10 +16,16 @@ const BuyerPurchases = () => {
     loading, 
     currentPage, 
     totalPages, 
-    handlePageChange 
+    handlePageChange,
+    fetchPurchases
   } = usePurchases();
   
   const [activeTab, setActiveTab] = useState<string>("all");
+  
+  const handleRateSuccess = () => {
+    // Refresh purchases data when a ticket is rated
+    fetchPurchases();
+  };
   
   return (
     <Layout>
@@ -28,7 +34,10 @@ const BuyerPurchases = () => {
         
         {/* Display expired tickets section first if there are any to rate */}
         {!loading && purchases.length > 0 && (
-          <ExpiredTicketsSection purchases={purchases} />
+          <ExpiredTicketsSection 
+            purchases={purchases} 
+            onRateSuccess={handleRateSuccess}
+          />
         )}
         
         <Tabs 
@@ -94,7 +103,7 @@ const BuyerPurchases = () => {
       return <EmptyPurchasesState />;
     }
     
-    return <PurchasesTable purchases={items} />;
+    return <PurchasesTable purchases={items} onRateSuccess={handleRateSuccess} />;
   }
 };
 

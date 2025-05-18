@@ -20,9 +20,10 @@ import RateTicketDialog from "@/components/tickets/RateTicketDialog";
 
 interface PurchasesTableProps {
   purchases: Purchase[];
+  onRateSuccess?: () => void;
 }
 
-export function PurchasesTable({ purchases }: PurchasesTableProps) {
+export function PurchasesTable({ purchases, onRateSuccess }: PurchasesTableProps) {
   const { currentUser } = useAuth();
   const [rateDialogOpen, setRateDialogOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<{
@@ -61,7 +62,10 @@ export function PurchasesTable({ purchases }: PurchasesTableProps) {
   };
 
   const handleRateSuccess = () => {
-    // You might add refresh logic here
+    // Call the onRateSuccess callback if provided
+    if (onRateSuccess) {
+      onRateSuccess();
+    }
   };
 
   const isPastPurchase = (date: string) => {
