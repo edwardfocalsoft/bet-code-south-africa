@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -11,7 +12,7 @@ export interface Notification {
   message: string;
   isRead: boolean;
   createdAt: Date;
-  type: "subscription" | "ticket" | "system" | "free_ticket";
+  type: "subscription" | "ticket" | "system" | "free_ticket" | "case";
   relatedId?: string;
 }
 

@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
+import { createNotification } from "@/utils/notificationUtils";
 
 export const useCaseStatus = () => {
   const { currentUser, userRole } = useAuth();
@@ -21,6 +22,18 @@ export const useCaseStatus = () => {
     setIsLoading(true);
 
     try {
+      // First, fetch the case to get the user_id for notification
+      const { data: caseData, error: caseError } = await supabase
+        .from('cases')
+        .select('user_id, title')
+        .eq('id', caseId)
+        .single();
+
+      if (caseError) {
+        console.error("Error fetching case for notification:", caseError);
+        // Continue with the update even if fetching the case failed
+      }
+
       const { error } = await supabase
         .from('cases')
         .update({ 
@@ -34,6 +47,21 @@ export const useCaseStatus = () => {
       toast.success(`Case status updated to ${status}`);
       queryClient.invalidateQueries({ queryKey: ['user-cases'] });
       queryClient.invalidateQueries({ queryKey: ['case-details', caseId] });
+      
+      // Notify the case creator about the status change
+      if (caseData && caseData.user_id) {
+        try {
+          await createNotification(
+            caseData.user_id,
+            "Case Status Updated",
+            `Your case status has been updated to: ${status}`,
+            "case",
+            caseId
+          );
+        } catch (notifError) {
+          console.error("Failed to create status update notification:", notifError);
+        }
+      }
       
       return true;
     } catch (error: any) {

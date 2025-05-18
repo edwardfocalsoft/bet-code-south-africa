@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
+import { createNotification } from "@/utils/notificationUtils";
 
 export const useCaseCreate = () => {
   const { currentUser } = useAuth();
@@ -41,6 +42,30 @@ export const useCaseCreate = () => {
 
       toast.success("Issue reported successfully");
       queryClient.invalidateQueries({ queryKey: ['user-cases', currentUser.id] });
+      
+      // Notify admins about the new case
+      try {
+        // Get all admin users
+        const { data: admins } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('role', 'admin');
+          
+        if (admins && admins.length > 0) {
+          // Create notification for each admin
+          for (const admin of admins) {
+            await createNotification(
+              admin.id,
+              "New Support Case",
+              `A new case has been opened: ${data.title}`,
+              "case",
+              newCase.id
+            );
+          }
+        }
+      } catch (notifError) {
+        console.error("Failed to create admin notifications:", notifError);
+      }
       
       return newCase;
     } catch (error: any) {

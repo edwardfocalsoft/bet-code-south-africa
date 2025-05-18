@@ -14,10 +14,12 @@ import { useNotifications } from "@/hooks/useNotifications";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAuth } from "@/contexts/auth";
 
 const NotificationDropdown: React.FC = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
-
+  const { userRole } = useAuth();
+  
   const handleNotificationClick = (notificationId: string, relatedId?: string, type?: string) => {
     markAsRead(notificationId);
   };
@@ -70,6 +72,15 @@ const NotificationDropdown: React.FC = () => {
               linkTo = `/tickets/${notification.relatedId}`;
             } else if (notification.type === "subscription" && notification.relatedId) {
               linkTo = `/sellers/${notification.relatedId}`;
+            } else if (notification.type === "case" && notification.relatedId) {
+              // For admin, link to admin case page
+              if (userRole === 'admin') {
+                linkTo = `/admin/cases/${notification.relatedId}`;
+              } 
+              // For users, link to user case view
+              else {
+                linkTo = `/user/cases/${notification.relatedId}`;
+              }
             }
             
             return (

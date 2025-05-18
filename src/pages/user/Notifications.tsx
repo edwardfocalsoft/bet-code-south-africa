@@ -7,9 +7,11 @@ import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import { Loader2, Trash2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAuth } from "@/contexts/auth";
 
 const Notifications: React.FC = () => {
   const { notifications, loading, markAsRead, markAllAsRead, cleanupOldNotifications } = useNotifications();
+  const { userRole } = useAuth();
 
   const handleNotificationClick = (notificationId: string) => {
     markAsRead(notificationId);
@@ -82,10 +84,25 @@ const Notifications: React.FC = () => {
                   {notifs.map((notification) => {
                     // Determine the link based on notification type
                     let linkTo = "#";
+                    let buttonText = "";
+                    
                     if (notification.type === "ticket" && notification.relatedId) {
                       linkTo = `/tickets/${notification.relatedId}`;
+                      buttonText = "View Ticket";
                     } else if (notification.type === "subscription" && notification.relatedId) {
                       linkTo = `/sellers/${notification.relatedId}`;
+                      buttonText = "View Seller";
+                    } else if (notification.type === "case" && notification.relatedId) {
+                      // For admin, link to admin case page
+                      if (userRole === 'admin') {
+                        linkTo = `/admin/cases/${notification.relatedId}`;
+                        buttonText = "View Case";
+                      } 
+                      // For users, link to user case view
+                      else {
+                        linkTo = `/user/cases/${notification.relatedId}`;
+                        buttonText = "View Case";
+                      }
                     }
                     
                     return (
@@ -127,7 +144,7 @@ const Notifications: React.FC = () => {
                                 onClick={() => handleNotificationClick(notification.id)}
                               >
                                 <Link to={linkTo}>
-                                  {notification.type === "ticket" ? "View Ticket" : "View Seller"}
+                                  {buttonText}
                                 </Link>
                               </Button>
                             )}

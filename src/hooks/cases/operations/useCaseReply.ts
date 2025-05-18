@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
+import { createNotification } from "@/utils/notificationUtils";
 
 export const useCaseReply = () => {
   const { currentUser } = useAuth();
@@ -56,6 +57,43 @@ export const useCaseReply = () => {
 
       toast.success("Reply added successfully");
       queryClient.invalidateQueries({ queryKey: ['case-details', caseId] });
+      
+      // Create notification based on who replied
+      try {
+        const isAdmin = currentUser.role === 'admin';
+        
+        if (isAdmin) {
+          // Admin replied, notify the case creator
+          await createNotification(
+            caseData.user_id,
+            "New Reply to Your Case",
+            "An admin has replied to your support case.",
+            "case",
+            caseId
+          );
+        } else {
+          // User replied, notify admins
+          const { data: admins } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('role', 'admin');
+            
+          if (admins && admins.length > 0) {
+            // Create notification for each admin
+            for (const admin of admins) {
+              await createNotification(
+                admin.id,
+                "New Reply to Support Case",
+                `${currentUser.username || 'A user'} has replied to a support case.`,
+                "case",
+                caseId
+              );
+            }
+          }
+        }
+      } catch (notifError) {
+        console.error("Failed to create reply notification:", notifError);
+      }
       
       return newReply;
     } catch (error: any) {
