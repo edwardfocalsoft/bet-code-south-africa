@@ -60,19 +60,23 @@ const SellersLeaderboard: React.FC = () => {
       
       console.log("Fetching leaderboard data for date range:", startStr, "to", endStr);
       
-      // First, get all sales for the week
+      // First, get all sales for the week with the correct foreign key reference
       const { data: salesData, error: salesError } = await supabase
         .from('purchases')
         .select(`
           seller_id,
-          profiles!purchases_seller_id_fkey(id, username, avatar_url)
+          seller:profiles(id, username, avatar_url)
         `)
         .gte('purchase_date', startStr)
         .lte('purchase_date', endStr);
         
-      if (salesError) throw salesError;
+      if (salesError) {
+        console.error("Error fetching sales data:", salesError);
+        throw salesError;
+      }
       
       console.log("Sales data retrieved:", salesData?.length || 0, "purchases");
+      console.log("Sample sales data:", salesData?.[0]);
       
       // Count sales by seller
       const salesBySellerMap = new Map<string, SellerStats>();
@@ -80,7 +84,7 @@ const SellersLeaderboard: React.FC = () => {
       if (salesData && salesData.length > 0) {
         salesData.forEach(purchase => {
           const sellerId = purchase.seller_id;
-          const sellerProfile = purchase.profiles;
+          const sellerProfile = purchase.seller;
           
           if (!salesBySellerMap.has(sellerId)) {
             salesBySellerMap.set(sellerId, {

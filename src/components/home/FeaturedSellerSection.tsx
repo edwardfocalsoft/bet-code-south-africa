@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,12 +39,12 @@ const FeaturedSellerSection: React.FC = () => {
         
         console.log(`Querying sales from ${monday.toISOString()} to ${sunday.toISOString()}`);
 
-        // Get all sales for the current week
+        // Get all sales for the current week with the correct foreign key reference
         const { data: weekSales, error: weekError } = await supabase
           .from('purchases')
           .select(`
             seller_id,
-            profiles!purchases_seller_id_fkey(id, username, avatar_url)
+            seller:profiles(id, username, avatar_url)
           `)
           .gte('purchase_date', monday.toISOString())
           .lte('purchase_date', sunday.toISOString());
@@ -58,7 +57,7 @@ const FeaturedSellerSection: React.FC = () => {
         if (!weekSales || weekSales.length === 0) {
           console.log("No sales this week, trying last month");
           
-          // Get sales from the last month
+          // Get sales from the last month with the correct foreign key reference
           const lastMonth = new Date();
           lastMonth.setMonth(lastMonth.getMonth() - 1);
           
@@ -66,7 +65,7 @@ const FeaturedSellerSection: React.FC = () => {
             .from('purchases')
             .select(`
               seller_id,
-              profiles!purchases_seller_id_fkey(id, username, avatar_url)
+              seller:profiles(id, username, avatar_url)
             `)
             .gte('purchase_date', lastMonth.toISOString());
             
@@ -101,7 +100,7 @@ const FeaturedSellerSection: React.FC = () => {
       
       salesData.forEach(purchase => {
         const sellerId = purchase.seller_id;
-        const sellerProfile = purchase.profiles;
+        const sellerProfile = purchase.seller;
         
         if (!sellerCounts.has(sellerId)) {
           sellerCounts.set(sellerId, {

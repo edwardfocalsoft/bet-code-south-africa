@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -19,28 +18,19 @@ const HeroSection: React.FC = () => {
       try {
         console.log("Fetching hero stats...");
         
-        // Count unique buyers (active bettors) - Fixed to use count distinct
-        const { data: bettorsData, error: bettorsError } = await supabase
-          .from("purchases")
-          .select("buyer_id", { count: 'exact' })
-          .gt("purchase_date", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()); // Last 30 days
+        // Count unique active users (both buyers and sellers)
+        const { data: profilesData, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, role")
+          .or('role.eq.buyer,role.eq.seller');
           
-        if (bettorsError) throw bettorsError;
+        if (profilesError) throw profilesError;
         
-        console.log("Active bettors data:", bettorsData);
+        console.log("Active profiles data:", profilesData?.length);
         
-        // Count distinct buyers
-        const uniqueBuyers = new Set();
-        if (bettorsData) {
-          bettorsData.forEach(item => {
-            if (item.buyer_id) {
-              uniqueBuyers.add(item.buyer_id);
-            }
-          });
-        }
-        
-        const activeBettors = uniqueBuyers.size;
-        console.log("Unique active bettors count:", activeBettors);
+        // Count unique active users
+        const activeBettors = profilesData?.length || 0;
+        console.log("Active bettors count:", activeBettors);
         
         // Calculate win rate from purchases
         const { data: winData, error: winError } = await supabase
