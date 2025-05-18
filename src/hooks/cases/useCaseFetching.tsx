@@ -83,16 +83,21 @@ export const useCaseFetching = () => {
         let profilesMap: Record<string, any> = {};
         
         if (userIds.length > 0) {
-          const { data: profilesData } = await supabase
+          const { data: profilesData, error: profilesError } = await supabase
             .from('profiles')
             .select('id, username, email, role, avatar_url')
             .in('id', userIds);
             
-          // Create a map of user_id to profile data
-          profilesMap = (profilesData || []).reduce((map: Record<string, any>, profile) => {
-            map[profile.id] = profile;
-            return map;
-          }, {});
+          if (profilesError) {
+            console.error("Error fetching profiles:", profilesError);
+          } else {
+            console.log("Profiles fetched:", profilesData?.length || 0);
+            // Create a map of user_id to profile data
+            profilesMap = (profilesData || []).reduce((map: Record<string, any>, profile) => {
+              map[profile.id] = profile;
+              return map;
+            }, {});
+          }
         }
         
         // Attach profile data to cases
@@ -113,7 +118,7 @@ export const useCaseFetching = () => {
 
   // Get case details including replies
   const fetchCaseDetails = async (caseId: string) => {
-    if (!currentUser) return null;
+    if (!currentUser && !isAdmin) return null;
     
     try {
       // Get the case
