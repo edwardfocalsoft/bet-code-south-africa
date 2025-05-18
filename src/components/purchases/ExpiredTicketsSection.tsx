@@ -27,12 +27,6 @@ const ExpiredTicketsSection: React.FC<ExpiredTicketsSectionProps> = ({
   } | null>(null);
   const [rateDialogOpen, setRateDialogOpen] = useState(false);
 
-  // Filter for expired tickets that haven't been rated yet
-  const expiredTickets = purchases.filter(purchase => 
-    !purchase.isRated && 
-    new Date(purchase.purchaseDate) < new Date()
-  );
-
   const handleRateClick = (ticketId: string, sellerId: string, purchaseId: string) => {
     setSelectedTicket({ ticketId, sellerId, purchaseId });
     setRateDialogOpen(true);
@@ -45,28 +39,22 @@ const ExpiredTicketsSection: React.FC<ExpiredTicketsSectionProps> = ({
     }
   };
 
-  if (expiredTickets.length === 0) {
-    return (
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Expired Tickets to Rate</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-center text-muted-foreground py-8">{emptyMessage}</p>
-        </CardContent>
-      </Card>
-    );
+  if (purchases.length === 0) {
+    return null;
   }
 
   return (
-    <Card className="mb-8">
+    <Card className="mb-6 bg-yellow-500/5 border-yellow-500/20">
       <CardHeader>
-        <CardTitle>Expired Tickets to Rate</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Star className="h-5 w-5 text-yellow-500" />
+          Expired Tickets to Rate
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {expiredTickets.map((purchase) => (
-            <div key={purchase.id} className="border border-border p-4 rounded-md flex justify-between items-center">
+          {purchases.map((purchase) => (
+            <div key={purchase.id} className="border border-border p-4 rounded-md flex justify-between items-center bg-card">
               <div>
                 <h3 className="font-semibold">{purchase.title}</h3>
                 <p className="text-sm text-muted-foreground">
@@ -76,7 +64,7 @@ const ExpiredTicketsSection: React.FC<ExpiredTicketsSectionProps> = ({
               <Button 
                 onClick={() => handleRateClick(purchase.ticketId, purchase.sellerId, purchase.id)} 
                 variant="outline"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 border-yellow-500/50 text-yellow-500 hover:bg-yellow-500/10"
               >
                 <Star className="h-4 w-4 text-yellow-500" />
                 Rate Ticket

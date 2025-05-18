@@ -75,7 +75,6 @@ export function PurchasesTable({ purchases, onRateSuccess }: PurchasesTableProps
   return (
     <>
       <Table>
-        <TableCaption>Your purchased tickets</TableCaption>
         <TableHeader>
           <TableRow>
             <TableHead>Ticket</TableHead>
