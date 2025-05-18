@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,7 +45,7 @@ const FeaturedSellerSection: React.FC = () => {
           .from('purchases')
           .select(`
             seller_id,
-            seller:profiles(id, username, avatar_url)
+            profiles!purchases_seller_id_fkey(id, username, avatar_url)
           `)
           .gte('purchase_date', monday.toISOString())
           .lte('purchase_date', sunday.toISOString());
@@ -65,7 +66,7 @@ const FeaturedSellerSection: React.FC = () => {
             .from('purchases')
             .select(`
               seller_id,
-              seller:profiles(id, username, avatar_url)
+              profiles!purchases_seller_id_fkey(id, username, avatar_url)
             `)
             .gte('purchase_date', lastMonth.toISOString());
             
@@ -100,7 +101,7 @@ const FeaturedSellerSection: React.FC = () => {
       
       salesData.forEach(purchase => {
         const sellerId = purchase.seller_id;
-        const sellerProfile = purchase.seller;
+        const sellerProfile = purchase.profiles;
         
         if (!sellerCounts.has(sellerId)) {
           sellerCounts.set(sellerId, {
