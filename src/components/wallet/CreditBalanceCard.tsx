@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { TrendingUp, Loader2 } from "lucide-react";
 import {
@@ -46,9 +45,9 @@ const CreditBalanceCard: React.FC<CreditBalanceCardProps> = ({
     setProcessing(true);
     const amount = parseFloat(topUpAmount);
     if (!isNaN(amount) && amount > 0) {
+      console.log("Processing top-up for amount:", amount);
       await onTopUp(amount);
-      setTopUpAmount("");
-      setConfirmDialogOpen(false);
+      // Don't clear amount or close dialog here since we're redirecting
     }
     setProcessing(false);
   };

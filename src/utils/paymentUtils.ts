@@ -117,28 +117,36 @@ export const processPayment = async ({
     console.log("Test mode payment initiated");
     console.log("Payment parameters:", finalParams);
     
-    // Simulate a successful payment completion
-    setTimeout(async () => {
-      await completePayment(purchaseId, "SIMULATED_" + Date.now());
-    }, 2000);
-
+    // Build the form URL with query parameters for test mode
+    const formUrl = 'https://sandbox.payfast.co.za/eng/process?' + 
+      Object.entries(finalParams)
+        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+        .join('&');
+    
+    // For test mode, redirect to sandbox URL instead of simulating
     return {
       purchaseId,
       success: true,
       testMode: true,
-      paymentUrl: "https://sandbox.payfast.co.za/eng/process",
+      paymentUrl: formUrl,
       formData: finalParams
     };
   }
 
   console.log("Live payment initiated with params:", finalParams);
   
+  // Build the form URL with query parameters for live mode
+  const formUrl = 'https://www.payfast.co.za/eng/process?' + 
+    Object.entries(finalParams)
+      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+      .join('&');
+  
   // Return payment data for actual PayFast integration
   return {
     purchaseId,
     success: true,
     testMode: false,
-    paymentUrl: "https://www.payfast.co.za/eng/process",
+    paymentUrl: formUrl,
     formData: finalParams
   };
 };

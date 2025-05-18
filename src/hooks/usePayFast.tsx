@@ -35,11 +35,15 @@ export const usePayFast = () => {
 
     try {
       setLoading(true);
+      console.log("Initiating payment for:", paymentData);
+      
       const config = await fetchPaymentConfig();
       
       if (!config) {
         throw new Error("Payment configuration not found");
       }
+      
+      console.log("Payment config retrieved:", config);
 
       // Check if user has credits to apply to this purchase
       let remainingAmount = paymentData.amount;
@@ -48,11 +52,16 @@ export const usePayFast = () => {
       
       if (useCredit && !purchaseId) {
         // Handle credit purchase
+        console.log("Attempting credit payment");
         const creditResult = await handleCreditPayment(paymentData);
+        
         if (creditResult && creditResult.paymentComplete) {
+          console.log("Payment completed with credits");
           return creditResult;
         }
+        
         purchaseId = creditResult?.purchaseId;
+        console.log("Credit payment created purchase ID:", purchaseId);
       }
       
       if (!purchaseId) {
@@ -60,7 +69,8 @@ export const usePayFast = () => {
       }
       
       // Create payment with PayFast
-      return await processPayment({
+      console.log("Processing PayFast payment");
+      const result = await processPayment({
         config,
         purchaseId: purchaseId,
         currentUser,
@@ -68,6 +78,9 @@ export const usePayFast = () => {
         ticketTitle: paymentData.ticketTitle,
         completePayment
       });
+      
+      console.log("PayFast payment result:", result);
+      return result;
     } catch (error: any) {
       console.error("Payment initiation error:", error);
       toast.error(error.message || "Failed to initiate payment");

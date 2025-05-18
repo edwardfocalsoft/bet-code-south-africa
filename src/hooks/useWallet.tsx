@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
@@ -151,6 +150,8 @@ export const useWallet = () => {
         throw transactionError;
       }
       
+      console.log("Created transaction record:", transactionData);
+      
       // Initiate payment via PayFast
       const paymentResult = await initiatePayment({
         ticketId: 'wallet-topup',
@@ -161,27 +162,13 @@ export const useWallet = () => {
         useCredit: false // Don't use existing credit for top-ups
       });
 
+      console.log("Payment initiation result:", paymentResult);
+
       if (paymentResult && paymentResult.paymentUrl) {
-        // Redirect to payment page
+        // Redirect to payment page - important to use full page redirect
+        console.log("Redirecting to payment URL:", paymentResult.paymentUrl);
         window.location.href = paymentResult.paymentUrl;
         return true;
-      } else if (paymentResult && paymentResult.testMode) {
-        // In test mode, simulate successful payment and update credit balance
-        const newBalance = await addCredits(currentUser.id, amount);
-        
-        // Update transaction status
-        await supabase
-          .from('wallet_transactions')
-          .update({
-            description: 'Wallet top-up (completed)'
-          })
-          .eq('id', transactionData.id);
-        
-        if (newBalance !== null) {
-          setCreditBalance(newBalance);
-          toast.success(`R${amount.toFixed(2)} added to your wallet`);
-          return true;
-        }
       }
       
       // If we reached here, something went wrong

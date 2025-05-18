@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -61,7 +60,9 @@ const TicketDetails: React.FC = () => {
     setProcessingPurchase(true);
     
     try {
+      console.log("Starting purchase process...");
       const result = await purchaseTicket();
+      console.log("Purchase result:", result);
       
       if (!result) {
         throw new Error("Purchase failed");
@@ -71,16 +72,9 @@ const TicketDetails: React.FC = () => {
         toast.success("Purchase successful!");
         setPurchaseDialogOpen(false);
       } else if (result.paymentUrl) {
-        // Redirect to payment gateway
+        console.log("Redirecting to payment URL:", result.paymentUrl);
+        // Redirect to payment gateway - Use window.location.href for a full page redirect
         window.location.href = result.paymentUrl;
-      } else if (result.testMode) {
-        // Handle test mode
-        toast.success("Test mode payment successful!");
-        setPurchaseDialogOpen(false);
-        // Refresh ticket data to update purchase status
-        setTimeout(() => {
-          refreshTicket();
-        }, 2000);
       }
     } catch (error: any) {
       console.error("Purchase error:", error);
