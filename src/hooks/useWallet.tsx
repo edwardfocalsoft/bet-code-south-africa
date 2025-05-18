@@ -148,30 +148,30 @@ export const useWallet = () => {
       setError(null);
       console.log("Starting wallet top-up for amount:", amount);
       
-      // Initialize a pending transaction
-      const { data: transactionData, error: transactionError } = await supabase
-        .from('wallet_transactions')
-        .insert({
-          user_id: currentUser.id,
-          amount: amount,
-          type: 'topup',
-          description: 'Wallet top-up (pending)'
-        })
-        .select('id')
-        .single();
+      // Use the Supabase function to create the transaction
+      // This bypasses RLS and handles the database changes securely
+      const { data, error } = await supabase.rpc(
+        "create_wallet_top_up",
+        {
+          p_user_id: currentUser.id,
+          p_amount: amount,
+          p_description: "Wallet top-up (pending)"
+        }
+      );
       
-      if (transactionError) {
-        console.error("Failed to create transaction record:", transactionError);
-        setError(`Database error: ${transactionError.message}`);
-        throw transactionError;
+      if (error) {
+        console.error("Failed to create transaction record:", error);
+        setError(`Database error: ${error.message}`);
+        throw error;
       }
       
-      console.log("Created transaction record:", transactionData);
+      const transactionId = data;
+      console.log("Created transaction record:", transactionId);
       
       // Process the top-up using PayFast
       await processTopUp({
         amount: amount,
-        transactionId: transactionData.id,
+        transactionId: transactionId,
       });
 
       // If execution reaches here, it means the form submission didn't redirect

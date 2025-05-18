@@ -95,11 +95,11 @@ export const completePaymentTransaction = async (
   try {
     console.log(`Completing transaction for purchase ID: ${purchaseId}`);
     
-    // Call the complete_ticket_purchase function
+    // Call the complete_wallet_transaction function
     const { data, error } = await supabase.rpc(
-      "complete_ticket_purchase",
+      "complete_wallet_transaction",
       {
-        p_purchase_id: purchaseId,
+        p_transaction_id: purchaseId,
         p_payment_id: paymentId,
         p_payment_data: paymentData
       }
@@ -116,7 +116,7 @@ export const completePaymentTransaction = async (
     console.log("Payment completion success:", data);
     
     toast.success("Purchase Complete!", {
-      description: "Your purchase was successful!"
+      description: "Your wallet has been topped up successfully!"
     });
     
     return true;

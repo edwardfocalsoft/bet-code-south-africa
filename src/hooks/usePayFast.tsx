@@ -41,6 +41,7 @@ export const usePayFast = () => {
       // Process payment with PayFast using direct form submission
       console.log("Processing PayFast payment with transaction ID:", purchaseId);
       
+      // This function handles the form creation and submission
       processWalletTopUp({
         purchaseId: purchaseId,
         currentUser,
@@ -51,7 +52,8 @@ export const usePayFast = () => {
       // Return a result object, but the actual redirect happens in processWalletTopUp
       return {
         purchaseId,
-        success: true
+        success: true,
+        paymentComplete: false // Set to false as the payment is processed externally
       };
       
     } catch (error: any) {
@@ -62,7 +64,8 @@ export const usePayFast = () => {
       return {
         purchaseId: topUpData.transactionId || "",
         success: false,
-        error: errorMessage
+        error: errorMessage,
+        paymentComplete: false
       };
     } finally {
       setLoading(false);
