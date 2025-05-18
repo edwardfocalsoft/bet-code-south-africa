@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,12 +32,15 @@ export const useCaseFetching = () => {
     queryKey: ['user-cases', currentUser?.id, isAdmin],
     queryFn: async () => {
       try {
+        console.log("Fetching cases, isAdmin:", isAdmin);
+        
         let query = supabase
           .from('cases')
           .select(`
             *,
             purchases(*),
-            tickets(*)
+            tickets(*),
+            profiles:user_id(username, email, role, avatar_url)
           `)
           .order('created_at', { ascending: false });
         
@@ -56,6 +58,7 @@ export const useCaseFetching = () => {
           // Non-admin users can only see their own cases
           query = query.eq('user_id', currentUser.id);
         } else {
+          console.log("No user found, returning empty cases array");
           return [];
         }
         
@@ -66,36 +69,20 @@ export const useCaseFetching = () => {
           return [];
         }
         
+        console.log("Cases fetched:", casesData?.length || 0);
+        
         if (!casesData || casesData.length === 0) {
+          console.log("No cases found in database");
           return [];
         }
         
-        // Get user profiles in a separate query
-        const userIds = Array.from(new Set(casesData.map(c => c.user_id)));
-        const { data: profilesData } = await supabase
-          .from('profiles')
-          .select('id, username, email, role, avatar_url')
-          .in('id', userIds);
-          
-        // Create a map of user_id to profile data
-        const profilesMap = (profilesData || []).reduce((map: Record<string, any>, profile) => {
-          map[profile.id] = profile;
-          return map;
-        }, {});
-        
-        // Attach profile data to cases
-        const enrichedCases = casesData.map((caseItem: any) => ({
-          ...caseItem,
-          profiles: profilesMap[caseItem.user_id] || { error: true }
-        }));
-        
-        return enrichedCases;
+        return casesData;
       } catch (error) {
         console.error("Error in userCases query:", error);
         return [];
       }
     },
-    enabled: !!currentUser || (!!currentUser && isAdmin),
+    enabled: Boolean(currentUser)
   });
 
   // Get case details including replies

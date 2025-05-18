@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import CaseManagementHeader from "@/components/admin/cases/CaseManagementHeader";
 import CaseFilters from "@/components/admin/cases/CaseFilters";
 import CasesTable from "@/components/admin/cases/CasesTable";
-import { getStatusColor } from "@/components/admin/cases/utils";
+import { getStatusColor, debugCases } from "@/components/admin/cases/utils";
 
 const AdminCasesPage: React.FC = () => {
   const { userCases, isLoading, isCasesLoading, updateCaseStatus, refetchCases } = useCases();
@@ -20,14 +20,27 @@ const AdminCasesPage: React.FC = () => {
   const urlParams = new URLSearchParams(window.location.search);
   const filterUserId = urlParams.get('userId');
 
-  // Fetch cases on component mount
+  // Fetch cases on component mount and log them for debugging
   useEffect(() => {
-    refetchCases();
+    console.log("AdminCasesPage mounted, fetching cases...");
+    refetchCases().then(() => {
+      console.log("Cases refetched, current cases:", userCases);
+      debugCases(userCases);
+    });
   }, [refetchCases]);
+
+  // Debug when cases data changes
+  useEffect(() => {
+    console.log("Cases data changed:", userCases);
+    debugCases(userCases);
+  }, [userCases]);
 
   // Filter cases based on search query and status filter
   const filteredCases = userCases?.filter((caseItem: any) => {
     if (!caseItem) return false;
+    
+    // Debug individual case
+    console.log("Filtering case:", caseItem.id, caseItem.title, caseItem.status);
     
     const matchesSearch = searchQuery
       ? ((caseItem.case_number && caseItem.case_number.toLowerCase().includes(searchQuery.toLowerCase())) ||

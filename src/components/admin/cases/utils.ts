@@ -17,3 +17,16 @@ export const getStatusColor = (status: string): string => {
       return "bg-gray-500/10 text-gray-400 border-gray-500/20";
   }
 };
+
+// Debug function to log case data 
+export const debugCases = (cases: any[] | null) => {
+  if (!cases) {
+    console.log("Cases is null or undefined");
+    return;
+  }
+  
+  console.log(`Number of cases: ${cases.length}`);
+  if (cases.length > 0) {
+    console.log("Sample case:", cases[0]);
+  }
+};

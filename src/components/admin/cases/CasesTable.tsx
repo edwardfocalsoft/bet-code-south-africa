@@ -41,6 +41,13 @@ const CasesTable: React.FC<CasesTableProps> = ({
     return profile.username || profile.email || 'Unknown User';
   };
 
+  console.log("CasesTable rendered with:", {
+    filteredCases: filteredCases?.length || 0,
+    userCases: userCases?.length || 0,
+    isLoading,
+    isCasesLoading
+  });
+
   if (isLoading || isCasesLoading) {
     return <LoadingState />;
   }
