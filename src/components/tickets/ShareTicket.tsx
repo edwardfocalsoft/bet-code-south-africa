@@ -44,16 +44,14 @@ const ShareTicket: React.FC<ShareTicketProps> = ({
     navigator.clipboard.writeText(ticketUrl).then(
       () => {
         setIsCopied(true);
-        toast({
-          title: "Link copied!",
+        toast("Link copied!", {
           description: "Ticket link has been copied to clipboard",
         });
         setTimeout(() => setIsCopied(false), 2000);
       },
       (err) => {
         console.error("Could not copy text: ", err);
-        toast({
-          title: "Failed to copy",
+        toast("Failed to copy", {
           description: "Could not copy the link to clipboard",
           variant: "destructive",
         });
