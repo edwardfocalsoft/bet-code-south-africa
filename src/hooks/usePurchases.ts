@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
 import { Purchase as AppPurchase } from "@/types";
+import { createNotification } from "@/utils/notificationUtils";
 
 export type PurchaseStatus = "win" | "loss" | "pending";
 

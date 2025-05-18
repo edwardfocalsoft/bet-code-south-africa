@@ -8,8 +8,8 @@ interface SellerStats {
   ticketsSold: number;
   followers: number;
   satisfaction: number;
-  averageRating?: number;
-  totalRatings?: number;
+  averageRating: number;
+  totalRatings: number;
 }
 
 interface SellerStatsTabProps {
