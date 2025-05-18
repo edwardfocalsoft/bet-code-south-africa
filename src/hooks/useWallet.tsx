@@ -149,7 +149,7 @@ export const useWallet = () => {
       console.log("Starting wallet top-up for amount:", amount);
       
       // Use the Supabase function to create the transaction
-      // The parameter names and order MUST match the database function definition
+      // IMPORTANT: Parameter order must match the function definition in the database
       const { data, error } = await supabase.rpc(
         "create_wallet_top_up" as any, // Use type assertion to bypass TypeScript checks
         {
