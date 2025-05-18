@@ -9,7 +9,7 @@ interface BettingSiteLogoProps {
 const BettingSiteLogo = ({ site }: BettingSiteLogoProps) => {
   return (
     <div className="betting-site-logo transition-all duration-200 hover:scale-105">
-      <div className="bg-gradient-to-br from-green-500 to-green-700 rounded-lg p-4 h-[90px] flex items-center justify-center shadow-md">
+      <div className="bg-gradient-to-br from-betting-green to-green-700 rounded-lg p-4 h-[90px] flex items-center justify-center shadow-md">
         <div className="text-center">
           <span className="font-bold text-xl text-white">{site}</span>
           <div className="mt-1 w-12 h-1 bg-white/50 mx-auto rounded-full"></div>

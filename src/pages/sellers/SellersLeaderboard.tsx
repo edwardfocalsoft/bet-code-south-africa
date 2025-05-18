@@ -20,7 +20,10 @@ const SellersLeaderboard: React.FC = () => {
     // Calculate week start (Monday) and end (Sunday)
     const calculateWeekDates = () => {
       const now = new Date();
+      console.log("Current date:", now.toISOString());
+      
       const day = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      console.log("Current day of week:", day);
       
       // Calculate the date of Monday (start of week)
       // If today is Sunday (0), we need to go back 6 days
@@ -34,85 +37,97 @@ const SellersLeaderboard: React.FC = () => {
       sunday.setDate(monday.getDate() + 6);
       sunday.setHours(23, 59, 59, 999);
       
+      console.log("Week start (Monday):", monday.toISOString());
+      console.log("Week end (Sunday):", sunday.toISOString());
+      
       setWeekStart(monday);
       setWeekEnd(sunday);
+      
+      return { start: monday, end: sunday };
     };
     
-    calculateWeekDates();
-    fetchLeaderboard();
+    const { start, end } = calculateWeekDates();
+    fetchLeaderboard(start, end);
   }, []);
 
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboard = async (start: Date, end: Date) => {
     setLoading(true);
     setError(null);
     
     try {
-      const start = weekStart.toISOString();
-      const end = weekEnd.toISOString();
+      const startStr = start.toISOString();
+      const endStr = end.toISOString();
       
-      // First, get all sales for the week grouped by seller
+      console.log("Fetching leaderboard data for date range:", startStr, "to", endStr);
+      
+      // First, get all sales for the week
       const { data: salesData, error: salesError } = await supabase
         .from('purchases')
         .select(`
           seller_id,
-          profiles:profiles!purchases_seller_id_fkey(id, username, avatar_url)
+          profiles!purchases_seller_id_fkey(id, username, avatar_url)
         `)
-        .gte('purchase_date', start)
-        .lte('purchase_date', end);
+        .gte('purchase_date', startStr)
+        .lte('purchase_date', endStr);
         
       if (salesError) throw salesError;
+      
+      console.log("Sales data retrieved:", salesData?.length || 0, "purchases");
       
       // Count sales by seller
       const salesBySellerMap = new Map<string, SellerStats>();
       
-      salesData?.forEach(purchase => {
-        const sellerId = purchase.seller_id;
-        const sellerProfile = purchase.profiles;
-        
-        if (!salesBySellerMap.has(sellerId)) {
-          salesBySellerMap.set(sellerId, {
-            id: sellerId,
-            username: sellerProfile?.username || 'Unknown',
-            avatar_url: sellerProfile?.avatar_url,
-            salesCount: 0,
-            averageRating: 0,
-            rank: 0
-          });
-        }
-        
-        const sellerData = salesBySellerMap.get(sellerId)!;
-        sellerData.salesCount += 1;
-      });
-      
-      // Get average ratings for each seller
-      for (const sellerId of salesBySellerMap.keys()) {
-        const { data: ratingsData, error: ratingsError } = await supabase
-          .from('ratings')
-          .select('score')
-          .eq('seller_id', sellerId);
+      if (salesData && salesData.length > 0) {
+        salesData.forEach(purchase => {
+          const sellerId = purchase.seller_id;
+          const sellerProfile = purchase.profiles;
           
-        if (!ratingsError && ratingsData && ratingsData.length > 0) {
-          const totalRating = ratingsData.reduce((sum, item) => sum + item.score, 0);
-          const average = totalRating / ratingsData.length;
+          if (!salesBySellerMap.has(sellerId)) {
+            salesBySellerMap.set(sellerId, {
+              id: sellerId,
+              username: sellerProfile?.username || 'Unknown',
+              avatar_url: sellerProfile?.avatar_url,
+              salesCount: 0,
+              averageRating: 0,
+              rank: 0
+            });
+          }
+          
           const sellerData = salesBySellerMap.get(sellerId)!;
-          sellerData.averageRating = parseFloat(average.toFixed(1));
+          sellerData.salesCount += 1;
+        });
+        
+        // Get average ratings for each seller
+        for (const sellerId of salesBySellerMap.keys()) {
+          const { data: ratingsData, error: ratingsError } = await supabase
+            .from('ratings')
+            .select('score')
+            .eq('seller_id', sellerId);
+            
+          if (!ratingsError && ratingsData && ratingsData.length > 0) {
+            const totalRating = ratingsData.reduce((sum, item) => sum + item.score, 0);
+            const average = totalRating / ratingsData.length;
+            const sellerData = salesBySellerMap.get(sellerId)!;
+            sellerData.averageRating = parseFloat(average.toFixed(1));
+          }
         }
-      }
-      
-      // Convert to array and sort by sales count (descending)
-      const leaderboardData = Array.from(salesBySellerMap.values())
-        .sort((a, b) => b.salesCount - a.salesCount)
-        .map((seller, index) => ({
-          ...seller,
-          rank: index + 1
-        }));
-      
-      // If no sales data is found, show appropriate message
-      if (leaderboardData.length === 0) {
+        
+        // Convert to array and sort by sales count (descending)
+        const leaderboardData = Array.from(salesBySellerMap.values())
+          .sort((a, b) => b.salesCount - a.salesCount)
+          .map((seller, index) => ({
+            ...seller,
+            rank: index + 1
+          }));
+        
+        console.log("Final leaderboard data:", leaderboardData);
+        
+        setLeaderboard(leaderboardData);
+      } else {
+        console.log("No sales data found for the current week");
         setError("No sales data found for the current week.");
+        setLeaderboard([]);
       }
-      
-      setLeaderboard(leaderboardData);
     } catch (error: any) {
       console.error('Error fetching leaderboard data:', error);
       setError("Failed to load leaderboard data. Please try again later.");

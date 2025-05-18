@@ -17,13 +17,30 @@ const HeroSection: React.FC = () => {
     const fetchStats = async () => {
       setLoading(true);
       try {
-        // Count unique buyers (active bettors)
-        const { count: bettorsCount, error: bettorsError } = await supabase
+        console.log("Fetching hero stats...");
+        
+        // Count unique buyers (active bettors) - Fixed to use count distinct
+        const { data: bettorsData, error: bettorsError } = await supabase
           .from("purchases")
-          .select("buyer_id", { count: 'exact', head: true })
+          .select("buyer_id", { count: 'exact' })
           .gt("purchase_date", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()); // Last 30 days
           
         if (bettorsError) throw bettorsError;
+        
+        console.log("Active bettors data:", bettorsData);
+        
+        // Count distinct buyers
+        const uniqueBuyers = new Set();
+        if (bettorsData) {
+          bettorsData.forEach(item => {
+            if (item.buyer_id) {
+              uniqueBuyers.add(item.buyer_id);
+            }
+          });
+        }
+        
+        const activeBettors = uniqueBuyers.size;
+        console.log("Unique active bettors count:", activeBettors);
         
         // Calculate win rate from purchases
         const { data: winData, error: winError } = await supabase
@@ -35,28 +52,34 @@ const HeroSection: React.FC = () => {
         let winCount = 0;
         let totalWithResult = 0;
         
-        winData?.forEach(item => {
-          if (item.is_winner === true || item.is_winner === false) {
-            totalWithResult++;
-            if (item.is_winner === true) winCount++;
-          }
-        });
+        if (winData) {
+          winData.forEach(item => {
+            if (item.is_winner === true || item.is_winner === false) {
+              totalWithResult++;
+              if (item.is_winner === true) winCount++;
+            }
+          });
+        }
         
         const calculatedWinRate = totalWithResult > 0 
           ? Math.round((winCount / totalWithResult) * 100) 
           : 0;
         
+        console.log("Win rate calculation:", { winCount, totalWithResult, calculatedWinRate });
+        
         // Calculate total payouts (sum of all purchases)
         const { data: payoutData, error: payoutError } = await supabase
           .from("purchases")
-          .select("price");
+          .select("price")
+          .eq("payment_status", "completed"); // Only count completed purchases
           
         if (payoutError) throw payoutError;
         
-        const totalPayout = payoutData?.reduce((sum, item) => sum + (item.price || 0), 0) || 0;
+        const totalPayout = payoutData?.reduce((sum, item) => sum + (parseFloat(String(item.price)) || 0), 0) || 0;
+        console.log("Total payout:", totalPayout);
         
         setStats({
-          activeBettors: bettorsCount || 0,
+          activeBettors: activeBettors,
           winRate: calculatedWinRate,
           totalPayout: totalPayout,
         });
@@ -64,9 +87,9 @@ const HeroSection: React.FC = () => {
         console.error("Error fetching hero stats:", error);
         // Set fallback data
         setStats({
-          activeBettors: 1000,
-          winRate: 75,
-          totalPayout: 5000000,
+          activeBettors: 0,
+          winRate: 0,
+          totalPayout: 0,
         });
       } finally {
         setLoading(false);
