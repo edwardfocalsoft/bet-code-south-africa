@@ -59,7 +59,7 @@ const TicketContent: React.FC<TicketContentProps> = ({
             </CardDescription>
           </div>
           
-          <ShareTicket ticket={ticket} />
+          <ShareTicket ticketId={ticket.id} ticketTitle={ticket.title} />
         </div>
       </CardHeader>
       
