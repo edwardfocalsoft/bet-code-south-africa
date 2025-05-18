@@ -67,7 +67,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="pb-6">
-        <div style={{ height: "250px", width: "100%" }}>
+        <div style={{ height: "220px", width: "100%" }}>
           {loading ? (
             <div className="w-full h-full flex items-center justify-center bg-betting-dark-gray/20 rounded-md">
               <p className="text-muted-foreground">Loading chart data...</p>
