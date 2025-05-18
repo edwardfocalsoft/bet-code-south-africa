@@ -11,6 +11,7 @@ import { Loader2, Save, CreditCard } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/auth";
+import { toast } from "sonner";
 
 const PaymentSettings: React.FC = () => {
   const { settings, loading, updateSettings } = usePaymentSettings();
@@ -36,6 +37,7 @@ const PaymentSettings: React.FC = () => {
   // Update form when settings are loaded
   useEffect(() => {
     if (settings && !formLoaded) {
+      console.log("Loading settings into form:", settings);
       setFormData({
         merchant_id: settings.merchant_id || "",
         merchant_key: settings.merchant_key || "",
@@ -66,12 +68,16 @@ const PaymentSettings: React.FC = () => {
     
     // Validate the form
     if (!formData.merchant_id || !formData.merchant_key || !formData.passphrase) {
-      alert("Please fill in all required fields");
+      toast.error("Please fill in all required fields");
       setIsSaving(false);
       return;
     }
     
-    await updateSettings(formData);
+    const success = await updateSettings(formData);
+    
+    if (success) {
+      toast.success("Payment settings updated successfully");
+    }
     
     setIsSaving(false);
   };

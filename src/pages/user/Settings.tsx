@@ -132,6 +132,7 @@ const UserSettings: React.FC = () => {
 
   const updatePaymentSettings = async () => {
     setLoading(true);
+    
     // Validate before submitting
     if (!paymentFormData.merchant_id || !paymentFormData.merchant_key || !paymentFormData.passphrase) {
       toast({
@@ -143,7 +144,15 @@ const UserSettings: React.FC = () => {
       return;
     }
     
-    await updateSettings(paymentFormData);
+    const success = await updateSettings(paymentFormData);
+    
+    if (success) {
+      toast({
+        title: "Success",
+        description: "Payment gateway settings have been updated",
+      });
+    }
+    
     setLoading(false);
   };
 

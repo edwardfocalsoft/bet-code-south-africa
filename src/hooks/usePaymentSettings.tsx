@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth";
+import { toast } from "sonner";
 
 interface PaymentSettings {
   id: string;
@@ -15,7 +16,6 @@ interface PaymentSettings {
 export const usePaymentSettings = () => {
   const [settings, setSettings] = useState<PaymentSettings | null>(null);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
   const { userRole } = useAuth();
   const isAdmin = userRole === "admin";
 
@@ -39,6 +39,7 @@ export const usePaymentSettings = () => {
       if (error) {
         // If no settings exist, we should create a default one
         if (error.code === 'PGRST116') {
+          console.log("No payment settings found, creating default");
           const defaultSettings = {
             merchant_id: "10000100",
             merchant_key: "pb8iz6kkctyzm",
@@ -53,14 +54,11 @@ export const usePaymentSettings = () => {
         throw error;
       }
       
+      console.log("Payment settings loaded:", data);
       setSettings(data);
     } catch (error: any) {
       console.error("Error fetching payment settings:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load payment settings",
-        variant: "destructive",
-      });
+      toast.error("Failed to load payment settings");
     } finally {
       setLoading(false);
     }
@@ -76,29 +74,19 @@ export const usePaymentSettings = () => {
 
       if (error) throw error;
       
+      console.log("Settings created:", data);
       setSettings(data);
-      toast({
-        title: "Settings Created",
-        description: "Default payment settings have been created.",
-      });
+      toast.success("Default payment settings have been created");
       
     } catch (error: any) {
       console.error("Error creating initial payment settings:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create payment settings",
-        variant: "destructive",
-      });
+      toast.error("Failed to create payment settings");
     }
   };
 
   const updateSettings = async (updatedSettings: Partial<PaymentSettings>) => {
     if (!isAdmin) {
-      toast({
-        title: "Permission Denied",
-        description: "Only admins can update payment settings",
-        variant: "destructive",
-      });
+      toast.error("Only admins can update payment settings");
       return false;
     }
 
@@ -119,6 +107,8 @@ export const usePaymentSettings = () => {
         return true;
       }
 
+      console.log("Updating settings:", updatedSettings);
+
       // Otherwise update existing settings
       const { error } = await supabase
         .from("payment_settings")
@@ -128,22 +118,17 @@ export const usePaymentSettings = () => {
         })
         .eq("id", settings.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error in update:", error);
+        throw error;
+      }
 
-      toast({
-        title: "Settings Updated",
-        description: "Payment gateway settings have been updated successfully",
-      });
-
+      // Fetch the updated settings
       await fetchSettings();
       return true;
     } catch (error: any) {
       console.error("Error updating payment settings:", error);
-      toast({
-        title: "Update Failed",
-        description: error.message || "Failed to update payment settings",
-        variant: "destructive",
-      });
+      toast.error(error.message || "Failed to update payment settings");
       return false;
     } finally {
       setLoading(false);

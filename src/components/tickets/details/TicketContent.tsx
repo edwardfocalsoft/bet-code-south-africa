@@ -55,7 +55,7 @@ const TicketContent: React.FC<TicketContentProps> = ({
           <p>{ticket.description}</p>
           
           <div className="bg-betting-dark-gray p-4 rounded-lg mt-6 mb-6">
-            <h3 className="mt-0">Ticket Content</h3>
+            <h3 className="mt-0">Ticket Code</h3>
             <p className="mb-0">
               {currentUser ? (
                 alreadyPurchased ? ticket.ticket_code : "Content will be visible after purchase."

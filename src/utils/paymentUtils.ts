@@ -20,15 +20,12 @@ export const fetchPaymentConfig = async (): Promise<PayFastConfig | null> => {
 
     if (error) {
       console.error("Error fetching payment config:", error);
-      throw error;
-    }
-    
-    if (!data) {
+      
       // Create a default config if none exists
       const defaultConfig = {
-        merchant_id: '10030614',
-        merchant_key: '85onulw93ercm',
-        passphrase: 'testpassphrase',
+        merchant_id: '10000100',
+        merchant_key: 'pb8iz6kkctyzm',
+        passphrase: 'TestPayFastPassphrase',
         is_test_mode: true
       };
       
@@ -43,6 +40,7 @@ export const fetchPaymentConfig = async (): Promise<PayFastConfig | null> => {
         return defaultConfig; // Use default even if insert fails
       }
       
+      console.log("Created new payment config:", newConfig);
       return newConfig;
     }
     
@@ -50,14 +48,7 @@ export const fetchPaymentConfig = async (): Promise<PayFastConfig | null> => {
     return data as PayFastConfig;
   } catch (error: any) {
     console.error("Error fetching payment config:", error);
-    
-    // Use fallback test mode config if can't get from database
-    return {
-      merchant_id: '10030614',
-      merchant_key: '85onulw93ercm',
-      passphrase: 'testpassphrase',
-      is_test_mode: true
-    };
+    throw new Error("No payment configuration found");
   }
 };
 
