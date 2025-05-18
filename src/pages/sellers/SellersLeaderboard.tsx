@@ -3,26 +3,11 @@ import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Award, Star } from "lucide-react";
-import { formatDate } from "@/utils/formatting";
-import { Link } from "react-router-dom";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@/components/ui/table";
-
-interface SellerStats {
-  id: string;
-  username: string;
-  salesCount: number;
-  averageRating: number;
-  rank: number;
-  avatar_url?: string;
-}
+import LeaderboardHeader from "@/components/sellers/leaderboard/LeaderboardHeader";
+import LeaderboardTable from "@/components/sellers/leaderboard/LeaderboardTable";
+import EmptyLeaderboard from "@/components/sellers/leaderboard/EmptyLeaderboard";
+import LoadingState from "@/components/sellers/leaderboard/LoadingState";
+import { SellerStats } from "@/components/sellers/leaderboard/LeaderboardTable";
 
 const SellersLeaderboard: React.FC = () => {
   const [leaderboard, setLeaderboard] = useState<SellerStats[]>([]);
@@ -70,7 +55,7 @@ const SellersLeaderboard: React.FC = () => {
         .from('purchases')
         .select(`
           seller_id,
-          seller:seller_id (id, username, avatar_url)
+          profiles:profiles!purchases_seller_id_fkey(id, username, avatar_url)
         `)
         .gte('purchase_date', start)
         .lte('purchase_date', end);
@@ -82,7 +67,7 @@ const SellersLeaderboard: React.FC = () => {
       
       salesData?.forEach(purchase => {
         const sellerId = purchase.seller_id;
-        const sellerProfile = purchase.seller;
+        const sellerProfile = purchase.profiles;
         
         if (!salesBySellerMap.has(sellerId)) {
           salesBySellerMap.set(sellerId, {
@@ -136,49 +121,10 @@ const SellersLeaderboard: React.FC = () => {
     }
   };
 
-  const renderRankBadge = (rank: number) => {
-    if (rank === 1) {
-      return (
-        <div className="flex items-center">
-          <Award className="h-5 w-5 text-yellow-500 mr-1" fill="#eab308" />
-          <span className="font-bold">{rank}</span>
-        </div>
-      );
-    } else if (rank === 2) {
-      return (
-        <div className="flex items-center">
-          <Award className="h-5 w-5 text-gray-300 mr-1" fill="#d1d5db" />
-          <span className="font-bold">{rank}</span>
-        </div>
-      );
-    } else if (rank === 3) {
-      return (
-        <div className="flex items-center">
-          <Award className="h-5 w-5 text-amber-700 mr-1" fill="#b45309" />
-          <span className="font-bold">{rank}</span>
-        </div>
-      );
-    } else {
-      return <span className="font-bold">{rank}</span>;
-    }
-  };
-
-  const renderStars = (rating: number) => {
-    return (
-      <div className="flex items-center">
-        <span className="mr-1 font-semibold">{rating.toFixed(1)}</span>
-        <Star className="h-4 w-4 text-yellow-500" fill="#eab308" />
-      </div>
-    );
-  };
-
   return (
     <Layout>
       <div className="container mx-auto py-8">
-        <h1 className="text-3xl font-bold mb-2">Sellers Leaderboard</h1>
-        <p className="text-muted-foreground mb-6">
-          Top performing sellers for the week of {formatDate(weekStart.toISOString())} to {formatDate(weekEnd.toISOString())}
-        </p>
+        <LeaderboardHeader weekStart={weekStart} weekEnd={weekEnd} />
         
         <Card className="betting-card">
           <CardHeader>
@@ -186,57 +132,11 @@ const SellersLeaderboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-betting-green" />
-                <span className="ml-2 text-muted-foreground">Loading leaderboard...</span>
-              </div>
+              <LoadingState />
             ) : error ? (
-              <div className="text-center py-8">
-                <p className="text-muted-foreground mb-4">{error}</p>
-                <p className="text-sm text-muted-foreground">
-                  The leaderboard resets every Monday at midnight.
-                </p>
-              </div>
+              <EmptyLeaderboard message={error} />
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Rank</TableHead>
-                      <TableHead>Seller</TableHead>
-                      <TableHead className="text-center">Weekly Sales</TableHead>
-                      <TableHead className="text-center">Rating</TableHead>
-                      <TableHead></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {leaderboard.map((seller) => (
-                      <TableRow key={seller.id}>
-                        <TableCell className="w-16">
-                          {renderRankBadge(seller.rank)}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {seller.username}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <span className="text-betting-green font-semibold">{seller.salesCount}</span>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {renderStars(seller.averageRating)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Link
-                            to={`/sellers/${seller.id}`}
-                            className="text-betting-green hover:underline"
-                          >
-                            View Profile
-                          </Link>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <LeaderboardTable sellers={leaderboard} />
             )}
           </CardContent>
         </Card>

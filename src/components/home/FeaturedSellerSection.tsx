@@ -1,12 +1,14 @@
 
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Star, Award, TrendingUp } from "lucide-react";
+import { Star, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { getSellerStats } from "@/utils/sqlFunctions";
+import SellerAvatar from "./featured-seller/SellerAvatar";
+import SellerStats from "./featured-seller/SellerStats";
 
 interface FeaturedSeller {
   id: string;
@@ -34,7 +36,10 @@ const FeaturedSellerSection: React.FC = () => {
         
         const { data: purchaseData, error: purchaseError } = await supabase
           .from("purchases")
-          .select("seller_id, seller:seller_id(username)")
+          .select(`
+            seller_id,
+            profiles:profiles!purchases_seller_id_fkey(username)
+          `)
           .gte("purchase_date", oneWeekAgo.toISOString())
           .order("purchase_date", { ascending: false });
           
@@ -47,7 +52,7 @@ const FeaturedSellerSection: React.FC = () => {
           if (!salesCount[sellerId]) {
             salesCount[sellerId] = { 
               count: 0, 
-              username: purchase.seller?.username || "Unknown" 
+              username: purchase.profiles?.username || "Unknown" 
             };
           }
           salesCount[sellerId].count++;
@@ -194,11 +199,7 @@ const FeaturedSellerSection: React.FC = () => {
             <div className="grid md:grid-cols-3 gap-0">
               <div className="p-6 md:border-r border-betting-light-gray">
                 <div className="flex flex-col items-center text-center">
-                  <div className="h-24 w-24 rounded-full bg-betting-dark-gray flex items-center justify-center mb-4">
-                    <span className="text-3xl font-bold text-betting-green">
-                      {featuredSeller.username?.substring(0, 2).toUpperCase() || "PP"}
-                    </span>
-                  </div>
+                  <SellerAvatar username={featuredSeller.username} />
                   <h3 className="text-xl font-bold mb-1">{featuredSeller.username}</h3>
                   <div className="flex items-center mb-4">
                     <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 mr-1" />
@@ -218,22 +219,10 @@ const FeaturedSellerSection: React.FC = () => {
                   {featuredSeller.description || `Top performing seller with a solid track record of successful betting predictions.`}
                 </p>
                 
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center p-3 bg-betting-dark-gray rounded-lg">
-                    <div className="text-2xl font-bold text-betting-green">{featuredSeller.winRate}%</div>
-                    <div className="text-xs text-muted-foreground mt-1">Win Rate</div>
-                  </div>
-                  <div className="text-center p-3 bg-betting-dark-gray rounded-lg">
-                    <div className="text-2xl font-bold text-betting-green">{featuredSeller.totalTickets}</div>
-                    <div className="text-xs text-muted-foreground mt-1">Total Tickets</div>
-                  </div>
-                  <div className="text-center p-3 bg-betting-dark-gray rounded-lg">
-                    <div className="flex items-center justify-center">
-                      <TrendingUp className="h-6 w-6 text-betting-green" />
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">Trending</div>
-                  </div>
-                </div>
+                <SellerStats 
+                  winRate={featuredSeller.winRate}
+                  totalTickets={featuredSeller.totalTickets}
+                />
               </div>
             </div>
           </CardContent>
