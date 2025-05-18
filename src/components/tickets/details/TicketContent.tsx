@@ -54,7 +54,7 @@ const TicketContent: React.FC<TicketContentProps> = ({
           <h3>Description</h3>
           <p>{ticket.description}</p>
           
-          <div className="bg-betting-light-gray p-4 rounded-lg mt-6 mb-6">
+          <div className="bg-betting-dark-gray p-4 rounded-lg mt-6 mb-6">
             <h3 className="mt-0">Ticket Content</h3>
             <p className="mb-0">
               {currentUser ? (

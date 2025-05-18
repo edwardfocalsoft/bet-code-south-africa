@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
 import { addCredits } from "@/utils/sqlFunctions";
 import { usePayFast } from "./usePayFast";
+import { PaymentResult } from "@/utils/paymentUtils";
 
 // Define a transaction type for our wallet
 export type WalletTransaction = {
@@ -120,7 +121,7 @@ export const useWallet = () => {
   }, [currentUser]);
 
   // Add top up wallet function using PayFast
-  const topUpWallet = async (amount: number) => {
+  const topUpWallet = async (amount: number): Promise<boolean> => {
     if (!currentUser) {
       toast.error("You must be logged in to add credits");
       return false;
@@ -160,11 +161,11 @@ export const useWallet = () => {
         useCredit: false // Don't use existing credit for top-ups
       });
 
-      if (paymentResult && paymentResult.paymentUrl) {
+      if (paymentResult && 'paymentUrl' in paymentResult) {
         // Redirect to payment page
         window.location.href = paymentResult.paymentUrl;
         return true;
-      } else if (paymentResult && paymentResult.testMode) {
+      } else if (paymentResult && 'testMode' in paymentResult && paymentResult.testMode) {
         // In test mode, simulate successful payment and update credit balance
         const newBalance = await addCredits(currentUser.id, amount);
         

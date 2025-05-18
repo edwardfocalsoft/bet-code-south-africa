@@ -52,6 +52,17 @@ export const generateSignature = (data: Record<string, string>, passphrase: stri
   return "DEMO_SIGNATURE_" + Math.random().toString(36).substring(2, 15);
 };
 
+// Define proper return types for payment processing
+export interface PaymentResult {
+  purchaseId: string;
+  success: boolean;
+  testMode?: boolean;
+  creditUsed?: boolean;
+  paymentComplete?: boolean;
+  paymentUrl?: string;
+  formData?: Record<string, string>;
+}
+
 interface ProcessPaymentParams {
   config: PayFastConfig;
   purchaseId: string;
@@ -68,7 +79,7 @@ export const processPayment = async ({
   amount,
   ticketTitle,
   completePayment
-}: ProcessPaymentParams) => {
+}: ProcessPaymentParams): Promise<PaymentResult> => {
   // Create PayFast payment data
   const paymentParams = {
     merchant_id: config.merchant_id,
@@ -106,7 +117,7 @@ export const processPayment = async ({
       success: true,
       testMode: true,
       paymentUrl: "https://sandbox.payfast.co.za/eng/process",
-      formData: finalParams // Include form data for test mode too
+      formData: finalParams
     };
   }
 
@@ -115,9 +126,10 @@ export const processPayment = async ({
   // Return payment data for actual PayFast integration
   return {
     purchaseId,
+    success: true,
+    testMode: false,
     paymentUrl: "https://www.payfast.co.za/eng/process",
-    formData: finalParams,
-    testMode: config.is_test_mode
+    formData: finalParams
   };
 };
 

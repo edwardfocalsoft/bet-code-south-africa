@@ -5,6 +5,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/auth";
 import { usePayFast } from "./usePayFast";
 import { toast } from "sonner";
+import { PaymentResult } from "@/utils/paymentUtils";
 
 export const useTicket = (ticketId: string | undefined) => {
   const [ticket, setTicket] = useState<any | null>(null);
@@ -74,20 +75,20 @@ export const useTicket = (ticketId: string | undefined) => {
     fetchTicketDetails();
   }, [fetchTicketDetails]);
 
-  const purchaseTicket = async () => {
+  const purchaseTicket = async (): Promise<PaymentResult | null> => {
     if (!currentUser) {
       toast.error("Please log in to purchase this ticket");
-      return;
+      return null;
     }
     
     if (alreadyPurchased) {
       toast.error("You have already purchased this ticket");
-      return;
+      return null;
     }
 
     if (!ticket) {
       toast.error("Ticket information not available");
-      return;
+      return null;
     }
 
     try {
@@ -117,7 +118,7 @@ export const useTicket = (ticketId: string | undefined) => {
         
         toast.success("Free ticket added to your purchases!");
         setAlreadyPurchased(true);
-        return;
+        return { purchaseId: purchaseData, success: true, paymentComplete: true };
       }
       
       // If user has enough credits, use them
@@ -143,12 +144,11 @@ export const useTicket = (ticketId: string | undefined) => {
 
         toast.success("Ticket purchased using your credit balance!");
         setAlreadyPurchased(true);
-        return;
+        return { purchaseId: purchaseData, success: true, creditUsed: true, paymentComplete: true };
       }
       
       // User needs to pay with PayFast
-      // For now, initiate payment for the full amount, we'll update this later
-      const result = await initiatePayment({
+      return await initiatePayment({
         ticketId: ticketId || "",
         ticketTitle: ticket.title,
         amount: ticket.price,
@@ -156,17 +156,10 @@ export const useTicket = (ticketId: string | undefined) => {
         sellerId: ticket.seller_id
       });
 
-      if (result && result.paymentUrl) {
-        // Redirect to payment page
-        window.location.href = result.paymentUrl;
-      } else if (result && result.testMode) {
-        toast.success("Test mode payment successful!");
-        setAlreadyPurchased(true);
-      }
-
     } catch (error: any) {
       console.error("Purchase error:", error);
       toast.error(error.message || "Failed to purchase ticket");
+      return null;
     } finally {
       setPurchaseLoading(false);
     }

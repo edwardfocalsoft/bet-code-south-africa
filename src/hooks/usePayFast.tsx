@@ -8,7 +8,8 @@ import {
   fetchPaymentConfig, 
   generateSignature, 
   processPayment, 
-  completePaymentTransaction 
+  completePaymentTransaction,
+  PaymentResult 
 } from "@/utils/paymentUtils";
 
 interface PaymentData {
@@ -26,7 +27,7 @@ export const usePayFast = () => {
   const { toast: uiToast } = useToast();
   const { currentUser } = useAuth();
 
-  const initiatePayment = async (paymentData: PaymentData) => {
+  const initiatePayment = async (paymentData: PaymentData): Promise<PaymentResult | null> => {
     if (!currentUser) {
       toast.error("Please log in to make a purchase");
       return null;
@@ -72,7 +73,7 @@ export const usePayFast = () => {
     }
   };
 
-  const handleCreditPayment = async (paymentData: PaymentData) => {
+  const handleCreditPayment = async (paymentData: PaymentData): Promise<PaymentResult | null> => {
     try {
       // Get user's credit balance
       const { data: userData, error: userError } = await supabase
@@ -130,7 +131,7 @@ export const usePayFast = () => {
       
       if (error) throw error;
       
-      return { purchaseId: data };
+      return { purchaseId: data, success: true };
     } catch (error) {
       console.error("Credit payment error:", error);
       throw error;

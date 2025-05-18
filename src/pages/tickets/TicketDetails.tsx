@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -12,6 +13,7 @@ import TicketContent from "@/components/tickets/details/TicketContent";
 import TicketPurchaseDialog from "@/components/tickets/details/TicketPurchaseDialog";
 import SellerInfoCard from "@/components/tickets/details/SellerInfoCard";
 import SimilarTicketsCard from "@/components/tickets/details/SimilarTicketsCard";
+import { PaymentResult } from "@/utils/paymentUtils";
 
 const TicketDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -59,15 +61,18 @@ const TicketDetails: React.FC = () => {
     try {
       if (paymentMethod === 'credit') {
         // Use credit balance
-        await purchaseTicket();
+        const result = await purchaseTicket();
         setPurchaseDialogOpen(false);
       } else {
         // Use PayFast
         const result = await purchaseTicket();
         
-        if (result && result.testMode) {
+        if (result && 'testMode' in result && result.testMode) {
           toast.success("Test mode payment successful!");
           setPurchaseDialogOpen(false);
+        } else if (result && 'paymentUrl' in result) {
+          // Redirect to payment gateway
+          window.location.href = result.paymentUrl;
         }
       }
     } catch (error: any) {
