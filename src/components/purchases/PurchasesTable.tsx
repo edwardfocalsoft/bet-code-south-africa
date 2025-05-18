@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   Table, 
@@ -17,6 +17,7 @@ import { Star } from "lucide-react";
 import { Purchase } from "@/hooks/usePurchases";
 import { useAuth } from "@/contexts/auth";
 import RateTicketDialog from "@/components/tickets/RateTicketDialog";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PurchasesTableProps {
   purchases: Purchase[];
@@ -31,6 +32,41 @@ export function PurchasesTable({ purchases, onRateSuccess }: PurchasesTableProps
     sellerId: string;
     purchaseId: string;
   } | null>(null);
+  const [ratedTickets, setRatedTickets] = useState<Record<string, boolean>>({});
+
+  // Fetch existing ratings for all ticket IDs
+  useEffect(() => {
+    if (!currentUser || purchases.length === 0) return;
+
+    const ticketIds = purchases.map(p => p.ticketId);
+    
+    const fetchRatings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('ratings')
+          .select('ticket_id')
+          .eq('buyer_id', currentUser.id)
+          .in('ticket_id', ticketIds);
+          
+        if (error) {
+          console.error("Error fetching ratings:", error);
+          return;
+        }
+        
+        // Create a map of ticket_id -> rated status
+        const ratedMap: Record<string, boolean> = {};
+        data.forEach(rating => {
+          ratedMap[rating.ticket_id] = true;
+        });
+        
+        setRatedTickets(ratedMap);
+      } catch (err) {
+        console.error("Error checking ratings status:", err);
+      }
+    };
+    
+    fetchRatings();
+  }, [currentUser, purchases]);
 
   const getBadgeVariant = (status: Purchase["status"]) => {
     switch (status) {
@@ -62,7 +98,15 @@ export function PurchasesTable({ purchases, onRateSuccess }: PurchasesTableProps
   };
 
   const handleRateSuccess = () => {
-    // Call the onRateSuccess callback if provided
+    // Update our local state to reflect the new rating
+    if (selectedTicket) {
+      setRatedTickets(prev => ({
+        ...prev,
+        [selectedTicket.ticketId]: true
+      }));
+    }
+    
+    // Call the parent's onRateSuccess callback if provided
     if (onRateSuccess) {
       onRateSuccess();
     }
@@ -70,6 +114,12 @@ export function PurchasesTable({ purchases, onRateSuccess }: PurchasesTableProps
 
   const isPastPurchase = (date: string) => {
     return new Date(date) < new Date();
+  };
+  
+  const canRateTicket = (purchase: Purchase) => {
+    return isPastPurchase(purchase.purchaseDate) && 
+           !purchase.isRated && 
+           !ratedTickets[purchase.ticketId];
   };
 
   return (
@@ -119,7 +169,7 @@ export function PurchasesTable({ purchases, onRateSuccess }: PurchasesTableProps
                         View
                       </Button>
                     </Link>
-                    {isPastPurchase(purchase.purchaseDate) && !purchase.isRated && (
+                    {canRateTicket(purchase) && (
                       <Button 
                         variant="outline" 
                         size="sm" 
@@ -128,6 +178,17 @@ export function PurchasesTable({ purchases, onRateSuccess }: PurchasesTableProps
                       >
                         <Star className="h-3 w-3 text-yellow-500" />
                         Rate
+                      </Button>
+                    )}
+                    {(purchase.isRated || ratedTickets[purchase.ticketId]) && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex items-center gap-1"
+                        disabled
+                      >
+                        <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                        Rated
                       </Button>
                     )}
                   </div>

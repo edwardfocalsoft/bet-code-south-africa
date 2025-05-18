@@ -1,8 +1,9 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import RateTicketDialog from "../RateTicketDialog";
 import ReportTicketDialog from "../ReportTicketDialog";
+import { supabase } from "@/integrations/supabase/client";
 
 // Import our new components
 import TicketHeader from "./TicketHeader";
@@ -37,9 +38,36 @@ const TicketContent: React.FC<TicketContentProps> = ({
 }) => {
   const [rateDialogOpen, setRateDialogOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [hasRated, setHasRated] = useState(false);
 
-  // Calculate if user can rate ticket (purchased, past kickoff, not seller)
-  const canRate = alreadyPurchased && isPastKickoff && !isSeller && currentUser;
+  // Check if the user has already rated this ticket
+  useEffect(() => {
+    if (currentUser && ticket && alreadyPurchased) {
+      const checkExistingRating = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('ratings')
+            .select('id')
+            .eq('buyer_id', currentUser.id)
+            .eq('ticket_id', ticket.id)
+            .maybeSingle();
+            
+          if (!error && data) {
+            setHasRated(true);
+          } else {
+            setHasRated(false);
+          }
+        } catch (err) {
+          console.error("Error checking rating status:", err);
+        }
+      };
+      
+      checkExistingRating();
+    }
+  }, [currentUser, ticket, alreadyPurchased]);
+  
+  // Calculate if user can rate ticket (purchased, past kickoff, not seller, not rated yet)
+  const canRate = alreadyPurchased && isPastKickoff && !isSeller && currentUser && !hasRated;
   
   // Calculate if user can report ticket (purchased, past kickoff)
   const canReport = alreadyPurchased && currentUser;
@@ -89,13 +117,14 @@ const TicketContent: React.FC<TicketContentProps> = ({
               isFree={ticket.is_free}
               openRateDialog={() => setRateDialogOpen(true)}
               openReportDialog={() => setReportDialogOpen(true)}
+              hasRated={hasRated}
             />
           </div>
         </div>
       </CardContent>
       
       {/* Dialogs */}
-      {canRate && purchaseId && (
+      {(canRate || hasRated) && purchaseId && (
         <RateTicketDialog
           open={rateDialogOpen}
           onOpenChange={setRateDialogOpen}
@@ -103,7 +132,7 @@ const TicketContent: React.FC<TicketContentProps> = ({
           sellerId={ticket.seller_id}
           buyerId={currentUser?.id}
           purchaseId={purchaseId}
-          onSuccess={() => {}} // Add an empty onSuccess callback
+          onSuccess={() => setHasRated(true)}
         />
       )}
       
