@@ -14,7 +14,12 @@ export function useRealtimeNotifications(
 
   // Set up a realtime subscription to listen for new notifications
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.log("[realtime-notifications] No current user, not setting up realtime subscription");
+      return;
+    }
+    
+    console.log(`[realtime-notifications] Setting up subscription for user ${currentUser.id}`);
     
     const subscription = supabase
       .channel('public:notifications')
@@ -26,33 +31,45 @@ export function useRealtimeNotifications(
           filter: `user_id=eq.${currentUser.id}`
         }, 
         (payload) => {
-          const newNotification = {
-            id: payload.new.id,
-            userId: payload.new.user_id,
-            title: payload.new.title,
-            message: payload.new.message,
-            isRead: payload.new.is_read,
-            createdAt: new Date(payload.new.created_at),
-            type: payload.new.type,
-            relatedId: payload.new.related_id,
-          };
+          console.log('[realtime-notifications] Received new notification:', payload);
           
-          // Add to state
-          setNotifications((prev) => [newNotification, ...prev]);
-          if (!newNotification.isRead) {
-            setUnreadCount((count) => count + 1);
+          try {
+            const newNotification = {
+              id: payload.new.id,
+              userId: payload.new.user_id,
+              title: payload.new.title,
+              message: payload.new.message,
+              isRead: payload.new.is_read,
+              createdAt: new Date(payload.new.created_at),
+              type: payload.new.type,
+              relatedId: payload.new.related_id,
+            };
+            
+            // Add to state
+            setNotifications((prev) => [newNotification, ...prev]);
+            
+            if (!newNotification.isRead) {
+              setUnreadCount((count) => count + 1);
+            }
+            
+            // Show a toast for the new notification
+            toast({
+              title: newNotification.title,
+              description: newNotification.message,
+            });
+            
+            console.log('[realtime-notifications] Successfully processed new notification');
+          } catch (error) {
+            console.error('[realtime-notifications] Error processing notification payload:', error);
           }
-          
-          // Show a toast for the new notification
-          toast({
-            title: newNotification.title,
-            description: newNotification.message,
-          });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`[realtime-notifications] Subscription status: ${status}`);
+      });
 
     return () => {
+      console.log('[realtime-notifications] Cleaning up subscription');
       supabase.removeChannel(subscription);
     };
   }, [currentUser, toast, setNotifications, setUnreadCount]);

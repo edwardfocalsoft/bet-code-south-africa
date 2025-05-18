@@ -19,35 +19,47 @@ export const createNotification = async (
 ): Promise<any | null> => {
   try {
     if (!userId) {
-      console.error('Error creating notification: userId is required');
+      console.error('[notification] Error creating notification: userId is required');
       return null;
     }
 
-    console.log(`Creating notification for user ${userId}: ${title}`);
+    // Log the creation attempt with details
+    console.log(`[notification] Creating notification for user ${userId}: "${title}" (type: ${type})`);
     
+    // Validate userId format to make debugging easier if there's an issue
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
+      console.error('[notification] Invalid userId format:', userId);
+      return null;
+    }
+    
+    const notificationData = {
+      user_id: userId,
+      title,
+      message,
+      type,
+      related_id: relatedId,
+      is_read: false,
+      created_at: new Date().toISOString()
+    };
+    
+    // Try to insert the notification
     const { data, error } = await supabase
       .from('notifications')
-      .insert({
-        user_id: userId,
-        title,
-        message,
-        type,
-        related_id: relatedId,
-        is_read: false,
-        created_at: new Date().toISOString()
-      })
+      .insert(notificationData)
       .select()
       .single();
       
     if (error) {
-      console.error('Error creating notification:', error);
+      console.error('[notification] Error creating notification:', error);
+      // Log the attempted data for debugging
+      console.error('[notification] Failed notification data:', JSON.stringify(notificationData));
       return null;
     }
     
-    console.log('Notification created successfully:', data);
+    console.log('[notification] Notification created successfully:', data);
     return data;
   } catch (error) {
-    console.error('Exception when creating notification:', error);
+    console.error('[notification] Exception when creating notification:', error);
     return null;
   }
 };
@@ -63,11 +75,11 @@ export const testNotificationCreation = async (): Promise<boolean> => {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
-      console.error('No authenticated user found');
+      console.error('[notification-test] No authenticated user found');
       return false;
     }
     
-    console.log('Testing notification creation for user:', user.id);
+    console.log('[notification-test] Testing notification creation for user:', user.id);
     
     // Try to create a test notification
     const result = await createNotification(
@@ -79,7 +91,7 @@ export const testNotificationCreation = async (): Promise<boolean> => {
     
     return result !== null;
   } catch (error) {
-    console.error('Error testing notification creation:', error);
+    console.error('[notification-test] Error testing notification creation:', error);
     return false;
   }
 };
