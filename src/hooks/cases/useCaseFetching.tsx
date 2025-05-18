@@ -40,7 +40,6 @@ export const useCaseFetching = () => {
           .from('cases')
           .select(`
             *,
-            profiles!cases_user_id_fkey(*),
             purchases(*),
             tickets(*)
           `)
@@ -122,7 +121,6 @@ export const useCaseFetching = () => {
         .from('cases')
         .select(`
           *,
-          profiles!cases_user_id_fkey(*),
           purchases(*),
           tickets(*)
         `)

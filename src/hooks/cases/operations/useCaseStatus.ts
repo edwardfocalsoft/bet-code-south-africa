@@ -21,8 +21,6 @@ export const useCaseStatus = () => {
     setIsLoading(true);
 
     try {
-      console.log(`Attempting to update case ${caseId} to status: ${status}`);
-      
       const { error } = await supabase
         .from('cases')
         .update({ 
@@ -31,10 +29,7 @@ export const useCaseStatus = () => {
         })
         .eq('id', caseId);
 
-      if (error) {
-        console.error("Error updating case status:", error);
-        throw error;
-      }
+      if (error) throw error;
 
       toast.success(`Case status updated to ${status}`);
       queryClient.invalidateQueries({ queryKey: ['user-cases'] });

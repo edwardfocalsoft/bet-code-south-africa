@@ -27,7 +27,8 @@ const AdminCasesPage: React.FC = () => {
       console.log("Cases refetched, current cases count:", userCases?.length || 0);
       debugCases(userCases);
     });
-  }, []);  // Intentional empty dependency array to only run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Debug when cases data changes
   useEffect(() => {
@@ -38,6 +39,9 @@ const AdminCasesPage: React.FC = () => {
   // Filter cases based on search query and status filter
   const filteredCases = userCases?.filter((caseItem: any) => {
     if (!caseItem) return false;
+    
+    // Debug individual case
+    // console.log("Filtering case:", caseItem.id, caseItem.title, caseItem.status);
     
     const matchesSearch = searchQuery
       ? ((caseItem.case_number && caseItem.case_number.toLowerCase().includes(searchQuery.toLowerCase())) ||
