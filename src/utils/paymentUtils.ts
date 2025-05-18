@@ -21,6 +21,11 @@ export const fetchPaymentConfig = async (): Promise<PayFastConfig | null> => {
     };
   } catch (error: any) {
     console.error("Error with payment config:", error);
+    toast.error("Payment configuration error", {
+      description: error.message || "Could not load payment configuration"
+    });
+    
+    // Still return the hardcoded config as a fallback
     return {
       merchant_id: '14452088',
       merchant_key: '3indglm6c7jzr',
@@ -54,6 +59,7 @@ export interface PaymentResult {
   paymentComplete?: boolean;
   paymentUrl?: string;
   formData?: Record<string, string>;
+  error?: string;
 }
 
 interface ProcessPaymentParams {
@@ -96,12 +102,6 @@ export const processPayment = async ({
     // Build the PayFast URL - use production URL since is_test_mode is false
     const baseUrl = 'https://www.payfast.co.za/eng/process';
     
-    // Transform the params into form data
-    const formData = new FormData();
-    Object.entries(paymentParams).forEach(([key, value]) => {
-      formData.append(key, String(value));
-    });
-    
     // Create URL with query parameters for direct redirection
     const queryParams = new URLSearchParams();
     Object.entries(paymentParams).forEach(([key, value]) => {
@@ -118,9 +118,16 @@ export const processPayment = async ({
       paymentUrl,
       formData: paymentParams as Record<string, string>
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Payment processing error:", error);
-    throw error;
+    toast.error("Payment processing error", {
+      description: error.message || "Failed to process payment"
+    });
+    return {
+      purchaseId: purchaseId,
+      success: false,
+      error: error.message || "Unknown payment error"
+    };
   }
 };
 
@@ -130,6 +137,8 @@ export const completePaymentTransaction = async (
   paymentData = {}
 ) => {
   try {
+    console.log(`Attempting to complete transaction for purchase ID: ${purchaseId}`);
+    
     // Call the complete_ticket_purchase function
     const { data, error } = await supabase.rpc(
       "complete_ticket_purchase",
@@ -140,15 +149,26 @@ export const completePaymentTransaction = async (
       }
     );
     
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase RPC error:", error);
+      toast.error("Payment completion error", {
+        description: `Database error: ${error.message}`
+      });
+      throw error;
+    }
+    
+    console.log("Payment completion success:", data);
     
     toast.success("Purchase Complete!", {
       description: "Your purchase was successful!"
     });
     
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Payment completion error:", error);
+    toast.error("Payment completion error", {
+      description: error.message || "Failed to complete payment in database"
+    });
     throw error;
   }
 };

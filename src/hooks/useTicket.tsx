@@ -14,6 +14,7 @@ export const useTicket = (ticketId: string | undefined) => {
   const [purchaseLoading, setPurchaseLoading] = useState(false);
   const [alreadyPurchased, setAlreadyPurchased] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const { currentUser } = useAuth();
   const { initiatePayment } = usePayFast();
   const { toast: uiToast } = useToast();
@@ -39,21 +40,30 @@ export const useTicket = (ticketId: string | undefined) => {
         .eq("id", ticketId)
         .single();
 
-      if (ticketError) throw ticketError;
+      if (ticketError) {
+        console.error("Ticket fetch error:", ticketError);
+        throw ticketError;
+      }
       
       setTicket(ticketData);
       setSeller(ticketData.profiles);
+      console.log("Ticket details fetched:", ticketData);
       
       // Check if the current user has already purchased this ticket
       if (currentUser?.id) {
         const { data: purchaseData, error: purchaseError } = await supabase
           .from("purchases")
-          .select("id")
+          .select("id, payment_status")
           .eq("ticket_id", ticketId)
           .eq("buyer_id", currentUser.id)
           .maybeSingle();
           
-        if (!purchaseError && purchaseData) {
+        if (purchaseError) {
+          console.error("Purchase check error:", purchaseError);
+        }
+        
+        if (purchaseData && purchaseData.payment_status === 'completed') {
+          console.log("User has already purchased this ticket:", purchaseData);
           setAlreadyPurchased(true);
         } else {
           setAlreadyPurchased(false);
@@ -78,18 +88,26 @@ export const useTicket = (ticketId: string | undefined) => {
   }, [fetchTicketDetails]);
 
   const purchaseTicket = async (useCredit = true) => {
+    setPurchaseError(null);
+    
     if (!currentUser) {
-      toast.error("Please log in to purchase this ticket");
+      const errorMessage = "Please log in to purchase this ticket";
+      setPurchaseError(errorMessage);
+      toast.error(errorMessage);
       return null;
     }
     
     if (alreadyPurchased) {
-      toast.error("You have already purchased this ticket");
+      const errorMessage = "You have already purchased this ticket";
+      setPurchaseError(errorMessage);
+      toast.error(errorMessage);
       return null;
     }
 
     if (!ticket) {
-      toast.error("Ticket information not available");
+      const errorMessage = "Ticket information not available";
+      setPurchaseError(errorMessage);
+      toast.error(errorMessage);
       return null;
     }
 
@@ -103,21 +121,31 @@ export const useTicket = (ticketId: string | undefined) => {
         .eq("id", currentUser.id)
         .single();
 
-      if (userError) throw userError;
+      if (userError) {
+        console.error("Credit balance check error:", userError);
+        throw userError;
+      }
       
       const creditBalance = Number(userData?.credit_balance || 0);
       const ticketPrice = Number(ticket.price || 0);
       
+      console.log("User credit balance:", creditBalance, "Ticket price:", ticketPrice);
+      
       // For free tickets, just create the purchase record
       if (ticket.is_free) {
+        console.log("Processing free ticket");
         const { data: purchaseData, error: purchaseError } = await supabase
           .rpc('purchase_ticket', {
             p_ticket_id: ticketId,
             p_buyer_id: currentUser.id
           });
 
-        if (purchaseError) throw purchaseError;
+        if (purchaseError) {
+          console.error("Free ticket purchase error:", purchaseError);
+          throw purchaseError;
+        }
         
+        console.log("Free ticket purchase successful:", purchaseData);
         toast.success("Free ticket added to your purchases!");
         setAlreadyPurchased(true);
         return { purchaseId: purchaseData, success: true, paymentComplete: true };
@@ -133,7 +161,12 @@ export const useTicket = (ticketId: string | undefined) => {
             p_buyer_id: currentUser.id
           });
 
-        if (purchaseError) throw purchaseError;
+        if (purchaseError) {
+          console.error("Ticket purchase error:", purchaseError);
+          throw purchaseError;
+        }
+        
+        console.log("Purchase record created with ID:", purchaseData);
         
         // Complete the purchase using credits
         const { data: completeData, error: completeError } = await supabase
@@ -143,8 +176,12 @@ export const useTicket = (ticketId: string | undefined) => {
             p_payment_data: { payment_method: 'credit' }
           });
         
-        if (completeError) throw completeError;
-
+        if (completeError) {
+          console.error("Complete purchase error:", completeError);
+          throw completeError;
+        }
+        
+        console.log("Credit purchase completed successfully");
         toast.success("Ticket purchased using your credit balance!");
         setAlreadyPurchased(true);
         return { purchaseId: purchaseData, success: true, creditUsed: true, paymentComplete: true };
@@ -170,7 +207,9 @@ export const useTicket = (ticketId: string | undefined) => {
 
     } catch (error: any) {
       console.error("Purchase error:", error);
-      toast.error(error.message || "Failed to purchase ticket");
+      const errorMessage = error.message || "Failed to purchase ticket";
+      setPurchaseError(errorMessage);
+      toast.error(errorMessage);
       return null;
     } finally {
       setPurchaseLoading(false);
@@ -184,6 +223,7 @@ export const useTicket = (ticketId: string | undefined) => {
     purchaseLoading,
     alreadyPurchased,
     error,
+    purchaseError,
     purchaseTicket,
     refreshTicket: fetchTicketDetails
   };

@@ -13,18 +13,22 @@ import TicketContent from "@/components/tickets/details/TicketContent";
 import TicketPurchaseDialog from "@/components/tickets/details/TicketPurchaseDialog";
 import SellerInfoCard from "@/components/tickets/details/SellerInfoCard";
 import SimilarTicketsCard from "@/components/tickets/details/SimilarTicketsCard";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const TicketDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { ticket, seller, loading, error, purchaseLoading, alreadyPurchased, purchaseTicket, refreshTicket } = useTicket(id);
+  const { ticket, seller, loading, error, purchaseLoading, alreadyPurchased, purchaseTicket, refreshTicket, purchaseError } = useTicket(id);
   const { currentUser } = useAuth();
-  const { creditBalance } = useWallet();
+  const { creditBalance, error: walletError } = useWallet();
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [processingPurchase, setProcessingPurchase] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'credit' | 'payfast'>('credit');
+  const [localError, setLocalError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handlePurchase = async () => {
+    setLocalError(null);
+    
     if (!currentUser) {
       toast.error("Please log in to purchase tickets", {
         description: "You need to be logged in to purchase tickets."
@@ -37,9 +41,18 @@ const TicketDetails: React.FC = () => {
     
     // Check if it's a free ticket
     if (ticket.is_free) {
-      const result = await purchaseTicket();
-      if (result && result.success) {
-        refreshTicket();
+      setProcessingPurchase(true);
+      try {
+        console.log("Processing free ticket purchase");
+        const result = await purchaseTicket();
+        if (result && result.success) {
+          refreshTicket();
+        }
+      } catch (error: any) {
+        console.error("Free ticket purchase error:", error);
+        setLocalError(error.message || "Failed to add free ticket to your purchases");
+      } finally {
+        setProcessingPurchase(false);
       }
       return;
     }
@@ -59,6 +72,7 @@ const TicketDetails: React.FC = () => {
     if (!currentUser || !ticket) return;
     
     setProcessingPurchase(true);
+    setLocalError(null);
     
     try {
       console.log("Starting purchase process with payment method:", paymentMethod);
@@ -79,12 +93,16 @@ const TicketDetails: React.FC = () => {
       
     } catch (error: any) {
       console.error("Purchase error:", error);
-      toast.error("Purchase Failed", {
-        description: error.message || "There was an error processing your purchase. Please try again."
-      });
-      setProcessingPurchase(false);
+      setLocalError(error.message || "There was an error processing your purchase. Please try again.");
     }
   };
+
+  // Reset error state when dialog is closed
+  useEffect(() => {
+    if (!purchaseDialogOpen) {
+      setLocalError(null);
+    }
+  }, [purchaseDialogOpen]);
 
   // Refresh ticket details when user logs in/out
   useEffect(() => {
@@ -132,6 +150,15 @@ const TicketDetails: React.FC = () => {
           </Link>
         </div>
 
+        {(purchaseError || walletError || localError) && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {purchaseError || walletError || localError}
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2">
             <TicketContent 
@@ -163,6 +190,7 @@ const TicketDetails: React.FC = () => {
         canAffordWithCredit={canAffordWithCredit}
         creditBalance={creditBalance}
         onConfirm={confirmPurchase}
+        error={localError || purchaseError}
       />
     </Layout>
   );

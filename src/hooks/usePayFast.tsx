@@ -24,23 +24,29 @@ interface PaymentData {
 
 export const usePayFast = () => {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast: uiToast } = useToast();
   const { currentUser } = useAuth();
 
   const initiatePayment = async (paymentData: PaymentData): Promise<PaymentResult | null> => {
     if (!currentUser) {
-      toast.error("Please log in to make a purchase");
+      const errorMessage = "Please log in to make a purchase";
+      toast.error(errorMessage);
+      setError(errorMessage);
       return null;
     }
 
     try {
       setLoading(true);
+      setError(null);
       console.log("Initiating payment for:", paymentData);
       
       const config = await fetchPaymentConfig();
       
       if (!config) {
-        throw new Error("Payment configuration not found");
+        const errorMessage = "Payment configuration not found";
+        setError(errorMessage);
+        throw new Error(errorMessage);
       }
       
       console.log("Payment config retrieved:", config);
@@ -53,19 +59,29 @@ export const usePayFast = () => {
       if (useCredit && !purchaseId) {
         // Handle credit purchase
         console.log("Attempting credit payment");
-        const creditResult = await handleCreditPayment(paymentData);
-        
-        if (creditResult && creditResult.paymentComplete) {
-          console.log("Payment completed with credits");
-          return creditResult;
+        try {
+          const creditResult = await handleCreditPayment(paymentData);
+          
+          if (creditResult && creditResult.paymentComplete) {
+            console.log("Payment completed with credits");
+            return creditResult;
+          }
+          
+          purchaseId = creditResult?.purchaseId;
+          console.log("Credit payment created purchase ID:", purchaseId);
+        } catch (creditError: any) {
+          console.error("Credit payment error:", creditError);
+          toast.error("Credit payment failed", {
+            description: creditError.message || "Failed to process credit payment"
+          });
+          // Continue with PayFast if credit payment fails
         }
-        
-        purchaseId = creditResult?.purchaseId;
-        console.log("Credit payment created purchase ID:", purchaseId);
       }
       
       if (!purchaseId) {
-        throw new Error("Failed to create purchase record");
+        const errorMessage = "Failed to create purchase record";
+        setError(errorMessage);
+        throw new Error(errorMessage);
       }
       
       // Create payment with PayFast
@@ -84,15 +100,28 @@ export const usePayFast = () => {
       // Important! Redirect to payment URL if available
       if (result.paymentUrl) {
         console.log("Redirecting to payment URL:", result.paymentUrl);
-        // Use direct window.location.href navigation for reliable redirection
+        
+        // Force use of window.location.href for reliable redirection
         window.location.href = result.paymentUrl;
+        
+        // Backup method in case the first redirect doesn't work
+        setTimeout(() => {
+          console.log("Backup redirect attempt");
+          window.open(result.paymentUrl, "_self");
+        }, 500);
       }
       
       return result;
     } catch (error: any) {
       console.error("Payment initiation error:", error);
-      toast.error(error.message || "Failed to initiate payment");
-      return null;
+      const errorMessage = error.message || "Failed to initiate payment";
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return {
+        purchaseId: paymentData.purchaseId || "",
+        success: false,
+        error: errorMessage
+      };
     } finally {
       setLoading(false);
     }
@@ -107,12 +136,17 @@ export const usePayFast = () => {
         .eq("id", currentUser!.id)
         .single();
         
-      if (userError) throw userError;
+      if (userError) {
+        console.error("Credit balance check error:", userError);
+        throw userError;
+      }
       
       const creditBalance = Number(userData?.credit_balance || 0);
+      console.log("User credit balance:", creditBalance, "Required amount:", paymentData.amount);
       
       // If user has enough credit, create purchase record
       if (creditBalance >= paymentData.amount) {
+        console.log("Sufficient credit balance, creating purchase record");
         // Call the purchase_ticket function via RPC
         const { data, error } = await supabase.rpc(
           "purchase_ticket",
@@ -122,8 +156,12 @@ export const usePayFast = () => {
           }
         );
         
-        if (error) throw error;
+        if (error) {
+          console.error("Purchase ticket RPC error:", error);
+          throw error;
+        }
         const purchaseId = data;
+        console.log("Purchase record created with ID:", purchaseId);
         
         // Complete purchase using credits
         const { data: completeData, error: completeError } = await supabase.rpc(
@@ -135,7 +173,12 @@ export const usePayFast = () => {
           }
         );
         
-        if (completeError) throw completeError;
+        if (completeError) {
+          console.error("Complete purchase RPC error:", completeError);
+          throw completeError;
+        }
+        
+        console.log("Credit payment completed successfully");
         
         return {
           purchaseId,
@@ -143,9 +186,12 @@ export const usePayFast = () => {
           creditUsed: true,
           paymentComplete: true
         };
+      } else {
+        console.log("Insufficient credit balance, continuing with PayFast");
       }
       
       // Create initial purchase record if credit is insufficient
+      console.log("Creating initial purchase record for PayFast payment");
       const { data, error } = await supabase.rpc(
         "purchase_ticket",
         {
@@ -154,11 +200,15 @@ export const usePayFast = () => {
         }
       );
       
-      if (error) throw error;
+      if (error) {
+        console.error("Purchase ticket RPC error:", error);
+        throw error;
+      }
       
       return { purchaseId: data, success: true };
-    } catch (error) {
+    } catch (error: any) {
       console.error("Credit payment error:", error);
+      setError(error.message || "Credit payment error");
       throw error;
     }
   };
@@ -166,11 +216,14 @@ export const usePayFast = () => {
   const completePayment = async (purchaseId: string, paymentId: string, paymentData = {}) => {
     try {
       setLoading(true);
+      setError(null);
       return await completePaymentTransaction(purchaseId, paymentId, paymentData);
     } catch (error: any) {
       console.error("Payment completion error:", error);
+      const errorMessage = error.message || "Failed to complete payment";
+      setError(errorMessage);
       toast.error("Payment Error", {
-        description: error.message || "Failed to complete payment"
+        description: errorMessage
       });
       return false;
     } finally {
@@ -180,6 +233,7 @@ export const usePayFast = () => {
 
   return {
     loading,
+    error,
     initiatePayment,
     completePayment
   };

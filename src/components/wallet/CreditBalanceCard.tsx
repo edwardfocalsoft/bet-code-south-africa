@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { TrendingUp, Loader2 } from "lucide-react";
+import { TrendingUp, Loader2, AlertCircle } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -19,25 +19,30 @@ import {
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface CreditBalanceCardProps {
   creditBalance: number;
   isLoading: boolean;
   onTopUp: (amount: number) => Promise<boolean>;
+  error?: string | null;
 }
 
 const CreditBalanceCard: React.FC<CreditBalanceCardProps> = ({
   creditBalance,
   isLoading,
   onTopUp,
+  error
 }) => {
   const [topUpAmount, setTopUpAmount] = useState<string>("");
   const [processing, setProcessing] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [topUpError, setTopUpError] = useState<string | null>(null);
 
   const handleTopUpClick = () => {
     const amount = parseFloat(topUpAmount);
     if (!isNaN(amount) && amount > 0) {
+      setTopUpError(null);
       setConfirmDialogOpen(true);
     }
   };
@@ -46,18 +51,21 @@ const CreditBalanceCard: React.FC<CreditBalanceCardProps> = ({
     const amount = parseFloat(topUpAmount);
     if (!isNaN(amount) && amount > 0) {
       setProcessing(true);
+      setTopUpError(null);
       console.log("Processing top-up for amount:", amount);
       
       try {
         const result = await onTopUp(amount);
         if (!result) {
           console.error("Top-up failed");
+          setTopUpError("Top-up failed. Please check console for details.");
           setProcessing(false);
           setConfirmDialogOpen(false);
         }
         // Redirect handled in usePayFast
-      } catch (error) {
+      } catch (error: any) {
         console.error("Top-up error:", error);
+        setTopUpError(error.message || "An unexpected error occurred");
         setProcessing(false);
         setConfirmDialogOpen(false);
       }
@@ -83,6 +91,13 @@ const CreditBalanceCard: React.FC<CreditBalanceCardProps> = ({
               </h3>
             </div>
           </div>
+
+          {error && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
         </CardContent>
         <CardFooter className="flex flex-col">
           <p className="text-sm text-muted-foreground mb-4">
@@ -101,7 +116,14 @@ const CreditBalanceCard: React.FC<CreditBalanceCardProps> = ({
               disabled={isLoading || processing || !topUpAmount || parseFloat(topUpAmount) <= 0}
               className="bg-betting-green hover:bg-betting-green-dark"
             >
-              Add Credits
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                "Add Credits"
+              )}
             </Button>
           </div>
         </CardFooter>
@@ -124,22 +146,32 @@ const CreditBalanceCard: React.FC<CreditBalanceCardProps> = ({
             <p className="text-lg font-bold mt-4">
               Amount: R {parseFloat(topUpAmount || "0").toFixed(2)}
             </p>
+
+            {topUpError && (
+              <Alert variant="destructive" className="mt-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{topUpError}</AlertDescription>
+              </Alert>
+            )}
           </div>
           
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setConfirmDialogOpen(false)}
-              disabled={processing}
+              onClick={() => {
+                setConfirmDialogOpen(false);
+                setTopUpError(null);
+              }}
+              disabled={processing && !topUpError}
             >
               Cancel
             </Button>
             <Button
               className="bg-betting-green hover:bg-betting-green-dark"
               onClick={handleConfirmTopUp}
-              disabled={processing}
+              disabled={processing && !topUpError}
             >
-              {processing ? (
+              {processing && !topUpError ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Processing...

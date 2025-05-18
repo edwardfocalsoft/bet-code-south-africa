@@ -23,6 +23,7 @@ export const useWallet = () => {
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { initiatePayment } = usePayFast();
 
   // Fetch both credit balance and transactions
@@ -37,6 +38,7 @@ export const useWallet = () => {
       
       try {
         setIsLoading(true);
+        setError(null);
         
         // Fetch credit balance
         const { data: profileData, error: profileError } = await supabase
@@ -48,12 +50,14 @@ export const useWallet = () => {
         if (profileError) {
           console.error("Error fetching credit balance:", profileError);
           setCreditBalance(null);
+          setError(`Error fetching credit balance: ${profileError.message}`);
         } else {
           // Ensure the credit_balance is a number, default to 0 if undefined
           const balance = profileData?.credit_balance !== undefined && 
                          profileData?.credit_balance !== null ? 
                          Number(profileData.credit_balance) : 0;
           setCreditBalance(balance);
+          console.log("Fetched credit balance:", balance);
         }
         
         // Fetch transactions
@@ -66,17 +70,20 @@ export const useWallet = () => {
         if (transactionsError) {
           console.error("Error fetching transactions:", transactionsError);
           setTransactions([]);
+          setError(`Error fetching transactions: ${transactionsError.message}`);
         } else {
           // Cast the transaction types appropriately
           setTransactions(transactionsData?.map(transaction => ({
             ...transaction,
             type: transaction.type as "topup" | "purchase" | "refund"
           })) || []);
+          console.log("Fetched transactions:", transactionsData?.length || 0);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Exception in wallet hook:", error);
         setCreditBalance(null);
         setTransactions([]);
+        setError(error.message || "Failed to load wallet data");
       } finally {
         setIsLoading(false);
       }
@@ -96,6 +103,7 @@ export const useWallet = () => {
         const newBalance = payload.new?.credit_balance;
         if (newBalance !== undefined) {
           setCreditBalance(Number(newBalance));
+          console.log("Credit balance updated via subscription:", newBalance);
         }
       })
       .subscribe();
@@ -110,6 +118,7 @@ export const useWallet = () => {
         filter: `user_id=eq.${currentUser?.id}`
       }, () => {
         // Refetch transactions when there's a change
+        console.log("Transaction change detected, refetching data");
         fetchWalletData();
       })
       .subscribe();
@@ -123,17 +132,22 @@ export const useWallet = () => {
   // Add top up wallet function using PayFast
   const topUpWallet = async (amount: number): Promise<boolean> => {
     if (!currentUser) {
-      toast.error("You must be logged in to add credits");
+      const errorMessage = "You must be logged in to add credits";
+      toast.error(errorMessage);
+      setError(errorMessage);
       return false;
     }
     
     if (amount <= 0) {
-      toast.error("Amount must be greater than zero");
+      const errorMessage = "Amount must be greater than zero";
+      toast.error(errorMessage);
+      setError(errorMessage);
       return false;
     }
     
     try {
       setIsLoading(true);
+      setError(null);
       console.log("Starting wallet top-up for amount:", amount);
       
       // Initialize a pending transaction
@@ -150,6 +164,7 @@ export const useWallet = () => {
       
       if (transactionError) {
         console.error("Failed to create transaction record:", transactionError);
+        setError(`Database error: ${transactionError.message}`);
         throw transactionError;
       }
       
@@ -168,14 +183,19 @@ export const useWallet = () => {
       console.log("Payment initiation result:", paymentResult);
       
       if (!paymentResult || !paymentResult.paymentUrl) {
-        throw new Error("Failed to initialize payment");
+        const errorMessage = "Failed to initialize payment";
+        setError(errorMessage);
+        throw new Error(errorMessage);
       }
 
-      // Redirect happens in initiatePayment now
+      // Redirect happens in initiatePayment now, force use of window.location.href
+      window.location.href = paymentResult.paymentUrl;
       return true;
     } catch (error: any) {
       console.error("Error adding credits:", error);
-      toast.error(error.message || "An unexpected error occurred while processing your payment");
+      const errorMessage = error.message || "An unexpected error occurred while processing your payment";
+      setError(errorMessage);
+      toast.error(errorMessage);
       return false;
     } finally {
       setIsLoading(false);
@@ -185,7 +205,8 @@ export const useWallet = () => {
   return { 
     creditBalance: creditBalance ?? 0, 
     transactions, 
-    isLoading, 
+    isLoading,
+    error, 
     topUpWallet 
   };
 };

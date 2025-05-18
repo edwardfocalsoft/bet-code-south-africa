@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { 
   Dialog,
   DialogContent,
@@ -8,8 +8,9 @@ import {
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 
 interface TicketPurchaseDialogProps {
   open: boolean;
@@ -21,6 +22,7 @@ interface TicketPurchaseDialogProps {
   canAffordWithCredit: boolean;
   creditBalance: number;
   onConfirm: () => void;
+  error?: string | null;
 }
 
 const TicketPurchaseDialog: React.FC<TicketPurchaseDialogProps> = ({
@@ -32,16 +34,20 @@ const TicketPurchaseDialog: React.FC<TicketPurchaseDialogProps> = ({
   setPaymentMethod,
   canAffordWithCredit,
   creditBalance,
-  onConfirm
+  onConfirm,
+  error
 }) => {
+  const [localError, setLocalError] = useState<string | null>(null);
+  
   const handleConfirm = () => {
+    setLocalError(null);
     console.log("TicketPurchaseDialog - Confirming purchase with method:", paymentMethod);
     // Call onConfirm directly, the parent component will handle the payment flow
     onConfirm();
   };
   
   return (
-    <Dialog open={open} onOpenChange={processingPurchase ? undefined : onOpenChange}>
+    <Dialog open={open} onOpenChange={processingPurchase && !error && !localError ? undefined : onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Confirm Purchase</DialogTitle>
@@ -114,22 +120,33 @@ const TicketPurchaseDialog: React.FC<TicketPurchaseDialogProps> = ({
               </div>
             </div>
           )}
+
+          {/* Display errors */}
+          {(error || localError) && (
+            <Alert variant="destructive" className="mt-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error || localError}</AlertDescription>
+            </Alert>
+          )}
         </div>
         
         <DialogFooter>
           <Button
             variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={processingPurchase}
+            onClick={() => {
+              setLocalError(null);
+              onOpenChange(false);
+            }}
+            disabled={processingPurchase && !error && !localError}
           >
             Cancel
           </Button>
           <Button
             className="bg-betting-green hover:bg-betting-green-dark"
             onClick={handleConfirm}
-            disabled={processingPurchase || (!canAffordWithCredit && paymentMethod === 'credit')}
+            disabled={processingPurchase && !error && !localError || (!canAffordWithCredit && paymentMethod === 'credit')}
           >
-            {processingPurchase ? (
+            {processingPurchase && !error && !localError ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Processing...
