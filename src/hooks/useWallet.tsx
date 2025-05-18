@@ -149,10 +149,9 @@ export const useWallet = () => {
       console.log("Starting wallet top-up for amount:", amount);
       
       // Use the Supabase function to create the transaction
-      // This bypasses RLS and handles the database changes securely
-      // Make sure the parameter names and order match what's on the database
+      // The parameter names and order MUST match the database function definition
       const { data, error } = await supabase.rpc(
-        "create_wallet_top_up" as any,
+        "create_wallet_top_up",
         {
           p_user_id: currentUser.id,
           p_amount: amount,

@@ -95,10 +95,9 @@ export const completePaymentTransaction = async (
   try {
     console.log(`Completing transaction for purchase ID: ${purchaseId}`);
     
-    // Call the complete_wallet_transaction function using a custom SQL query
-    // since the function isn't in the types yet
+    // Call the complete_wallet_transaction function with correct parameter order
     const { data, error } = await supabase.rpc(
-      "complete_wallet_transaction" as any,
+      "complete_wallet_transaction",
       {
         p_transaction_id: purchaseId,
         p_payment_id: paymentId,
