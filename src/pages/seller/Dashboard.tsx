@@ -86,7 +86,8 @@ const SellerDashboard: React.FC = () => {
           />
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        {/* Added more bottom margin (mb-12) to ensure enough space between sections */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
           <div className="lg:col-span-2">
             <PerformanceChart 
               loading={isLoading} 

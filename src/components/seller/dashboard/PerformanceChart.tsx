@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { 
@@ -66,8 +65,9 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
           <GrowthIndicator />
         </CardTitle>
       </CardHeader>
-      <CardContent className="pb-6">
-        <div style={{ height: "220px", width: "100%" }}>
+      <CardContent className="pb-4">
+        {/* Reduced height from 220px to 180px to prevent overlapping */}
+        <div style={{ height: "180px", width: "100%" }}>
           {loading ? (
             <div className="w-full h-full flex items-center justify-center bg-betting-dark-gray/20 rounded-md">
               <p className="text-muted-foreground">Loading chart data...</p>
@@ -89,8 +89,8 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
                 <AreaChart
                   data={data}
                   margin={{
-                    top: 10,
-                    right: 30,
+                    top: 5,
+                    right: 20,
                     left: 10,
                     bottom: 5,
                   }}
@@ -100,10 +100,13 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
                     dataKey="name" 
                     stroke="#888"
                     tickFormatter={(value) => value}
+                    dy={5}
+                    height={15}
                   />
                   <YAxis 
                     stroke="#888"
                     tickFormatter={(value) => `R${value}`}
+                    width={40}
                   />
                   <Tooltip 
                     content={({ active, payload }) => {
