@@ -12,7 +12,6 @@ import PerformanceChart from "@/components/seller/dashboard/PerformanceChart";
 import SalesTipsCard from "@/components/seller/dashboard/SalesTipsCard";
 import ProfileIncompleteAlert from "@/components/seller/dashboard/ProfileIncompleteAlert";
 import RecentSalesCard from "@/components/seller/dashboard/RecentSalesCard";
-import SupportCard from "@/components/seller/dashboard/SupportCard";
 import { formatCurrency } from "@/utils/formatting";
 
 const SellerDashboard: React.FC = () => {
@@ -100,13 +99,8 @@ const SellerDashboard: React.FC = () => {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <RecentSalesCard loading={isLoading} sales={recentSales} />
-          </div>
-          <div>
-            <SupportCard />
-          </div>
+        <div className="grid grid-cols-1 gap-6">
+          <RecentSalesCard loading={isLoading} sales={recentSales} />
         </div>
       </div>
     </Layout>

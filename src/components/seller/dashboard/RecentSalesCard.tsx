@@ -39,7 +39,7 @@ const RecentSalesCard: React.FC<RecentSalesCardProps> = ({ loading, sales }) => 
   }
 
   return (
-    <Card className="betting-card lg:col-span-2">
+    <Card className="betting-card">
       <CardHeader>
         <CardTitle>Recent Sales</CardTitle>
       </CardHeader>
