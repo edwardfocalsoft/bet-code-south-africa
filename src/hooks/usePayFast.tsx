@@ -67,6 +67,37 @@ export const usePayFast = () => {
         }
       }
       
+      // If we still don't have a purchase ID, we need to create one
+      if (!purchaseId) {
+        // Create initial purchase record if credit is insufficient or not using credit
+        console.log("Creating initial purchase record for PayFast payment");
+        try {
+          const { data, error } = await supabase.rpc(
+            "purchase_ticket",
+            {
+              p_ticket_id: paymentData.ticketId,
+              p_buyer_id: paymentData.buyerId
+            }
+          );
+          
+          if (error) {
+            console.error("Purchase ticket RPC error:", error);
+            throw new Error(error.message || "Failed to create purchase record");
+          }
+          
+          if (!data) {
+            throw new Error("No purchase ID returned from purchase_ticket function");
+          }
+          
+          purchaseId = data;
+          console.log("Purchase record created with ID:", purchaseId);
+        } catch (err: any) {
+          console.error("Failed to create purchase record:", err);
+          throw new Error("Failed to create purchase record");
+        }
+      }
+      
+      // Ensure we have a purchase ID before continuing
       if (!purchaseId) {
         const errorMessage = "Failed to create purchase record";
         setError(errorMessage);
