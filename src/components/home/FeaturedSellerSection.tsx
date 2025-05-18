@@ -34,7 +34,7 @@ const FeaturedSellerSection: React.FC = () => {
         
         const { data: purchaseData, error: purchaseError } = await supabase
           .from("purchases")
-          .select("seller_id, profiles:seller_id (username)")
+          .select("seller_id, seller:seller_id(username)")
           .gte("purchase_date", oneWeekAgo.toISOString())
           .order("purchase_date", { ascending: false });
           
@@ -47,7 +47,7 @@ const FeaturedSellerSection: React.FC = () => {
           if (!salesCount[sellerId]) {
             salesCount[sellerId] = { 
               count: 0, 
-              username: purchase.profiles?.username || "Unknown" 
+              username: purchase.seller?.username || "Unknown" 
             };
           }
           salesCount[sellerId].count++;

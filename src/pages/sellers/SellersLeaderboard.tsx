@@ -70,7 +70,7 @@ const SellersLeaderboard: React.FC = () => {
         .from('purchases')
         .select(`
           seller_id,
-          profiles:seller_id (id, username, avatar_url)
+          seller:seller_id (id, username, avatar_url)
         `)
         .gte('purchase_date', start)
         .lte('purchase_date', end);
@@ -82,7 +82,7 @@ const SellersLeaderboard: React.FC = () => {
       
       salesData?.forEach(purchase => {
         const sellerId = purchase.seller_id;
-        const sellerProfile = purchase.profiles;
+        const sellerProfile = purchase.seller;
         
         if (!salesBySellerMap.has(sellerId)) {
           salesBySellerMap.set(sellerId, {

@@ -27,7 +27,8 @@ const BettingSitesSection: React.FC = () => {
       } catch (error) {
         console.error("Error fetching betting sites:", error);
         // Fallback to default betting sites if there's an error
-        setBettingSites(["Hollywoodbets", "Betway", "Supabets", "Sportsbets", "Betfred", "World Sports Betting"]);
+        // Make sure we only use valid BettingSite values from the type definition
+        setBettingSites(["Betway", "HollywoodBets", "Supabets", "10bet", "Playa", "Easybet"]);
       } finally {
         setIsLoading(false);
       }
