@@ -9,7 +9,7 @@ const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <Link to="/" className="text-betting-green text-xl font-bold flex items-center mb-4">
-              <span className="text-betting-accent">Bet</span>Code<span className="text-xs text-muted-foreground ml-1">ZA</span>
+              <span className="text-betting-accent">Bet</span>Code<span className="text-xs text-muted-foreground ml-1">South Africa</span>
             </Link>
             <p className="text-muted-foreground text-sm">
               South Africa's premier platform for sharing and selling sports betting codes. Trusted by thousands of bettors nationwide.
@@ -87,7 +87,7 @@ const Footer: React.FC = () => {
         </div>
         
         <div className="mt-8 pt-4 border-t border-betting-light-gray text-center text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} BetCode ZA. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} BetCode South Africa. All rights reserved.</p>
           <p className="mt-1">
             This site is intended for users 18 years and older. Please bet responsibly.
           </p>

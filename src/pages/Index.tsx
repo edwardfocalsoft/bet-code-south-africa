@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -7,9 +8,8 @@ import SellerCard from "@/components/sellers/SellerCard";
 import { BettingTicket, User } from "@/types";
 import { BETTING_SITES } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, TrendingUp, Award, CheckCircle, Clock } from "lucide-react";
+import { TrendingUp, Award, CheckCircle, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useTickets } from "@/hooks/useTickets";
@@ -67,18 +67,6 @@ const Index: React.FC = () => {
                 Become a Seller
               </Button>
             </Link>
-          </div>
-          
-          {/* Search Box */}
-          <div className="max-w-2xl mx-auto animate-slide-up delay-200">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search for tickets or sellers..."
-                className="pl-10 py-6 bg-betting-dark-gray border-betting-light-gray text-white rounded-lg"
-              />
-            </div>
           </div>
         </div>
       </section>
@@ -174,12 +162,12 @@ const Index: React.FC = () => {
       {/* How It Works */}
       <section className="py-16 px-4 bg-betting-dark-gray">
         <div className="container mx-auto">
-          <h2 className="text-2xl font-medium text-center mb-12">How BetCode ZA Works</h2>
+          <h2 className="text-2xl font-medium text-center mb-12">How BetCode South Africa Works</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="betting-card text-center">
               <div className="bg-betting-green/20 h-16 w-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Search className="h-8 w-8 text-betting-green" />
+                <CheckCircle className="h-8 w-8 text-betting-green" />
               </div>
               <h3 className="text-xl font-medium mb-2">Find Tickets</h3>
               <p className="text-muted-foreground">
@@ -213,7 +201,7 @@ const Index: React.FC = () => {
       {/* CTA Section with enhanced design */}
       <section className="py-20 px-4 bg-betting-black">
         <div className="container mx-auto text-center max-w-3xl">
-          <h2 className="text-3xl font-bold mb-6">Ready to Win With BetCode ZA?</h2>
+          <h2 className="text-3xl font-bold mb-6">Ready to Win With BetCode South Africa?</h2>
           <p className="text-lg text-muted-foreground mb-8">
             Join our community of smart bettors and get access to premium betting codes from South Africa's top predictors.
           </p>
