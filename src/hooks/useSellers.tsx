@@ -6,9 +6,10 @@ import { User } from "@/types";
 
 interface UseSellersOptions {
   fetchOnMount?: boolean;
+  limit?: number;
 }
 
-export function useSellers(options: UseSellersOptions = { fetchOnMount: true }) {
+export function useSellers(options: UseSellersOptions = { fetchOnMount: true, limit: 3 }) {
   const [sellers, setSellers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,12 +20,19 @@ export function useSellers(options: UseSellersOptions = { fetchOnMount: true }) 
       setLoading(true);
       setError(null);
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("profiles")
         .select("*")
         .eq("role", "seller")
         .eq("approved", true)
         .eq("suspended", false);
+        
+      // Apply limit if specified
+      if (options.limit) {
+        query = query.limit(options.limit);
+      }
+      
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -54,7 +62,7 @@ export function useSellers(options: UseSellersOptions = { fetchOnMount: true }) 
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, options.limit]);
 
   useEffect(() => {
     if (options.fetchOnMount) {

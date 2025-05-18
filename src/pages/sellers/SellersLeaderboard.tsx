@@ -65,9 +65,8 @@ const SellersLeaderboard: React.FC = () => {
         .from('purchases')
         .select(`
           seller_id,
-          profiles(id, username, avatar_url)
+          profiles!purchases_seller_id_fkey(id, username, avatar_url)
         `)
-        .eq('profiles.id', supabase.rpc('auth.uid'))
         .gte('purchase_date', startStr)
         .lte('purchase_date', endStr);
         
@@ -90,7 +89,7 @@ const SellersLeaderboard: React.FC = () => {
           .from('purchases')
           .select(`
             seller_id,
-            profiles(id, username, avatar_url)
+            profiles!purchases_seller_id_fkey(id, username, avatar_url)
           `)
           .gte('purchase_date', thirtyDaysAgo.toISOString());
           
