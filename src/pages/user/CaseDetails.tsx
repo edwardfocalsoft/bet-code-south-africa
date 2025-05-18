@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import {
@@ -92,6 +93,7 @@ const CaseDetailsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false);
 
   const isAdmin = userRole === 'admin';
   
@@ -127,11 +129,13 @@ const CaseDetailsPage: React.FC = () => {
 
   useEffect(() => {
     const loadCaseDetails = async () => {
-      if (!caseId) return;
+      if (!caseId || !currentUser || hasFetched) return;
 
       try {
         setLoading(true);
         setError(null);
+        setHasFetched(true);
+        
         const details = await fetchCaseDetails(caseId);
         
         if (!details) {
@@ -161,7 +165,7 @@ const CaseDetailsPage: React.FC = () => {
     };
 
     loadCaseDetails();
-  }, [caseId, fetchCaseDetails]);
+  }, [caseId, fetchCaseDetails, currentUser, hasFetched]);
 
   const handleSubmitReply = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,6 +176,7 @@ const CaseDetailsPage: React.FC = () => {
       const result = await addReply(caseId, replyContent);
       if (result) {
         // Refresh case details to show the new reply
+        setHasFetched(false);
         const updatedDetails = await fetchCaseDetails(caseId);
         
         if (updatedDetails) {
@@ -235,6 +240,7 @@ const CaseDetailsPage: React.FC = () => {
       
       if (success) {
         // Reload case details
+        setHasFetched(false);
         const updatedDetails = await fetchCaseDetails(caseId);
         
         if (updatedDetails) {

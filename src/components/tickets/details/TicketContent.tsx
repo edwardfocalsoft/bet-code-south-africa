@@ -5,7 +5,6 @@ import {
   Calendar, 
   Clock, 
   CircleDollarSign, 
-  Share2, 
   Star, 
   AlertCircle,
   Flag
@@ -56,14 +55,12 @@ const TicketContent: React.FC<TicketContentProps> = ({
           <div>
             <div className="flex justify-between items-start">
               <h1 className="text-2xl font-bold mb-1">{ticket.title}</h1>
-              <div className="flex gap-2">
-                {!isSeller && (
-                  <ShareTicket 
-                    ticketId={ticket.id}
-                    ticketTitle={ticket.title}
-                  />
-                )}
-              </div>
+              {!isSeller && (
+                <ShareTicket 
+                  ticketId={ticket.id}
+                  ticketTitle={ticket.title}
+                />
+              )}
             </div>
             
             <div className="flex items-center gap-2 mb-4 flex-wrap">
