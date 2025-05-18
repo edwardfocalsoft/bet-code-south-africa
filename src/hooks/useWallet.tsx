@@ -182,14 +182,13 @@ export const useWallet = () => {
 
       console.log("Payment initiation result:", paymentResult);
       
-      if (!paymentResult || !paymentResult.paymentUrl) {
+      if (!paymentResult) {
         const errorMessage = "Failed to initialize payment";
         setError(errorMessage);
         throw new Error(errorMessage);
       }
 
-      // Redirect happens in initiatePayment now, force use of window.location.href
-      window.location.href = paymentResult.paymentUrl;
+      // Form submission is handled by processPayment now
       return true;
     } catch (error: any) {
       console.error("Error adding credits:", error);

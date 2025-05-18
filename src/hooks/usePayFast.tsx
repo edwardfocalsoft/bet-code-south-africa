@@ -6,7 +6,6 @@ import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
 import { 
   fetchPaymentConfig, 
-  generateSignature, 
   processPayment, 
   completePaymentTransaction,
   PaymentResult 
@@ -84,9 +83,9 @@ export const usePayFast = () => {
         throw new Error(errorMessage);
       }
       
-      // Create payment with PayFast
+      // Create payment with PayFast using form submission
       console.log("Processing PayFast payment");
-      const result = await processPayment({
+      return await processPayment({
         config,
         purchaseId: purchaseId,
         currentUser,
@@ -95,23 +94,6 @@ export const usePayFast = () => {
         completePayment
       });
       
-      console.log("PayFast payment result:", result);
-      
-      // Important! Redirect to payment URL if available
-      if (result.paymentUrl) {
-        console.log("Redirecting to payment URL:", result.paymentUrl);
-        
-        // Force use of window.location.href for reliable redirection
-        window.location.href = result.paymentUrl;
-        
-        // Backup method in case the first redirect doesn't work
-        setTimeout(() => {
-          console.log("Backup redirect attempt");
-          window.open(result.paymentUrl, "_self");
-        }, 500);
-      }
-      
-      return result;
     } catch (error: any) {
       console.error("Payment initiation error:", error);
       const errorMessage = error.message || "Failed to initiate payment";

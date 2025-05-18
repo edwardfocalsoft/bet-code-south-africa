@@ -62,7 +62,7 @@ const CreditBalanceCard: React.FC<CreditBalanceCardProps> = ({
           setProcessing(false);
           setConfirmDialogOpen(false);
         }
-        // Redirect handled in usePayFast
+        // Form submission will handle the redirect
       } catch (error: any) {
         console.error("Top-up error:", error);
         setTopUpError(error.message || "An unexpected error occurred");

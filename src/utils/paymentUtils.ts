@@ -99,25 +99,42 @@ export const processPayment = async ({
 
     console.log("Payment params:", paymentParams);
 
-    // Build the PayFast URL - use production URL since is_test_mode is false
+    // Build the PayFast URL - use production URL
     const baseUrl = 'https://www.payfast.co.za/eng/process';
     
-    // Create URL with query parameters for direct redirection
-    const queryParams = new URLSearchParams();
-    Object.entries(paymentParams).forEach(([key, value]) => {
-      queryParams.append(key, String(value));
-    });
+    // Create a form element and submit it programmatically
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = baseUrl;
+    form.target = '_self'; // Load in the same window
     
-    const paymentUrl = `${baseUrl}?${queryParams.toString()}`;
-    console.log("Generated payment URL:", paymentUrl);
+    // Add all parameters as hidden form inputs
+    for (const [key, value] of Object.entries(paymentParams)) {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = String(value);
+      form.appendChild(input);
+    }
     
-    return {
+    // Add the form to the body and submit it immediately
+    document.body.appendChild(form);
+    console.log("Submitting form to PayFast:", baseUrl);
+    
+    // Return successful result before submitting form
+    const result = {
       purchaseId,
       success: true,
       testMode: config.is_test_mode,
-      paymentUrl,
       formData: paymentParams as Record<string, string>
     };
+    
+    // Set a small timeout to ensure the result is returned before the form submits
+    setTimeout(() => {
+      form.submit();
+    }, 100);
+    
+    return result;
   } catch (error: any) {
     console.error("Payment processing error:", error);
     toast.error("Payment processing error", {
