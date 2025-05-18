@@ -1,20 +1,8 @@
-
 import { useEffect } from "react";
 import { Notification } from "@/types";
 import { useNotificationFetching } from "./notifications/useNotificationFetching";
 import { useNotificationActions } from "./notifications/useNotificationActions";
 import { useRealtimeNotifications } from "./notifications/useRealtimeNotifications";
-
-export interface Notification {
-  id: string;
-  userId: string;
-  title: string;
-  message: string;
-  isRead: boolean;
-  createdAt: Date;
-  type: "subscription" | "ticket" | "system" | "free_ticket" | "case";
-  relatedId?: string;
-}
 
 export function useNotifications() {
   const {

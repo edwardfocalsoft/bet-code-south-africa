@@ -17,6 +17,7 @@ import RefundDialog from "@/components/cases/RefundDialog";
 import CaseError from "@/components/cases/CaseError";
 import CaseNotFound from "@/components/cases/CaseNotFound";
 import LoadingState from "@/components/cases/LoadingState";
+import CaseClosedAlert from "@/components/cases/CaseClosedAlert";
 import { useCaseDetailsView } from "@/hooks/cases/views/useCaseDetailsView";
 
 // Helper function to get status color
