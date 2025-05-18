@@ -4,13 +4,12 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
-
-interface PayFastConfig {
-  merchant_id: string;
-  merchant_key: string;
-  passphrase: string;
-  is_test_mode: boolean;
-}
+import { 
+  fetchPaymentConfig, 
+  generateSignature, 
+  processPayment, 
+  completePaymentTransaction 
+} from "@/utils/paymentUtils";
 
 interface PaymentData {
   ticketId: string;
@@ -27,49 +26,6 @@ export const usePayFast = () => {
   const { toast: uiToast } = useToast();
   const { currentUser } = useAuth();
 
-  const getPaymentConfig = async (): Promise<PayFastConfig | null> => {
-    try {
-      console.log("Fetching payment config");
-      const { data, error } = await supabase
-        .from("payment_settings")
-        .select("merchant_id, merchant_key, passphrase, is_test_mode")
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        console.error("Error fetching payment config:", error);
-        throw error;
-      }
-      
-      if (!data) {
-        throw new Error("No payment configuration found");
-      }
-      
-      console.log("Payment config fetched:", data);
-      return data as PayFastConfig;
-    } catch (error: any) {
-      console.error("Error fetching payment config:", error);
-      
-      // Use fallback test mode config if can't get from database
-      return {
-        merchant_id: '10030614',
-        merchant_key: '85onulw93ercm',
-        passphrase: 'testpassphrase',
-        is_test_mode: true
-      };
-    }
-  };
-
-  const generateSignature = (data: Record<string, string>, passphrase: string): string => {
-    // In production, this would need to be done server-side for security
-    // This is a client-side mock implementation for development
-    const payload = Object.keys(data).sort().map(key => `${key}=${data[key]}`).join('&') + `&passphrase=${passphrase}`;
-    
-    console.log("Signature payload:", payload);
-    // Mock signature for development - this should be replaced with a proper server-side implementation
-    return "DEMO_SIGNATURE_" + Math.random().toString(36).substring(2, 15);
-  };
-
   const initiatePayment = async (paymentData: PaymentData) => {
     if (!currentUser) {
       toast.error("Please log in to make a purchase");
@@ -78,7 +34,7 @@ export const usePayFast = () => {
 
     try {
       setLoading(true);
-      const config = await getPaymentConfig();
+      const config = await fetchPaymentConfig();
       
       if (!config) {
         throw new Error("Payment configuration not found");
@@ -90,115 +46,23 @@ export const usePayFast = () => {
       let purchaseId = paymentData.purchaseId;
       
       if (useCredit && !purchaseId) {
-        // Get user's credit balance
-        const { data: userData, error: userError } = await supabase
-          .from("profiles")
-          .select("credit_balance")
-          .eq("id", currentUser.id)
-          .single();
-          
-        if (userError) throw userError;
-        
-        const creditBalance = Number(userData?.credit_balance || 0);
-        
-        // If user has enough credit, create purchase record
-        if (creditBalance >= paymentData.amount) {
-          // Call the purchase_ticket function via RPC
-          const { data, error } = await supabase.rpc(
-            "purchase_ticket",
-            {
-              p_ticket_id: paymentData.ticketId,
-              p_buyer_id: paymentData.buyerId
-            }
-          );
-          
-          if (error) throw error;
-          purchaseId = data;
-          
-          // Complete purchase using credits
-          const { data: completeData, error: completeError } = await supabase.rpc(
-            "complete_ticket_purchase",
-            {
-              p_purchase_id: purchaseId,
-              p_payment_id: `credit_${Date.now()}`,
-              p_payment_data: { payment_method: 'credit' }
-            }
-          );
-          
-          if (completeError) throw completeError;
-          
-          return {
-            purchaseId,
-            success: true,
-            creditUsed: true,
-            paymentComplete: true
-          };
+        // Handle credit purchase
+        const creditResult = await handleCreditPayment(paymentData);
+        if (creditResult && creditResult.paymentComplete) {
+          return creditResult;
         }
-        
-        // Credit balance is insufficient, create purchase and proceed with payment
-        // Call the purchase_ticket function via RPC to create initial record
-        const { data, error } = await supabase.rpc(
-          "purchase_ticket",
-          {
-            p_ticket_id: paymentData.ticketId,
-            p_buyer_id: paymentData.buyerId
-          }
-        );
-        
-        if (error) throw error;
-        purchaseId = data;
+        purchaseId = creditResult?.purchaseId;
       }
-
-      // Create PayFast payment data
-      const paymentParams = {
-        merchant_id: config.merchant_id,
-        merchant_key: config.merchant_key,
-        return_url: `${window.location.origin}/payment/success`,
-        cancel_url: `${window.location.origin}/payment/cancel`,
-        notify_url: `${window.location.origin}/api/payment-notification`,
-        name_first: currentUser.username || "User",
-        email_address: currentUser.email || "",
-        m_payment_id: purchaseId,
-        amount: remainingAmount.toFixed(2),
-        item_name: `Ticket: ${paymentData.ticketTitle}`.substring(0, 100),
-        item_description: "Sports betting ticket purchase"
-      };
-
-      // Add signature
-      const signature = generateSignature(
-        paymentParams as Record<string, string>, 
-        config.passphrase
-      );
-      const finalParams = { ...paymentParams, signature };
-
-      // In test mode, simulate a successful payment
-      if (config.is_test_mode) {
-        console.log("Test mode payment initiated");
-        console.log("Payment parameters:", finalParams);
-        
-        // Simulate a successful payment completion
-        setTimeout(async () => {
-          await completePayment(purchaseId!, "SIMULATED_" + Date.now());
-        }, 2000);
-
-        return {
-          purchaseId,
-          success: true,
-          testMode: true,
-          paymentUrl: "https://sandbox.payfast.co.za/eng/process",
-          formData: finalParams // Include form data for test mode too
-        };
-      }
-
-      console.log("Live payment initiated with params:", finalParams);
       
-      // Return payment data for actual PayFast integration
-      return {
-        purchaseId,
-        paymentUrl: "https://www.payfast.co.za/eng/process",
-        formData: finalParams,
-        testMode: config.is_test_mode
-      };
+      // Create payment with PayFast
+      return await processPayment({
+        config,
+        purchaseId: purchaseId!,
+        currentUser,
+        amount: remainingAmount,
+        ticketTitle: paymentData.ticketTitle,
+        completePayment
+      });
     } catch (error: any) {
       console.error("Payment initiation error:", error);
       toast.error(error.message || "Failed to initiate payment");
@@ -208,27 +72,75 @@ export const usePayFast = () => {
     }
   };
 
-  const completePayment = async (purchaseId: string, paymentId: string, paymentData = {}) => {
+  const handleCreditPayment = async (paymentData: PaymentData) => {
     try {
-      setLoading(true);
+      // Get user's credit balance
+      const { data: userData, error: userError } = await supabase
+        .from("profiles")
+        .select("credit_balance")
+        .eq("id", currentUser!.id)
+        .single();
+        
+      if (userError) throw userError;
       
-      // Call the complete_ticket_purchase function
+      const creditBalance = Number(userData?.credit_balance || 0);
+      
+      // If user has enough credit, create purchase record
+      if (creditBalance >= paymentData.amount) {
+        // Call the purchase_ticket function via RPC
+        const { data, error } = await supabase.rpc(
+          "purchase_ticket",
+          {
+            p_ticket_id: paymentData.ticketId,
+            p_buyer_id: paymentData.buyerId
+          }
+        );
+        
+        if (error) throw error;
+        const purchaseId = data;
+        
+        // Complete purchase using credits
+        const { data: completeData, error: completeError } = await supabase.rpc(
+          "complete_ticket_purchase",
+          {
+            p_purchase_id: purchaseId,
+            p_payment_id: `credit_${Date.now()}`,
+            p_payment_data: { payment_method: 'credit' }
+          }
+        );
+        
+        if (completeError) throw completeError;
+        
+        return {
+          purchaseId,
+          success: true,
+          creditUsed: true,
+          paymentComplete: true
+        };
+      }
+      
+      // Create initial purchase record if credit is insufficient
       const { data, error } = await supabase.rpc(
-        "complete_ticket_purchase",
+        "purchase_ticket",
         {
-          p_purchase_id: purchaseId,
-          p_payment_id: paymentId,
-          p_payment_data: paymentData
+          p_ticket_id: paymentData.ticketId,
+          p_buyer_id: paymentData.buyerId
         }
       );
       
       if (error) throw error;
       
-      toast.success("Purchase Complete!", {
-        description: "Your purchase was successful!"
-      });
-      
-      return true;
+      return { purchaseId: data };
+    } catch (error) {
+      console.error("Credit payment error:", error);
+      throw error;
+    }
+  };
+
+  const completePayment = async (purchaseId: string, paymentId: string, paymentData = {}) => {
+    try {
+      setLoading(true);
+      return await completePaymentTransaction(purchaseId, paymentId, paymentData);
     } catch (error: any) {
       console.error("Payment completion error:", error);
       toast.error("Payment Error", {

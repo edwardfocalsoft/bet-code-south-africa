@@ -102,7 +102,7 @@ const RecentPurchasesCard: React.FC = () => {
         ) : recentPurchases.length > 0 ? (
           <div className="space-y-4">
             {recentPurchases.map(purchase => (
-              <div key={purchase.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+              <div key={purchase.id} className="flex justify-between items-center p-3 bg-betting-dark-gray rounded-md">
                 <div className="flex flex-col">
                   <span className="font-medium truncate max-w-[200px]">{purchase.title}</span>
                   <span className="text-xs text-muted-foreground">
