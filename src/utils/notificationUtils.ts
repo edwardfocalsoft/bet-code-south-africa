@@ -53,7 +53,8 @@ export const createNotification = async (
 };
 
 /**
- * Function to test if the current user can create notifications
+ * Function to test if the current user can create notifications - only for manual testing
+ * THIS SHOULD NOT BE CALLED AUTOMATICALLY IN PRODUCTION
  * @returns Boolean indicating success/failure
  */
 export const testNotificationCreation = async (): Promise<boolean> => {

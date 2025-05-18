@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import {
   DropdownMenu,
@@ -15,13 +14,12 @@ import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/auth";
-import { testNotificationCreation } from "@/utils/notificationUtils";
 
 const NotificationDropdown: React.FC = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead, loading, error } = useNotifications();
   const { currentUser, userRole } = useAuth();
   
-  // Debug effect to log notifications and test creation
+  // Debug effect to log notifications
   useEffect(() => {
     console.log("NotificationDropdown - Current user:", currentUser?.id);
     console.log("NotificationDropdown - Notifications count:", notifications.length);
@@ -29,18 +27,6 @@ const NotificationDropdown: React.FC = () => {
     
     if (error) {
       console.error("NotificationDropdown - Error:", error);
-    }
-    
-    // Test notification creation on component mount
-    if (currentUser) {
-      const testCreation = async () => {
-        const result = await testNotificationCreation();
-        console.log("Notification creation test result:", result ? "Success" : "Failed");
-      };
-      
-      setTimeout(() => {
-        testCreation();
-      }, 2000); // Delay to ensure auth is fully loaded
     }
   }, [currentUser, notifications.length, unreadCount, error]);
   
