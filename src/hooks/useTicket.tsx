@@ -77,7 +77,7 @@ export const useTicket = (ticketId: string | undefined) => {
     fetchTicketDetails();
   }, [fetchTicketDetails]);
 
-  const purchaseTicket = async () => {
+  const purchaseTicket = async (useCredit = true) => {
     if (!currentUser) {
       toast.error("Please log in to purchase this ticket");
       return null;
@@ -123,8 +123,9 @@ export const useTicket = (ticketId: string | undefined) => {
         return { purchaseId: purchaseData, success: true, paymentComplete: true };
       }
       
-      // If user has enough credits, use them
-      if (creditBalance >= ticketPrice) {
+      // If user has enough credits and wants to use them, use credits
+      if (useCredit && creditBalance >= ticketPrice) {
+        console.log("Using credit balance to purchase ticket");
         // First create a purchase record
         const { data: purchaseData, error: purchaseError } = await supabase
           .rpc('purchase_ticket', {
@@ -149,13 +150,15 @@ export const useTicket = (ticketId: string | undefined) => {
         return { purchaseId: purchaseData, success: true, creditUsed: true, paymentComplete: true };
       }
       
-      // User needs to pay with PayFast
+      // User wants to pay with PayFast
+      console.log("Initiating PayFast payment for ticket");
       const result = await initiatePayment({
         ticketId: ticketId || "",
         ticketTitle: ticket.title,
         amount: ticket.price,
         buyerId: currentUser.id,
-        sellerId: ticket.seller_id
+        sellerId: ticket.seller_id,
+        useCredit: useCredit // Pass the useCredit flag
       });
       
       // Mark as purchased if payment was completed

@@ -84,7 +84,7 @@ export const usePayFast = () => {
       // Important! Redirect to payment URL if available
       if (result.paymentUrl) {
         console.log("Redirecting to payment URL:", result.paymentUrl);
-        // Use direct href navigation for more reliable redirection
+        // Use direct window.location.href navigation for reliable redirection
         window.location.href = result.paymentUrl;
       }
       

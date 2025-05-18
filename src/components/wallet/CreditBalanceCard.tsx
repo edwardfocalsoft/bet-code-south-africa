@@ -47,6 +47,7 @@ const CreditBalanceCard: React.FC<CreditBalanceCardProps> = ({
     if (!isNaN(amount) && amount > 0) {
       setProcessing(true);
       console.log("Processing top-up for amount:", amount);
+      
       try {
         const result = await onTopUp(amount);
         if (!result) {

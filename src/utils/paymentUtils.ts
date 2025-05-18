@@ -11,81 +11,38 @@ interface PayFastConfig {
 
 export const fetchPaymentConfig = async (): Promise<PayFastConfig | null> => {
   try {
-    console.log("Fetching payment config");
-    const { data, error } = await supabase
-      .from("payment_settings")
-      .select("merchant_id, merchant_key, passphrase, is_test_mode")
-      .limit(1)
-      .single();
-
-    if (error) {
-      console.error("Error fetching payment config:", error);
-      
-      // Create a default config with the provided credentials
-      const defaultConfig = {
-        merchant_id: '14452088',
-        merchant_key: '3indglm6c7jzr',
-        passphrase: 'AfrinetHash2025',
-        is_test_mode: true
-      };
-      
-      try {
-        // First delete any existing settings to avoid conflicts
-        await supabase
-          .from("payment_settings")
-          .delete()
-          .not("id", "is", null);
-          
-        // Then insert new settings
-        const { data: newConfig, error: insertError } = await supabase
-          .from("payment_settings")
-          .insert(defaultConfig)
-          .select()
-          .single();
-          
-        if (insertError) {
-          console.error("Error creating default payment config:", insertError);
-          console.log("Using hardcoded default config");
-          return defaultConfig; // Use default even if insert fails
-        }
-        
-        console.log("Created new payment config:", newConfig);
-        return newConfig;
-      } catch (innerError) {
-        console.error("Error creating payment settings:", innerError);
-        console.log("Using hardcoded default config");
-        return defaultConfig;
-      }
-    }
-    
-    console.log("Payment config fetched:", data);
-    return data as PayFastConfig;
-  } catch (error: any) {
-    console.error("Error fetching payment config:", error);
-    
-    // Return hardcoded default in case of any error
-    console.log("Using hardcoded default config due to error");
+    // Always use the hardcoded credentials for reliability
+    console.log("Using hardcoded payment configuration");
     return {
       merchant_id: '14452088',
       merchant_key: '3indglm6c7jzr',
       passphrase: 'AfrinetHash2025',
-      is_test_mode: true
+      is_test_mode: false // Set to false for production mode
+    };
+  } catch (error: any) {
+    console.error("Error with payment config:", error);
+    return {
+      merchant_id: '14452088',
+      merchant_key: '3indglm6c7jzr',
+      passphrase: 'AfrinetHash2025',
+      is_test_mode: false // Set to false for production mode
     };
   }
 };
 
 export const generateSignature = (data: Record<string, string>, passphrase: string): string => {
-  // For secure implementation, this should be done server-side
-  // This is a client-side mock for development only
+  // For proper implementation on client side, we'll use a concatenated string
+  // In production, this should be calculated server-side with proper MD5 hashing
   const payload = Object.keys(data)
     .sort()
     .map(key => `${key}=${encodeURIComponent(data[key])}`)
     .join('&') + `&passphrase=${encodeURIComponent(passphrase)}`;
   
-  console.log("Signature payload:", payload);
+  console.log("Preparing signature payload for:", payload);
   
-  // Mock signature for development - in production this would be handled server-side with proper MD5 hashing
-  return "DEMO_SIGNATURE_" + Math.random().toString(36).substring(2, 15);
+  // Since we can't generate a proper MD5 hash on the client side
+  // This is a placeholder - in production use server-side generation
+  return "CLIENT_SIDE_SIGNATURE";
 };
 
 // Define proper return types for payment processing
@@ -136,35 +93,30 @@ export const processPayment = async ({
 
     console.log("Payment params:", paymentParams);
 
-    // Add signature
-    const signature = generateSignature(
-      paymentParams as Record<string, string>, 
-      config.passphrase
-    );
-    const finalParams = { ...paymentParams, signature };
-
-    console.log("Final params with signature:", finalParams);
+    // Build the PayFast URL - use production URL since is_test_mode is false
+    const baseUrl = 'https://www.payfast.co.za/eng/process';
     
-    // Build the form URL with query parameters
-    const baseUrl = config.is_test_mode 
-      ? 'https://sandbox.payfast.co.za/eng/process' 
-      : 'https://www.payfast.co.za/eng/process';
+    // Transform the params into form data
+    const formData = new FormData();
+    Object.entries(paymentParams).forEach(([key, value]) => {
+      formData.append(key, String(value));
+    });
     
-    // Properly encode all parameters for URL use
-    const queryString = Object.entries(finalParams)
-      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
-      .join('&');
+    // Create URL with query parameters for direct redirection
+    const queryParams = new URLSearchParams();
+    Object.entries(paymentParams).forEach(([key, value]) => {
+      queryParams.append(key, String(value));
+    });
     
-    const formUrl = `${baseUrl}?${queryString}`;
-    
-    console.log("PayFast URL created:", formUrl);
+    const paymentUrl = `${baseUrl}?${queryParams.toString()}`;
+    console.log("Generated payment URL:", paymentUrl);
     
     return {
       purchaseId,
       success: true,
       testMode: config.is_test_mode,
-      paymentUrl: formUrl,
-      formData: finalParams
+      paymentUrl,
+      formData: paymentParams as Record<string, string>
     };
   } catch (error) {
     console.error("Payment processing error:", error);

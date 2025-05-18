@@ -35,6 +35,7 @@ const TicketPurchaseDialog: React.FC<TicketPurchaseDialogProps> = ({
   onConfirm
 }) => {
   const handleConfirm = () => {
+    console.log("TicketPurchaseDialog - Confirming purchase with method:", paymentMethod);
     // Call onConfirm directly, the parent component will handle the payment flow
     onConfirm();
   };

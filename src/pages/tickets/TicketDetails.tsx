@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -61,7 +62,8 @@ const TicketDetails: React.FC = () => {
     
     try {
       console.log("Starting purchase process with payment method:", paymentMethod);
-      const result = await purchaseTicket();
+      // Pass the selected payment method to the purchase function
+      const result = await purchaseTicket(paymentMethod === 'payfast' ? false : true);
       console.log("Purchase result:", result);
       
       if (!result) {
