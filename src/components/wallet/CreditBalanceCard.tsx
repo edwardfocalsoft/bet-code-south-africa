@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { TrendingUp, Loader2, AlertCircle } from "lucide-react";
 import {
@@ -44,6 +43,8 @@ const CreditBalanceCard: React.FC<CreditBalanceCardProps> = ({
     if (!isNaN(amount) && amount > 0) {
       setTopUpError(null);
       setConfirmDialogOpen(true);
+    } else {
+      setTopUpError("Please enter a valid amount");
     }
   };
 
@@ -55,14 +56,10 @@ const CreditBalanceCard: React.FC<CreditBalanceCardProps> = ({
       console.log("Processing top-up for amount:", amount);
       
       try {
-        const result = await onTopUp(amount);
-        if (!result) {
-          console.error("Top-up failed");
-          setTopUpError("Top-up failed. Please check console for details.");
-          setProcessing(false);
-          setConfirmDialogOpen(false);
-        }
-        // Form submission will handle the redirect
+        // This will trigger the PayFast form submission and redirect
+        await onTopUp(amount);
+        // Note: We won't reach code after this point due to the form submission
+        // redirecting the browser, but we keep this for error cases
       } catch (error: any) {
         console.error("Top-up error:", error);
         setTopUpError(error.message || "An unexpected error occurred");

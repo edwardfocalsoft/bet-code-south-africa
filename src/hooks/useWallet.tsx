@@ -1,11 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
-import { addCredits } from "@/utils/sqlFunctions";
 import { usePayFast } from "./usePayFast";
-import { PaymentResult } from "@/utils/paymentUtils";
 
 // Define a transaction type for our wallet
 export type WalletTransaction = {
@@ -170,8 +167,8 @@ export const useWallet = () => {
       
       console.log("Created transaction record:", transactionData);
       
-      // Initiate payment via PayFast
-      const paymentResult = await initiatePayment({
+      // Initiate payment via PayFast - this will handle the form submission and redirect
+      await initiatePayment({
         ticketId: 'wallet-topup',
         ticketTitle: 'Wallet Credit Top-up',
         amount: amount,
@@ -180,16 +177,9 @@ export const useWallet = () => {
         useCredit: false // Don't use existing credit for top-ups
       });
 
-      console.log("Payment initiation result:", paymentResult);
-      
-      if (!paymentResult) {
-        const errorMessage = "Failed to initialize payment";
-        setError(errorMessage);
-        throw new Error(errorMessage);
-      }
-
-      // Form submission is handled by processPayment now
-      return true;
+      // If execution reaches here, it means the form submission didn't redirect
+      // This should only happen if there was an error
+      return false;
     } catch (error: any) {
       console.error("Error adding credits:", error);
       const errorMessage = error.message || "An unexpected error occurred while processing your payment";

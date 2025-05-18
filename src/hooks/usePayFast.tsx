@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
 import { 
   fetchPaymentConfig, 
-  processPayment, 
+  processDirectPayment,
   completePaymentTransaction,
   PaymentResult 
 } from "@/utils/paymentUtils";
@@ -40,16 +40,6 @@ export const usePayFast = () => {
       setError(null);
       console.log("Initiating payment for:", paymentData);
       
-      const config = await fetchPaymentConfig();
-      
-      if (!config) {
-        const errorMessage = "Payment configuration not found";
-        setError(errorMessage);
-        throw new Error(errorMessage);
-      }
-      
-      console.log("Payment config retrieved:", config);
-
       // Check if user has credits to apply to this purchase
       let remainingAmount = paymentData.amount;
       let useCredit = paymentData.useCredit ?? true; // Default to using credit
@@ -61,7 +51,7 @@ export const usePayFast = () => {
         try {
           const creditResult = await handleCreditPayment(paymentData);
           
-          if (creditResult && creditResult.paymentComplete) {
+          if (creditResult && creditResult.success && creditResult.paymentComplete) {
             console.log("Payment completed with credits");
             return creditResult;
           }
@@ -83,16 +73,21 @@ export const usePayFast = () => {
         throw new Error(errorMessage);
       }
       
-      // Create payment with PayFast using form submission
-      console.log("Processing PayFast payment");
-      return await processPayment({
-        config,
+      // Process payment with PayFast using direct form submission
+      console.log("Processing PayFast payment with purchase ID:", purchaseId);
+      
+      processDirectPayment({
         purchaseId: purchaseId,
         currentUser,
         amount: remainingAmount,
-        ticketTitle: paymentData.ticketTitle,
-        completePayment
+        itemName: paymentData.ticketTitle || "Purchase"
       });
+      
+      // Return a result object, but the actual redirect happens in processDirectPayment
+      return {
+        purchaseId,
+        success: true
+      };
       
     } catch (error: any) {
       console.error("Payment initiation error:", error);
@@ -109,7 +104,7 @@ export const usePayFast = () => {
     }
   };
 
-  const handleCreditPayment = async (paymentData: PaymentData): Promise<PaymentResult | null> => {
+  const handleCreditPayment = async (paymentData: PaymentData): Promise<PaymentResult & { paymentComplete?: boolean } | null> => {
     try {
       // Get user's credit balance
       const { data: userData, error: userError } = await supabase
@@ -165,7 +160,6 @@ export const usePayFast = () => {
         return {
           purchaseId,
           success: true,
-          creditUsed: true,
           paymentComplete: true
         };
       } else {
