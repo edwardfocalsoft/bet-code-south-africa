@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import Layout from "@/components/layout/Layout";
@@ -31,9 +31,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Search, ExternalLink, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 
 const AdminCasesPage: React.FC = () => {
-  const { userCases, isLoading, updateCaseStatus } = useCases();
+  const { userCases, isLoading, isCasesLoading, updateCaseStatus, refetchCases } = useCases();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -41,6 +42,11 @@ const AdminCasesPage: React.FC = () => {
   // Get userId from query params if it exists
   const urlParams = new URLSearchParams(window.location.search);
   const filterUserId = urlParams.get('userId');
+
+  // Fetch cases on component mount
+  useEffect(() => {
+    refetchCases();
+  }, [refetchCases]);
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase() || '') {
@@ -86,7 +92,10 @@ const AdminCasesPage: React.FC = () => {
 
   const handleStatusChange = async (caseId: string, newStatus: string) => {
     if (!caseId || !newStatus) return;
-    await updateCaseStatus(caseId, newStatus);
+    const success = await updateCaseStatus(caseId, newStatus);
+    if (success) {
+      toast.success(`Case status updated to ${newStatus}`);
+    }
   };
 
   // A heading to show when filtering by user ID
@@ -152,6 +161,14 @@ const AdminCasesPage: React.FC = () => {
               >
                 Reset Filters
               </Button>
+              <Button 
+                variant="default"
+                onClick={() => refetchCases()}
+                className="bg-betting-green hover:bg-betting-green-dark"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -164,7 +181,7 @@ const AdminCasesPage: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {isLoading || isCasesLoading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-betting-green" />
               </div>

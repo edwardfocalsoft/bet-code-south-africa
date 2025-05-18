@@ -31,15 +31,9 @@ export const useCases = () => {
   };
 
   // Get user cases with support for userId filter for admin
-  const { data: userCases, refetch: refetchCases } = useQuery({
+  const { data: userCases, refetch: refetchCases, isLoading: isCasesLoading } = useQuery({
     queryKey: ['user-cases', currentUser?.id, isAdmin],
     queryFn: async () => {
-      if (!currentUser) return [];
-      
-      // Extract any params from querystring
-      const urlParams = new URLSearchParams(window.location.search);
-      const filterUserId = urlParams.get('userId');
-      
       try {
         let query = supabase
           .from('cases')
@@ -50,15 +44,21 @@ export const useCases = () => {
           `)
           .order('created_at', { ascending: false });
         
+        // Extract any params from querystring for filtering (admin only)
+        const urlParams = new URLSearchParams(window.location.search);
+        const filterUserId = urlParams.get('userId');
+        
         // If admin, get all cases, or filter by user_id if provided in URL
         if (isAdmin) {
           if (filterUserId) {
             query = query.eq('user_id', filterUserId);
           }
-          // If admin, do not filter by user_id, so we get all cases
-        } else {
+          // Admin gets all cases when no filter is applied
+        } else if (currentUser) {
           // Non-admin users can only see their own cases
           query = query.eq('user_id', currentUser.id);
+        } else {
+          return [];
         }
         
         const { data: casesData, error } = await query;
@@ -97,7 +97,7 @@ export const useCases = () => {
         return [];
       }
     },
-    enabled: !!currentUser,
+    enabled: !!currentUser || (!!currentUser && isAdmin),
   });
 
   // Get case details including replies
@@ -383,6 +383,7 @@ export const useCases = () => {
     updateCaseStatus,
     processRefund,
     isLoading,
+    isCasesLoading,
     refetchCases
   };
 };
