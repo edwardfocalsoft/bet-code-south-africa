@@ -1,10 +1,10 @@
 
 import React, { useState } from "react";
 import { format } from "date-fns";
-import { Purchase } from "@/types";
+import { Purchase } from "@/hooks/usePurchases";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Star, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Star } from "lucide-react";
 import RateTicketDialog from "@/components/tickets/RateTicketDialog";
 import { useAuth } from "@/contexts/auth";
 
@@ -63,7 +63,7 @@ const ExpiredTicketsSection: React.FC<ExpiredTicketsSectionProps> = ({
           {expiredTickets.map((purchase) => (
             <div key={purchase.id} className="border border-border p-4 rounded-md flex justify-between items-center">
               <div>
-                <h3 className="font-semibold">{purchase.title || "Ticket"}</h3>
+                <h3 className="font-semibold">{purchase.title}</h3>
                 <p className="text-sm text-muted-foreground">
                   Purchased on {format(new Date(purchase.purchaseDate), "PPP")}
                 </p>

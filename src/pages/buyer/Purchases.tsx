@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import Layout from "@/components/layout/Layout";
-import { usePurchases } from "@/hooks/usePurchases";
+import { usePurchases, Purchase } from "@/hooks/usePurchases";
 import { PurchasesTable } from "@/components/purchases/PurchasesTable";
 import { EmptyPurchasesState } from "@/components/purchases/EmptyPurchasesState";
 import { LoadingState } from "@/components/purchases/LoadingState";
@@ -85,7 +85,7 @@ const BuyerPurchases = () => {
     </Layout>
   );
   
-  function renderContent(items: any[], isLoading: boolean, isEmpty: boolean) {
+  function renderContent(items: Purchase[], isLoading: boolean, isEmpty: boolean) {
     if (isLoading) {
       return <LoadingState />;
     }

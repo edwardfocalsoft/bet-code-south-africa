@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
+import { Purchase as AppPurchase } from "@/types";
 
 export type PurchaseStatus = "win" | "loss" | "pending";
 
@@ -17,6 +18,8 @@ export type Purchase = {
   status: PurchaseStatus;
   isRated: boolean;
   sport?: string;
+  buyerId?: string; // Added to match the type in types/index.ts
+  price?: number;    // Added to match the type in types/index.ts
 };
 
 export function usePurchases() {
@@ -47,6 +50,7 @@ export function usePurchases() {
           is_rated,
           ticket_id,
           seller_id,
+          buyer_id,
           tickets:ticket_id (title),
           seller:profiles!seller_id (username)
         `)
@@ -69,10 +73,12 @@ export function usePurchases() {
         id: item.id,
         ticketId: item.ticket_id,
         sellerId: item.seller_id,
+        buyerId: item.buyer_id, // Added to match the interface
         title: item.tickets?.title || "Unknown Ticket",
         seller: item.seller?.username || "Unknown Seller",
         purchaseDate: item.purchase_date,
         amount: parseFloat(String(item.price)),
+        price: parseFloat(String(item.price)), // Added to match the interface
         status: item.is_winner === null ? "pending" : item.is_winner ? "win" : "loss",
         isRated: item.is_rated || false
       }));
