@@ -9,11 +9,13 @@ export type PurchaseStatus = "win" | "loss" | "pending";
 export type Purchase = {
   id: string;
   ticketId: string;
+  sellerId: string;
   title: string;
   seller: string;
   purchaseDate: string;
   amount: number;
   status: PurchaseStatus;
+  isRated: boolean;
   sport?: string;
 };
 
@@ -42,7 +44,9 @@ export function usePurchases() {
           price, 
           purchase_date,
           is_winner,
+          is_rated,
           ticket_id,
+          seller_id,
           tickets:ticket_id (title),
           seller:profiles!seller_id (username)
         `)
@@ -64,11 +68,13 @@ export function usePurchases() {
       const purchaseData: Purchase[] = data.map(item => ({
         id: item.id,
         ticketId: item.ticket_id,
+        sellerId: item.seller_id,
         title: item.tickets?.title || "Unknown Ticket",
         seller: item.seller?.username || "Unknown Seller",
         purchaseDate: item.purchase_date,
         amount: parseFloat(String(item.price)),
-        status: item.is_winner === null ? "pending" : item.is_winner ? "win" : "loss"
+        status: item.is_winner === null ? "pending" : item.is_winner ? "win" : "loss",
+        isRated: item.is_rated || false
       }));
       
       setPurchases(purchaseData);
