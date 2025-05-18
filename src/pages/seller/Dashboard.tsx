@@ -88,17 +88,25 @@ const SellerDashboard: React.FC = () => {
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <PerformanceChart 
-            loading={isLoading} 
-            monthlyGrowth={monthlyGrowth} 
-            data={performanceData} 
-          />
-          <SalesTipsCard />
+          <div className="lg:col-span-2">
+            <PerformanceChart 
+              loading={isLoading} 
+              monthlyGrowth={monthlyGrowth} 
+              data={performanceData} 
+            />
+          </div>
+          <div>
+            <SalesTipsCard />
+          </div>
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <RecentSalesCard loading={isLoading} sales={recentSales} />
-          <SupportCard />
+          <div className="lg:col-span-2">
+            <RecentSalesCard loading={isLoading} sales={recentSales} />
+          </div>
+          <div>
+            <SupportCard />
+          </div>
         </div>
       </div>
     </Layout>

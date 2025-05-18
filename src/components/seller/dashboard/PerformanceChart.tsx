@@ -53,9 +53,9 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
     }
   };
 
-  // Format the sales data for display in tooltips
+  // Format the sales data for display in tooltips and Y-axis
   const formatSales = (value: number) => {
-    return `$${value.toFixed(2)}`;
+    return `R${value.toFixed(0)}`;
   };
 
   return (
@@ -67,7 +67,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent className="pb-6">
-        <div style={{ height: "300px", width: "100%" }}>
+        <div style={{ height: "250px", width: "100%" }}>
           {loading ? (
             <div className="w-full h-full flex items-center justify-center bg-betting-dark-gray/20 rounded-md">
               <p className="text-muted-foreground">Loading chart data...</p>
@@ -91,8 +91,8 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
                   margin={{
                     top: 10,
                     right: 30,
-                    left: 0,
-                    bottom: 0,
+                    left: 10,
+                    bottom: 5,
                   }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#444" />
@@ -103,7 +103,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
                   />
                   <YAxis 
                     stroke="#888"
-                    tickFormatter={(value) => `$${value}`}
+                    tickFormatter={(value) => `R${value}`}
                   />
                   <Tooltip 
                     content={({ active, payload }) => {
@@ -124,7 +124,7 @@ const PerformanceChart: React.FC<PerformanceChartProps> = ({
                                   Sales
                                 </span>
                                 <span className="font-bold text-foreground">
-                                  ${typeof payload[0].value === 'number' ? payload[0].value.toFixed(2) : parseFloat(String(payload[0].value)).toFixed(2)}
+                                  R{typeof payload[0].value === 'number' ? payload[0].value.toFixed(0) : parseFloat(String(payload[0].value)).toFixed(0)}
                                 </span>
                               </div>
                             </div>
