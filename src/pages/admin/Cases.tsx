@@ -24,14 +24,15 @@ const AdminCasesPage: React.FC = () => {
   useEffect(() => {
     console.log("AdminCasesPage mounted, fetching cases...");
     refetchCases().then(() => {
-      console.log("Cases refetched, current cases:", userCases);
+      console.log("Cases refetched, current cases count:", userCases?.length || 0);
       debugCases(userCases);
     });
-  }, [refetchCases]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Debug when cases data changes
   useEffect(() => {
-    console.log("Cases data changed:", userCases);
+    console.log("Cases data changed, cases count:", userCases?.length || 0);
     debugCases(userCases);
   }, [userCases]);
 
@@ -40,7 +41,7 @@ const AdminCasesPage: React.FC = () => {
     if (!caseItem) return false;
     
     // Debug individual case
-    console.log("Filtering case:", caseItem.id, caseItem.title, caseItem.status);
+    // console.log("Filtering case:", caseItem.id, caseItem.title, caseItem.status);
     
     const matchesSearch = searchQuery
       ? ((caseItem.case_number && caseItem.case_number.toLowerCase().includes(searchQuery.toLowerCase())) ||

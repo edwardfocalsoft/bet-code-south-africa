@@ -101,13 +101,14 @@ export const useCaseFetching = () => {
           profiles: profilesMap[caseItem.user_id] || { error: true }
         }));
         
+        console.log("Enriched cases:", enrichedCases.length);
         return enrichedCases;
       } catch (error) {
         console.error("Error in userCases query:", error);
         return [];
       }
     },
-    enabled: Boolean(currentUser)
+    enabled: Boolean(currentUser || isAdmin)  // Enable even if only admin role is present
   });
 
   // Get case details including replies

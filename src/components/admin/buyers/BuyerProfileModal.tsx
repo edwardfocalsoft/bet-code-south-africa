@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Loader2, User, CreditCard, Calendar, ShoppingBag, Users } from "lucide-react";
@@ -97,10 +98,10 @@ export const BuyerProfileModal = ({ isOpen, onClose, buyerId }: BuyerProfileModa
           .from("wallet_transactions")
           .select("*")
           .eq("user_id", buyerId)
-          .order("created_at", { ascending: false })
-          .limit(10);
+          .order("created_at", { ascending: false });
           
         if (transactionsError) throw transactionsError;
+        console.log("Transactions fetched:", transactionsData?.length || 0);
         setTransactions(transactionsData || []);
 
         // Fix the subscription query to properly fetch the seller name
@@ -116,6 +117,7 @@ export const BuyerProfileModal = ({ isOpen, onClose, buyerId }: BuyerProfileModa
           .eq("buyer_id", buyerId);
           
         if (subscriptionsError) throw subscriptionsError;
+        console.log("Subscriptions fetched:", subscriptionsData?.length || 0);
         
         const mappedSubscriptions = (subscriptionsData || []).map((sub: any) => ({
           id: sub.id,
@@ -129,12 +131,18 @@ export const BuyerProfileModal = ({ isOpen, onClose, buyerId }: BuyerProfileModa
         // Fetch purchases with ticket titles
         const { data: purchasesData, error: purchasesError } = await supabase
           .from("purchases")
-          .select("*, ticket:tickets!ticket_id(title)")
+          .select(`
+            id, 
+            price, 
+            purchase_date,
+            ticket_id,
+            ticket:tickets!ticket_id(title)
+          `)
           .eq("buyer_id", buyerId)
-          .order("purchase_date", { ascending: false })
-          .limit(10);
+          .order("purchase_date", { ascending: false });
           
         if (purchasesError) throw purchasesError;
+        console.log("Purchases fetched:", purchasesData?.length || 0);
         
         const mappedPurchases = (purchasesData || []).map((purchase: any) => ({
           id: purchase.id,
