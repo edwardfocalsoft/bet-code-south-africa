@@ -7,6 +7,7 @@ import SellerStats from "./featured-seller/SellerStats";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 const FeaturedSellerSection: React.FC = () => {
   const [featuredSeller, setFeaturedSeller] = useState<any | null>(null);
@@ -45,12 +46,15 @@ const FeaturedSellerSection: React.FC = () => {
           .from('purchases')
           .select(`
             seller_id,
-            profiles!purchases_seller_id_fkey(id, username, avatar_url)
+            profiles(id, username, avatar_url)
           `)
           .gte('purchase_date', monday.toISOString())
           .lte('purchase_date', sunday.toISOString());
           
-        if (weekError) throw weekError;
+        if (weekError) {
+          console.error("Error fetching week sales:", weekError);
+          throw weekError;
+        }
         
         console.log("Week sales data retrieved:", weekSales?.length || 0, "purchases");
         
@@ -58,7 +62,7 @@ const FeaturedSellerSection: React.FC = () => {
         if (!weekSales || weekSales.length === 0) {
           console.log("No sales this week, trying last month");
           
-          // Get sales from the last month with the correct foreign key reference
+          // Get sales from the last month
           const lastMonth = new Date();
           lastMonth.setMonth(lastMonth.getMonth() - 1);
           
@@ -66,11 +70,14 @@ const FeaturedSellerSection: React.FC = () => {
             .from('purchases')
             .select(`
               seller_id,
-              profiles!purchases_seller_id_fkey(id, username, avatar_url)
+              profiles(id, username, avatar_url)
             `)
             .gte('purchase_date', lastMonth.toISOString());
             
-          if (monthError) throw monthError;
+          if (monthError) {
+            console.error("Error fetching month sales:", monthError);
+            throw monthError;
+          }
           
           if (!monthSales || monthSales.length === 0) {
             console.log("No sales in the last month either");
@@ -88,8 +95,9 @@ const FeaturedSellerSection: React.FC = () => {
           const sellerCounts = countSalesPerSeller(weekSales);
           await processTopSeller(sellerCounts);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching featured seller:", error);
+        toast("Error loading featured seller data");
       } finally {
         setLoading(false);
       }

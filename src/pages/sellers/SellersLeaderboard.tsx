@@ -65,8 +65,9 @@ const SellersLeaderboard: React.FC = () => {
         .from('purchases')
         .select(`
           seller_id,
-          profiles!purchases_seller_id_fkey(id, username, avatar_url)
+          profiles(id, username, avatar_url)
         `)
+        .eq('profiles.id', supabase.rpc('auth.uid'))
         .gte('purchase_date', startStr)
         .lte('purchase_date', endStr);
         
@@ -78,64 +79,94 @@ const SellersLeaderboard: React.FC = () => {
       console.log("Sales data retrieved:", salesData?.length || 0, "purchases");
       console.log("Sample sales data:", salesData?.[0]);
       
-      // Count sales by seller
-      const salesBySellerMap = new Map<string, SellerStats>();
-      
-      if (salesData && salesData.length > 0) {
-        salesData.forEach(purchase => {
-          const sellerId = purchase.seller_id;
-          const sellerProfile = purchase.profiles;
-          
-          if (!salesBySellerMap.has(sellerId)) {
-            salesBySellerMap.set(sellerId, {
-              id: sellerId,
-              username: sellerProfile?.username || 'Unknown',
-              avatar_url: sellerProfile?.avatar_url,
-              salesCount: 0,
-              averageRating: 0,
-              rank: 0
-            });
-          }
-          
-          const sellerData = salesBySellerMap.get(sellerId)!;
-          sellerData.salesCount += 1;
-        });
+      // If no data for current week, try last 30 days
+      if (!salesData || salesData.length === 0) {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         
-        // Get average ratings for each seller
-        for (const sellerId of salesBySellerMap.keys()) {
-          const { data: ratingsData, error: ratingsError } = await supabase
-            .from('ratings')
-            .select('score')
-            .eq('seller_id', sellerId);
-            
-          if (!ratingsError && ratingsData && ratingsData.length > 0) {
-            const totalRating = ratingsData.reduce((sum, item) => sum + item.score, 0);
-            const average = totalRating / ratingsData.length;
-            const sellerData = salesBySellerMap.get(sellerId)!;
-            sellerData.averageRating = parseFloat(average.toFixed(1));
-          }
+        console.log("No data for current week, trying last 30 days from:", thirtyDaysAgo.toISOString());
+        
+        const { data: fallbackSalesData, error: fallbackError } = await supabase
+          .from('purchases')
+          .select(`
+            seller_id,
+            profiles(id, username, avatar_url)
+          `)
+          .gte('purchase_date', thirtyDaysAgo.toISOString());
+          
+        if (fallbackError) throw fallbackError;
+        
+        if (fallbackSalesData && fallbackSalesData.length > 0) {
+          processSalesData(fallbackSalesData);
+        } else {
+          setError("No sales data found for the current week or last 30 days.");
+          setLeaderboard([]);
+          setLoading(false);
         }
-        
-        // Convert to array and sort by sales count (descending)
-        const leaderboardData = Array.from(salesBySellerMap.values())
-          .sort((a, b) => b.salesCount - a.salesCount)
-          .map((seller, index) => ({
-            ...seller,
-            rank: index + 1
-          }));
-        
-        console.log("Final leaderboard data:", leaderboardData);
-        
-        setLeaderboard(leaderboardData);
       } else {
-        console.log("No sales data found for the current week");
-        setError("No sales data found for the current week.");
-        setLeaderboard([]);
+        processSalesData(salesData);
       }
     } catch (error: any) {
       console.error('Error fetching leaderboard data:', error);
       setError("Failed to load leaderboard data. Please try again later.");
-    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const processSalesData = async (salesData: any[]) => {
+    try {
+      // Count sales by seller
+      const salesBySellerMap = new Map<string, SellerStats>();
+      
+      salesData.forEach(purchase => {
+        const sellerId = purchase.seller_id;
+        const sellerProfile = purchase.profiles;
+        
+        if (!salesBySellerMap.has(sellerId)) {
+          salesBySellerMap.set(sellerId, {
+            id: sellerId,
+            username: sellerProfile?.username || 'Unknown',
+            avatar_url: sellerProfile?.avatar_url,
+            salesCount: 0,
+            averageRating: 0,
+            rank: 0
+          });
+        }
+        
+        const sellerData = salesBySellerMap.get(sellerId)!;
+        sellerData.salesCount += 1;
+      });
+      
+      // Get average ratings for each seller
+      for (const sellerId of salesBySellerMap.keys()) {
+        const { data: ratingsData, error: ratingsError } = await supabase
+          .from('ratings')
+          .select('score')
+          .eq('seller_id', sellerId);
+          
+        if (!ratingsError && ratingsData && ratingsData.length > 0) {
+          const totalRating = ratingsData.reduce((sum, item) => sum + item.score, 0);
+          const average = totalRating / ratingsData.length;
+          const sellerData = salesBySellerMap.get(sellerId)!;
+          sellerData.averageRating = parseFloat(average.toFixed(1));
+        }
+      }
+      
+      // Convert to array and sort by sales count (descending)
+      const leaderboardData = Array.from(salesBySellerMap.values())
+        .sort((a, b) => b.salesCount - a.salesCount)
+        .map((seller, index) => ({
+          ...seller,
+          rank: index + 1
+        }));
+      
+      console.log("Final leaderboard data:", leaderboardData);
+      
+      setLeaderboard(leaderboardData);
+      setLoading(false);
+    } catch (error: any) {
+      console.error('Error processing sales data:', error);
+      setError("Failed to process leaderboard data.");
       setLoading(false);
     }
   };

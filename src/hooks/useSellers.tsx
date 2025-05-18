@@ -37,8 +37,11 @@ export function useSellers(options: UseSellersOptions = { fetchOnMount: true }) 
         approved: seller.approved,
         suspended: seller.suspended,
         loyaltyPoints: seller.loyalty_points || 0,
+        avatar_url: seller.avatar_url,
+        credit_balance: seller.credit_balance,
       }));
 
+      console.log("Fetched sellers:", mappedSellers);
       setSellers(mappedSellers);
     } catch (error: any) {
       console.error("Error fetching sellers:", error);
