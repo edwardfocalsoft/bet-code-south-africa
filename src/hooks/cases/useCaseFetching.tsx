@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,13 +35,13 @@ export const useCaseFetching = () => {
       try {
         console.log("Fetching cases, isAdmin:", isAdmin);
         
+        // Start building the query
         let query = supabase
           .from('cases')
           .select(`
             *,
             purchases(*),
-            tickets(*),
-            profiles:user_id(username, email, role, avatar_url)
+            tickets(*)
           `)
           .order('created_at', { ascending: false });
         
@@ -76,7 +77,31 @@ export const useCaseFetching = () => {
           return [];
         }
         
-        return casesData;
+        // Get user profiles in a separate query to avoid foreign key issues
+        const userIds = Array.from(new Set(casesData.map(c => c.user_id)));
+        
+        let profilesMap: Record<string, any> = {};
+        
+        if (userIds.length > 0) {
+          const { data: profilesData } = await supabase
+            .from('profiles')
+            .select('id, username, email, role, avatar_url')
+            .in('id', userIds);
+            
+          // Create a map of user_id to profile data
+          profilesMap = (profilesData || []).reduce((map: Record<string, any>, profile) => {
+            map[profile.id] = profile;
+            return map;
+          }, {});
+        }
+        
+        // Attach profile data to cases
+        const enrichedCases = casesData.map((caseItem: any) => ({
+          ...caseItem,
+          profiles: profilesMap[caseItem.user_id] || { error: true }
+        }));
+        
+        return enrichedCases;
       } catch (error) {
         console.error("Error in userCases query:", error);
         return [];
