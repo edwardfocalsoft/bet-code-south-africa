@@ -29,19 +29,31 @@ const FeaturedSellerSection: React.FC = () => {
       try {
         setLoading(true);
         
-        // First get the seller with the highest sales count in the past week
+        // Get the current week's start (Monday) and end (Sunday)
         const now = new Date();
-        const oneWeekAgo = new Date();
-        oneWeekAgo.setDate(now.getDate() - 7);
+        const day = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
         
+        // Calculate the date of Monday (start of week)
+        // If today is Sunday (0), we need to go back 6 days
+        const mondayOffset = day === 0 ? -6 : 1 - day;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() + mondayOffset);
+        monday.setHours(0, 0, 0, 0);
+        
+        // Calculate the date of Sunday (end of week)
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        sunday.setHours(23, 59, 59, 999);
+        
+        // Get purchases for the current week
         const { data: purchaseData, error: purchaseError } = await supabase
           .from("purchases")
           .select(`
             seller_id,
-            profiles:profiles!purchases_seller_id_fkey(username)
+            profiles!purchases_seller_id_fkey(username)
           `)
-          .gte("purchase_date", oneWeekAgo.toISOString())
-          .order("purchase_date", { ascending: false });
+          .gte("purchase_date", monday.toISOString())
+          .lte("purchase_date", sunday.toISOString());
           
         if (purchaseError) throw purchaseError;
         
@@ -112,11 +124,9 @@ const FeaturedSellerSection: React.FC = () => {
             });
           }
         } else {
-          toast({
-            title: "No featured seller found",
-            description: "No sales data available for the past week.",
-            variant: "destructive",
-          });
+          console.log("No featured seller found for this week");
+          // No sales this week, try to get the most successful seller from the last month
+          await fetchBestSellerLastMonth();
         }
       } catch (error) {
         console.error("Error fetching featured seller:", error);
@@ -125,15 +135,91 @@ const FeaturedSellerSection: React.FC = () => {
           description: "Failed to load featured seller data.",
           variant: "destructive",
         });
+        setLoading(false);
       } finally {
         setLoading(false);
+      }
+    };
+    
+    const fetchBestSellerLastMonth = async () => {
+      try {
+        // Get the last 30 days
+        const now = new Date();
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setDate(now.getDate() - 30);
+        
+        // Get purchases for the last month
+        const { data: purchaseData, error: purchaseError } = await supabase
+          .from("purchases")
+          .select(`
+            seller_id,
+            profiles!purchases_seller_id_fkey(username)
+          `)
+          .gte("purchase_date", oneMonthAgo.toISOString());
+          
+        if (purchaseError) throw purchaseError;
+        
+        // Count sales by seller
+        const salesCount: Record<string, { count: number; username: string }> = {};
+        purchaseData?.forEach(purchase => {
+          const sellerId = purchase.seller_id;
+          if (!salesCount[sellerId]) {
+            salesCount[sellerId] = { 
+              count: 0, 
+              username: purchase.profiles?.username || "Unknown" 
+            };
+          }
+          salesCount[sellerId].count++;
+        });
+        
+        // Find seller with most sales
+        let topSellerId = "";
+        let maxSales = 0;
+        let topUsername = "";
+        
+        Object.entries(salesCount).forEach(([sellerId, data]) => {
+          if (data.count > maxSales) {
+            maxSales = data.count;
+            topSellerId = sellerId;
+            topUsername = data.username;
+          }
+        });
+        
+        if (topSellerId) {
+          const stats = await getSellerStats(topSellerId);
+          
+          if (stats) {
+            setFeaturedSeller({
+              id: topSellerId,
+              username: topUsername,
+              winRate: stats.winRate,
+              totalTickets: stats.totalSales,
+              rating: stats.averageRating,
+              description: `Top performing seller with ${stats.totalSales} tickets sold and a ${stats.winRate}% win rate.`
+            });
+          } else {
+            setFeaturedSeller({
+              id: topSellerId,
+              username: topUsername,
+              winRate: 0,
+              totalTickets: maxSales,
+              rating: 0,
+              description: `Top performing seller with ${maxSales} total sales.`
+            });
+          }
+        } else {
+          setFeaturedSeller(null);
+        }
+      } catch (error) {
+        console.error("Error fetching best seller last month:", error);
+        setFeaturedSeller(null);
       }
     };
 
     fetchFeaturedSeller();
   }, [toast]);
 
-  // If loading or no featured seller, show skeleton loading state
+  // If loading, show skeleton loading state
   if (loading) {
     return (
       <section className="py-16 px-4 bg-betting-dark-gray">

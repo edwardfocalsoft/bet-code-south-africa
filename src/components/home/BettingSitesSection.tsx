@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import BettingSiteLogo from "./BettingSiteLogo";
 import { supabase } from "@/integrations/supabase/client";
 import { BettingSite } from "@/types";
+import { Loader2 } from "lucide-react";
 
 const BettingSitesSection: React.FC = () => {
   const [bettingSites, setBettingSites] = useState<BettingSite[]>([]);
@@ -16,18 +17,31 @@ const BettingSitesSection: React.FC = () => {
         const { data, error } = await supabase
           .from("tickets")
           .select("betting_site")
-          .order("betting_site")
-          .limit(10);
+          .order("betting_site");
 
         if (error) throw error;
 
         // Extract unique betting sites
         const uniqueSites = [...new Set(data?.map(item => item.betting_site))] as BettingSite[];
-        setBettingSites(uniqueSites);
+        
+        // Ensure we have at least 6 betting sites
+        if (uniqueSites.length < 6) {
+          // Add default sites if needed
+          const defaultSites: BettingSite[] = ["Betway", "HollywoodBets", "Supabets", "10bet", "Playa", "Easybet"];
+          // Filter out sites that are already in uniqueSites
+          const missingCount = 6 - uniqueSites.length;
+          const sitesToAdd = defaultSites
+            .filter(site => !uniqueSites.includes(site))
+            .slice(0, missingCount);
+          
+          setBettingSites([...uniqueSites, ...sitesToAdd]);
+        } else {
+          // If we have enough sites, just use the first 6
+          setBettingSites(uniqueSites.slice(0, 6));
+        }
       } catch (error) {
         console.error("Error fetching betting sites:", error);
         // Fallback to default betting sites if there's an error
-        // Make sure we only use valid BettingSite values from the type definition
         setBettingSites(["Betway", "HollywoodBets", "Supabets", "10bet", "Playa", "Easybet"]);
       } finally {
         setIsLoading(false);

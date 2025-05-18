@@ -8,13 +8,11 @@ import TopSellersSection from "@/components/home/TopSellersSection";
 import FeaturedSellerSection from "@/components/home/FeaturedSellerSection";
 import HowItWorksSection from "@/components/home/HowItWorksSection";
 import CTASection from "@/components/home/CTASection";
-import { useToast } from "@/hooks/use-toast";
 import { useTickets } from "@/hooks/useTickets";
 import { useSellers } from "@/hooks/useSellers";
 
 const Index: React.FC = () => {
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
-  const { toast } = useToast();
   const { tickets: allTickets, loading: ticketsLoading } = useTickets();
   const { sellers: allSellers, loading: sellersLoading } = useSellers();
   
