@@ -51,6 +51,7 @@ export const useCaseStatus = () => {
       // Notify the case creator about the status change
       if (caseData && caseData.user_id) {
         try {
+          console.log(`Creating notification for user ${caseData.user_id} about status update to ${status}`);
           await createNotification(
             caseData.user_id,
             "Case Status Updated",

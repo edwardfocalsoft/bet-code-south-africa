@@ -18,6 +18,13 @@ export const createNotification = async (
   relatedId?: string
 ): Promise<any | null> => {
   try {
+    if (!userId) {
+      console.error('Error creating notification: userId is required');
+      return null;
+    }
+
+    console.log(`Creating notification for user ${userId}: ${title}`);
+    
     const { data, error } = await supabase
       .from('notifications')
       .insert({
@@ -37,9 +44,41 @@ export const createNotification = async (
       return null;
     }
     
+    console.log('Notification created successfully:', data);
     return data;
   } catch (error) {
     console.error('Exception when creating notification:', error);
     return null;
+  }
+};
+
+/**
+ * Function to test if the current user can create notifications
+ * @returns Boolean indicating success/failure
+ */
+export const testNotificationCreation = async (): Promise<boolean> => {
+  try {
+    // Get the current user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      console.error('No authenticated user found');
+      return false;
+    }
+    
+    console.log('Testing notification creation for user:', user.id);
+    
+    // Try to create a test notification
+    const result = await createNotification(
+      user.id,
+      'Test Notification',
+      'This is a test notification to verify permissions.',
+      'system'
+    );
+    
+    return result !== null;
+  } catch (error) {
+    console.error('Error testing notification creation:', error);
+    return false;
   }
 };

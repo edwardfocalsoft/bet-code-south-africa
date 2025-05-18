@@ -64,6 +64,7 @@ export const useCaseReply = () => {
         
         if (isAdmin) {
           // Admin replied, notify the case creator
+          console.log(`Admin replied to case, notifying user ${caseData.user_id}`);
           await createNotification(
             caseData.user_id,
             "New Reply to Your Case",
@@ -79,6 +80,7 @@ export const useCaseReply = () => {
             .eq('role', 'admin');
             
           if (admins && admins.length > 0) {
+            console.log(`User replied to case, notifying ${admins.length} admins`);
             // Create notification for each admin
             for (const admin of admins) {
               await createNotification(

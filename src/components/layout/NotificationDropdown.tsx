@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,12 +15,37 @@ import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/auth";
+import { testNotificationCreation } from "@/utils/notificationUtils";
 
 const NotificationDropdown: React.FC = () => {
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
-  const { userRole } = useAuth();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, loading, error } = useNotifications();
+  const { currentUser, userRole } = useAuth();
+  
+  // Debug effect to log notifications and test creation
+  useEffect(() => {
+    console.log("NotificationDropdown - Current user:", currentUser?.id);
+    console.log("NotificationDropdown - Notifications count:", notifications.length);
+    console.log("NotificationDropdown - Unread count:", unreadCount);
+    
+    if (error) {
+      console.error("NotificationDropdown - Error:", error);
+    }
+    
+    // Test notification creation on component mount
+    if (currentUser) {
+      const testCreation = async () => {
+        const result = await testNotificationCreation();
+        console.log("Notification creation test result:", result ? "Success" : "Failed");
+      };
+      
+      setTimeout(() => {
+        testCreation();
+      }, 2000); // Delay to ensure auth is fully loaded
+    }
+  }, [currentUser, notifications.length, unreadCount, error]);
   
   const handleNotificationClick = (notificationId: string, relatedId?: string, type?: string) => {
+    console.log(`Marking notification ${notificationId} as read`);
     markAsRead(notificationId);
   };
 
@@ -60,7 +85,11 @@ const NotificationDropdown: React.FC = () => {
         </div>
         <DropdownMenuSeparator />
         
-        {recentNotifications.length === 0 ? (
+        {loading ? (
+          <div className="p-4 text-center text-muted-foreground">
+            Loading notifications...
+          </div>
+        ) : recentNotifications.length === 0 ? (
           <div className="p-4 text-center text-muted-foreground">
             No notifications
           </div>

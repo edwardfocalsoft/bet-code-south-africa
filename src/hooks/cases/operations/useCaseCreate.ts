@@ -52,8 +52,10 @@ export const useCaseCreate = () => {
           .eq('role', 'admin');
           
         if (admins && admins.length > 0) {
+          console.log(`Found ${admins.length} admins to notify about new case`);
           // Create notification for each admin
           for (const admin of admins) {
+            console.log(`Creating notification for admin ${admin.id}`);
             await createNotification(
               admin.id,
               "New Support Case",
@@ -62,6 +64,8 @@ export const useCaseCreate = () => {
               newCase.id
             );
           }
+        } else {
+          console.log("No admins found to notify");
         }
       } catch (notifError) {
         console.error("Failed to create admin notifications:", notifError);

@@ -2,7 +2,7 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 import { deleteOldNotifications } from "@/utils/sqlFunctions";
 
 export function useNotificationActions() {
@@ -12,15 +12,13 @@ export function useNotificationActions() {
 
   const markAsRead = useCallback(
     async (notificationId: string) => {
-      if (!currentUser) return;
+      if (!currentUser) return false;
 
       try {
         const { error } = await supabase
           .from('notifications')
           .update({ is_read: true })
-          .eq('id', notificationId) as {
-            error: any;
-          };
+          .eq('id', notificationId);
 
         if (error) throw error;
         
@@ -48,9 +46,7 @@ export function useNotificationActions() {
           .from('notifications')
           .update({ is_read: true })
           .eq('user_id', currentUser.id)
-          .eq('is_read', false) as {
-            error: any;
-          };
+          .eq('is_read', false);
 
         if (error) throw error;
         
