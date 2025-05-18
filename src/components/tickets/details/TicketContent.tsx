@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { format } from "date-fns";
 import { 
@@ -59,15 +58,10 @@ const TicketContent: React.FC<TicketContentProps> = ({
               <h1 className="text-2xl font-bold mb-1">{ticket.title}</h1>
               <div className="flex gap-2">
                 {!isSeller && (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="flex gap-1.5"
-                    onClick={() => setShareDialogOpen(true)}
-                  >
-                    <Share2 className="h-4 w-4" />
-                    <span>Share</span>
-                  </Button>
+                  <ShareTicket 
+                    ticketId={ticket.id}
+                    ticketTitle={ticket.title}
+                  />
                 )}
               </div>
             </div>
@@ -208,10 +202,10 @@ const TicketContent: React.FC<TicketContentProps> = ({
       </CardContent>
       
       <ShareTicket 
-        open={shareDialogOpen} 
-        onOpenChange={setShareDialogOpen}
         ticketId={ticket.id}
         ticketTitle={ticket.title}
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
       />
       
       {canRate && purchaseId && (
@@ -222,6 +216,7 @@ const TicketContent: React.FC<TicketContentProps> = ({
           sellerId={ticket.seller_id}
           buyerId={currentUser?.id}
           purchaseId={purchaseId}
+          onSuccess={() => {}} // Add an empty onSuccess callback
         />
       )}
       

@@ -16,15 +16,21 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface ShareTicketProps {
   ticketId: string;
   ticketTitle: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-const ShareTicket: React.FC<ShareTicketProps> = ({ ticketId, ticketTitle }) => {
-  const { toast } = useToast();
+const ShareTicket: React.FC<ShareTicketProps> = ({ 
+  ticketId, 
+  ticketTitle,
+  open,
+  onOpenChange 
+}) => {
   const [isCopied, setIsCopied] = useState(false);
   
   // Generate the share URL
@@ -73,6 +79,60 @@ const ShareTicket: React.FC<ShareTicketProps> = ({ ticketId, ticketTitle }) => {
     window.open(url, "_blank");
   };
 
+  // If we're using this component as a dialog trigger (with open/onOpenChange props)
+  if (open !== undefined && onOpenChange) {
+    return (
+      <DropdownMenu open={open} onOpenChange={onOpenChange}>
+        <DropdownMenuTrigger asChild>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex items-center gap-1 border-betting-green text-betting-green hover:bg-betting-green/10"
+          >
+            <Share2 className="h-4 w-4" />
+            Share Ticket
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="bg-betting-dark-gray border-betting-light-gray">
+          <DropdownMenuLabel>Share this ticket</DropdownMenuLabel>
+          
+          <DropdownMenuItem 
+            className="flex items-center gap-2 cursor-pointer hover:bg-betting-light-gray" 
+            onClick={copyToClipboard}
+          >
+            {isCopied ? <CheckCircle className="h-4 w-4 text-betting-green" /> : <LinkIcon className="h-4 w-4" />}
+            Copy Link
+          </DropdownMenuItem>
+          
+          <DropdownMenuItem 
+            className="flex items-center gap-2 cursor-pointer hover:bg-betting-light-gray" 
+            onClick={shareToFacebook}
+          >
+            <Facebook className="h-4 w-4 text-blue-500" />
+            Facebook
+          </DropdownMenuItem>
+          
+          <DropdownMenuItem 
+            className="flex items-center gap-2 cursor-pointer hover:bg-betting-light-gray" 
+            onClick={shareToTwitter}
+          >
+            <Twitter className="h-4 w-4 text-sky-500" />
+            Twitter
+          </DropdownMenuItem>
+          
+          <DropdownMenuItem 
+            className="flex items-center gap-2 cursor-pointer hover:bg-betting-light-gray" 
+            onClick={shareToWhatsApp}
+          >
+            <MessageCircle className="h-4 w-4 text-green-500" />
+            WhatsApp
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
+  // Default rendering without dialog controls
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
