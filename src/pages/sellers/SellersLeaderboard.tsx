@@ -29,6 +29,7 @@ const SellersLeaderboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [weekStart, setWeekStart] = useState<Date>(new Date());
   const [weekEnd, setWeekEnd] = useState<Date>(new Date());
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Calculate week start (Monday) and end (Sunday)
@@ -58,122 +59,43 @@ const SellersLeaderboard: React.FC = () => {
 
   const fetchLeaderboard = async () => {
     setLoading(true);
+    setError(null);
     
-    // For now, let's use mock data
-    // In a real application, this would be fetched from the database
-    const mockLeaderboard: SellerStats[] = [
-      {
-        id: "1",
-        username: "PremierPunter",
-        salesCount: 87,
-        averageRating: 4.8,
-        rank: 1
-      },
-      {
-        id: "2",
-        username: "BettingGuru",
-        salesCount: 74,
-        averageRating: 4.7,
-        rank: 2
-      },
-      {
-        id: "3",
-        username: "OddsMaster",
-        salesCount: 65,
-        averageRating: 4.9,
-        rank: 3
-      },
-      {
-        id: "4", 
-        username: "SoccerProphet",
-        salesCount: 58,
-        averageRating: 4.5,
-        rank: 4
-      },
-      {
-        id: "5",
-        username: "BettingWhiz",
-        salesCount: 52,
-        averageRating: 4.6,
-        rank: 5
-      },
-      {
-        id: "6", 
-        username: "ThePredictor",
-        salesCount: 45,
-        averageRating: 4.4,
-        rank: 6
-      },
-      {
-        id: "7",
-        username: "SportsTipster",
-        salesCount: 41,
-        averageRating: 4.7,
-        rank: 7
-      },
-      {
-        id: "8",
-        username: "WinningPicks",
-        salesCount: 38,
-        averageRating: 4.5,
-        rank: 8
-      },
-      {
-        id: "9",
-        username: "BetPro",
-        salesCount: 35,
-        averageRating: 4.6,
-        rank: 9
-      },
-      {
-        id: "10",
-        username: "GoldTips",
-        salesCount: 32,
-        averageRating: 4.4,
-        rank: 10
-      }
-    ];
-    
-    setTimeout(() => {
-      setLeaderboard(mockLeaderboard);
-      setLoading(false);
-    }, 800);
-
-    // In the future, you would use the following Supabase query:
-    /*
     try {
       const start = weekStart.toISOString();
       const end = weekEnd.toISOString();
       
       // First, get all sales for the week grouped by seller
-      const { data, error } = await supabase
+      const { data: salesData, error: salesError } = await supabase
         .from('purchases')
         .select(`
           seller_id,
           profiles:seller_id (id, username, avatar_url)
         `)
         .gte('purchase_date', start)
-        .lte('purchase_date', end)
-        .order('seller_id');
+        .lte('purchase_date', end);
         
-      if (error) throw error;
+      if (salesError) throw salesError;
       
-      // Count sales by seller and join with ratings
-      const salesBySellerMap = new Map();
+      // Count sales by seller
+      const salesBySellerMap = new Map<string, SellerStats>();
       
-      data?.forEach(purchase => {
+      salesData?.forEach(purchase => {
         const sellerId = purchase.seller_id;
+        const sellerProfile = purchase.profiles;
+        
         if (!salesBySellerMap.has(sellerId)) {
           salesBySellerMap.set(sellerId, {
             id: sellerId,
-            username: purchase.profiles?.username || 'Unknown',
-            avatar_url: purchase.profiles?.avatar_url,
+            username: sellerProfile?.username || 'Unknown',
+            avatar_url: sellerProfile?.avatar_url,
             salesCount: 0,
-            averageRating: 0
+            averageRating: 0,
+            rank: 0
           });
         }
         
-        const sellerData = salesBySellerMap.get(sellerId);
+        const sellerData = salesBySellerMap.get(sellerId)!;
         sellerData.salesCount += 1;
       });
       
@@ -187,7 +109,8 @@ const SellersLeaderboard: React.FC = () => {
         if (!ratingsError && ratingsData && ratingsData.length > 0) {
           const totalRating = ratingsData.reduce((sum, item) => sum + item.score, 0);
           const average = totalRating / ratingsData.length;
-          salesBySellerMap.get(sellerId).averageRating = parseFloat(average.toFixed(1));
+          const sellerData = salesBySellerMap.get(sellerId)!;
+          sellerData.averageRating = parseFloat(average.toFixed(1));
         }
       }
       
@@ -199,13 +122,18 @@ const SellersLeaderboard: React.FC = () => {
           rank: index + 1
         }));
       
+      // If no sales data is found, show appropriate message
+      if (leaderboardData.length === 0) {
+        setError("No sales data found for the current week.");
+      }
+      
       setLeaderboard(leaderboardData);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching leaderboard data:', error);
+      setError("Failed to load leaderboard data. Please try again later.");
     } finally {
       setLoading(false);
     }
-    */
   };
 
   const renderRankBadge = (rank: number) => {
@@ -261,6 +189,13 @@ const SellersLeaderboard: React.FC = () => {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-betting-green" />
                 <span className="ml-2 text-muted-foreground">Loading leaderboard...</span>
+              </div>
+            ) : error ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-4">{error}</p>
+                <p className="text-sm text-muted-foreground">
+                  The leaderboard resets every Monday at midnight.
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
