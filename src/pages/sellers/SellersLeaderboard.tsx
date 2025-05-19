@@ -1,14 +1,14 @@
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
 import LeaderboardHeader from "@/components/sellers/leaderboard/LeaderboardHeader";
 import LeaderboardTable from "@/components/sellers/leaderboard/LeaderboardTable";
 import EmptyLeaderboard from "@/components/sellers/leaderboard/EmptyLeaderboard";
 import LoadingState from "@/components/sellers/leaderboard/LoadingState";
 import { SellerStats } from "@/components/sellers/leaderboard/LeaderboardTable";
 import { toast } from "sonner";
-import { getSellerLeaderboard } from "@/utils/sqlFunctions";
 
 const SellersLeaderboard: React.FC = () => {
   const [leaderboard, setLeaderboard] = useState<SellerStats[]>([]);
@@ -16,43 +16,95 @@ const SellersLeaderboard: React.FC = () => {
   const [weekStart, setWeekStart] = useState<Date>(new Date());
   const [weekEnd, setWeekEnd] = useState<Date>(new Date());
   const [error, setError] = useState<string | null>(null);
-  const [dataSource] = useState<'week'>('week');
 
-  // Calculate the week start date (Monday) and end date (Sunday)
-  const calculateDateRange = useCallback(() => {
-    // Create a hardcoded date for May 19, 2025 (Monday)
-    const mondayDate = new Date(2025, 4, 19, 0, 0, 0, 0); // May is month 4 (zero-indexed)
+  useEffect(() => {
+    // Calculate week start (Monday) and end (Sunday)
+    const calculateWeekDates = () => {
+      const now = new Date();
+      console.log("Current date:", now.toISOString());
+      
+      const day = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      console.log("Current day of week:", day);
+      
+      // Calculate the date of Monday (start of week)
+      // If today is Sunday (0), we need to go back 6 days
+      const mondayOffset = day === 0 ? -6 : 1 - day;
+      const monday = new Date(now);
+      monday.setDate(now.getDate() + mondayOffset);
+      monday.setHours(0, 0, 0, 0);
+      
+      // Calculate the date of Sunday (end of week)
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      sunday.setHours(23, 59, 59, 999);
+      
+      console.log("Week start (Monday):", monday.toISOString());
+      console.log("Week end (Sunday):", sunday.toISOString());
+      
+      setWeekStart(monday);
+      setWeekEnd(sunday);
+      
+      return { start: monday, end: sunday };
+    };
     
-    // Create a hardcoded date for May 25, 2025 (Sunday)
-    const sundayDate = new Date(2025, 4, 25, 23, 59, 59, 999);
-    
-    console.log("Weekly date range for leaderboard:");
-    console.log("- Week start (Monday):", mondayDate.toISOString());
-    console.log("- Week end (Sunday):", sundayDate.toISOString());
-    
-    // Set the display dates
-    setWeekStart(mondayDate);
-    setWeekEnd(sundayDate);
-    
-    return { start: mondayDate, end: sundayDate };
+    const { start, end } = calculateWeekDates();
+    fetchLeaderboard(start, end);
   }, []);
 
-  const fetchLeaderboard = useCallback(async () => {
+  const fetchLeaderboard = async (start: Date, end: Date) => {
     setLoading(true);
     setError(null);
     
     try {
-      const { start, end } = calculateDateRange();
-      console.log(`Fetching leaderboard for date range: ${start.toISOString()} to ${end.toISOString()}`);
+      const startStr = start.toISOString();
+      const endStr = end.toISOString();
       
-      const data = await getSellerLeaderboard(start, end);
+      console.log("Fetching leaderboard data for date range:", startStr, "to", endStr);
+      
+      // Call the SQL function directly
+      const { data, error } = await supabase.rpc('get_seller_leaderboard', {
+        start_date: startStr,
+        end_date: endStr
+      });
+      
+      if (error) {
+        console.error("Error fetching leaderboard data:", error);
+        throw error;
+      }
       
       console.log("Leaderboard data retrieved:", data);
       
       if (!data || data.length === 0) {
-        console.log("No sales data found for the current week");
-        setLeaderboard([]);
+        // If no sales this week, try looking at the last 30 days
+        console.log("No data for current week, trying last 30 days");
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        const { data: fallbackData, error: fallbackError } = await supabase.rpc(
+          'get_seller_leaderboard',
+          { 
+            start_date: thirtyDaysAgo.toISOString(),
+            end_date: new Date().toISOString()
+          }
+        );
+        
+        if (fallbackError) {
+          console.error("Error fetching fallback leaderboard data:", fallbackError);
+          throw fallbackError;
+        }
+        
+        console.log("Fallback leaderboard data retrieved:", fallbackData);
+        
+        if (!fallbackData || fallbackData.length === 0) {
+          setError("No sales data found for the current week or last 30 days.");
+          setLeaderboard([]);
+          setLoading(false);
+          return;
+        }
+        
+        setLeaderboard(fallbackData);
       } else {
+        // Process and format the current week data
         setLeaderboard(data);
       }
       
@@ -63,33 +115,16 @@ const SellersLeaderboard: React.FC = () => {
       setError("Failed to load leaderboard data. Please try again later.");
       setLoading(false);
     }
-  }, [calculateDateRange]);
-
-  const handleRefresh = useCallback(() => {
-    console.log("Manual refresh triggered");
-    toast.success("Refreshing leaderboard data...");
-    fetchLeaderboard();
-  }, [fetchLeaderboard]);
-
-  useEffect(() => {
-    fetchLeaderboard();
-  }, [fetchLeaderboard]);
+  };
 
   return (
     <Layout>
       <div className="container mx-auto py-8">
-        <LeaderboardHeader 
-          weekStart={weekStart} 
-          weekEnd={weekEnd} 
-          dataSource={dataSource}
-          onRefresh={handleRefresh}
-        />
+        <LeaderboardHeader weekStart={weekStart} weekEnd={weekEnd} />
         
         <Card className="betting-card">
           <CardHeader>
-            <CardTitle className="text-xl">
-              Weekly Sales Rankings (Since Monday)
-            </CardTitle>
+            <CardTitle className="text-xl">Weekly Rankings</CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -97,10 +132,7 @@ const SellersLeaderboard: React.FC = () => {
             ) : error ? (
               <EmptyLeaderboard message={error} />
             ) : (
-              <LeaderboardTable 
-                sellers={leaderboard} 
-                dataSource={dataSource}
-              />
+              <LeaderboardTable sellers={leaderboard} />
             )}
           </CardContent>
         </Card>
