@@ -27,6 +27,7 @@ import Home from './pages/Index';
 import Login from './pages/auth/Login'; 
 import Register from './pages/auth/Register'; 
 import RegisterConfirmation from './pages/auth/RegisterConfirmation';
+import ProfileSetup from './pages/auth/ProfileSetup'; // Import the ProfileSetup component
 import SellerPublicProfile from './pages/sellers/SellerPublicProfile';
 import SellersLeaderboard from './pages/sellers/SellersLeaderboard';
 import Users from './pages/admin/Buyers';
@@ -46,6 +47,7 @@ const App: React.FC = () => {
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/register" element={<Register />} />
           <Route path="/auth/register/confirmation" element={<RegisterConfirmation />} />
+          <Route path="/auth/profile-setup" element={<ProfileSetup />} /> {/* Added profile setup route */}
           <Route path="/tickets" element={<AllTickets />} />
           <Route path="/tickets/:id" element={<TicketDetails />} />
           <Route path="/sellers/:id" element={<SellerPublicProfile />} />
