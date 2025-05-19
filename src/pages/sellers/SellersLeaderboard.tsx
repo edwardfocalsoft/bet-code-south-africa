@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import SellerAvatar from "./featured-seller/SellerAvatar";
-import SellerStats from "./featured-seller/SellerStats";
+import SellerAvatar from "@/components/home/featured-seller/SellerAvatar";
+import SellerStats from "@/components/home/featured-seller/SellerStats";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
