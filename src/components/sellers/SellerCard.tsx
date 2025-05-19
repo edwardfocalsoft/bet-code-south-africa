@@ -8,6 +8,7 @@ import { User as UserType } from "@/types";
 import SubscribeButton from "./SubscribeButton";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface SellerCardProps {
   seller: UserType & { ranking?: number };
@@ -106,38 +107,35 @@ const SellerCard: React.FC<SellerCardProps> = ({ seller }) => {
   return (
     <Card className="betting-card overflow-hidden">
       <CardHeader className="border-b border-betting-light-gray pb-4">
-        <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-full bg-betting-light-gray/30 flex items-center justify-center">
-            {seller.avatar_url ? (
-              <img 
-                src={seller.avatar_url} 
-                alt={seller.username} 
-                className="h-12 w-12 rounded-full object-cover"
-              />
-            ) : (
-              <User className="h-6 w-6 text-betting-green" />
-            )}
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8 bg-betting-light-gray/30">
+              {seller.avatar_url ? (
+                <AvatarImage 
+                  src={seller.avatar_url} 
+                  alt={seller.username} 
+                />
+              ) : (
+                <AvatarFallback>
+                  <User className="h-4 w-4 text-betting-green" />
+                </AvatarFallback>
+              )}
+            </Avatar>
+            <div>
+              <h3 className="text-base font-medium">
                 {seller.username || "Anonymous"}
               </h3>
-              {seller.ranking && seller.ranking <= 3 && (
-                <div className="flex items-center">
-                  <Award 
-                    className={`h-5 w-5 ${seller.ranking === 1 ? 'text-yellow-500' : seller.ranking === 2 ? 'text-gray-300' : 'text-amber-700'}`} 
-                    fill={seller.ranking === 1 ? '#eab308' : seller.ranking === 2 ? '#d1d5db' : '#b45309'} 
-                  />
-                  <span className="ml-1 text-sm font-semibold">#{seller.ranking}</span>
-                </div>
-              )}
-            </div>
-            <div className="flex items-center text-sm text-muted-foreground">
-              <Star className="h-3 w-3 text-yellow-500 mr-1" fill="#eab308" />
-              <span>{stats.averageRating > 0 ? stats.averageRating.toFixed(1) : 'No'} Rating</span>
+              <div className="flex items-center text-sm">
+                <Star className="h-3 w-3 text-yellow-500 mr-1" fill="#eab308" />
+                <span>{stats.averageRating > 0 ? stats.averageRating.toFixed(1) : '0.0'} Rating</span>
+              </div>
             </div>
           </div>
+          {seller.ranking && seller.ranking <= 3 && (
+            <div className="flex items-center justify-center rounded-full bg-yellow-500 w-6 h-6">
+              <span className="text-xs font-bold text-black">#{seller.ranking}</span>
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent className="pt-4">
@@ -147,7 +145,7 @@ const SellerCard: React.FC<SellerCardProps> = ({ seller }) => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-2 text-sm mb-6">
+            <div className="grid grid-cols-2 gap-2 text-sm mb-4">
               <div>
                 <p className="text-muted-foreground">Win Rate</p>
                 <p className="font-medium">{stats.winRate}%</p>
@@ -165,7 +163,7 @@ const SellerCard: React.FC<SellerCardProps> = ({ seller }) => {
                 <p className="font-medium">{stats.followers}</p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 mt-2">
               <Button variant="outline" asChild className="flex-1">
                 <Link to={`/sellers/${seller.id}`}>View Profile</Link>
               </Button>

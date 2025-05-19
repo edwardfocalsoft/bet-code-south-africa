@@ -23,8 +23,8 @@ const TopSellersSection: React.FC<TopSellersSectionProps> = ({
             <Award className="h-5 w-5 mr-2 text-betting-green" />
             Top Sellers
           </h2>
-          <Link to="/sellers" className="text-betting-green hover:underline">
-            View all sellers
+          <Link to="/sellers/leaderboard" className="text-betting-green hover:underline">
+            View leaderboard
           </Link>
         </div>
         
