@@ -91,6 +91,21 @@ export const useAuthentication = (
           
           if (userProfile) {
             console.log("Login profile found:", userProfile);
+            
+            // Check if the user is a seller and not approved
+            if (userProfile.role === 'seller' && userProfile.approved === false) {
+              console.log("Unapproved seller attempted login:", userProfile.id);
+              toast.error("Your seller account is pending approval by an admin. You'll be notified once approved.");
+              
+              // Sign out the unapproved seller
+              await supabase.auth.signOut({ scope: 'global' });
+              cleanupAuthState();
+              
+              // Redirect to a confirmation page
+              navigate('/auth/register/confirmation');
+              return null;
+            }
+            
             setCurrentUser(userProfile);
             setUserRole(userProfile.role);
             setIsAdmin(userProfile.role === 'admin');

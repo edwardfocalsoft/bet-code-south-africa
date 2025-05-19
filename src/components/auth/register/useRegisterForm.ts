@@ -1,45 +1,36 @@
+
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/auth";
-import { useToast } from "@/hooks/use-toast";
-import { toast } from "sonner";
 import { UserRole } from "@/types";
 
-// Form schema with validation
+// Define the form schema
 const formSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Email is required")
-    .refine((email) => {
-      // Simple check for @ and .
-      return email.includes('@') && email.includes('.');
-    }, "Please enter a valid email address"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters"),
-  confirmPassword: z
-    .string()
-    .min(1, "Please confirm your password"),
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+  confirmPassword: z.string()
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],
 });
 
-export type FormData = z.infer<typeof formSchema>;
+// Type for form data
+type FormData = z.infer<typeof formSchema>;
 
 export const useRegisterForm = () => {
-  const [role, setRole] = useState<"buyer" | "seller">("buyer");
+  const [role, setRole] = useState<UserRole>("buyer");
   const [isLoading, setIsLoading] = useState(false);
-  const [serverError, setServerError] = useState("");
-  
-  const { register } = useAuth();
+  const [serverError, setServerError] = useState<string | null>(null);
+  const { register: signUp } = useAuth();
   const navigate = useNavigate();
-  const { toast: uiToast } = useToast();
 
-  // Initialize react-hook-form with zod validation
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -49,44 +40,32 @@ export const useRegisterForm = () => {
     },
   });
 
-  const handleSubmit = async (values: FormData) => {
+  const handleSubmit = form.handleSubmit(async (data) => {
     setIsLoading(true);
-    setServerError("");
-    
+    setServerError(null);
+
     try {
-      const { email, password } = values;
-      
-      console.log("Form submission with email:", email);
-      
-      // Call register function from auth context
-      const user = await register(email, password, role as UserRole);
+      const user = await signUp(data.email, data.password, role);
       
       if (user) {
-        uiToast({
-          title: "Account created",
-          description: "Your account has been created successfully.",
-        });
-        
-        if (role === "seller") {
-          // Sellers must wait for approval
-          navigate("/auth/register/confirmation", { state: { role } });
-        } else {
-          // Buyers can proceed to dashboard
-          navigate("/auth/register/confirmation");
-        }
+        // Navigate to confirmation page with role parameter
+        navigate(`/auth/register/confirmation?role=${role}`);
       }
     } catch (error: any) {
       console.error("Registration error:", error);
+      setServerError(error.message || "Failed to create account. Please try again.");
       
-      setServerError(error.message || "Registration failed");
-      toast.error(error.message || "Registration failed");
+      // Handle specific error types
+      if (error.message.includes("already registered")) {
+        setServerError("This email is already registered. Please log in or use a different email.");
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  });
 
-  const changeRole = (value: string) => {
-    setRole(value as "buyer" | "seller");
+  const changeRole = (newRole: UserRole) => {
+    setRole(newRole);
   };
 
   return {
@@ -95,6 +74,8 @@ export const useRegisterForm = () => {
     changeRole,
     isLoading,
     serverError,
-    handleSubmit: form.handleSubmit(handleSubmit)
+    handleSubmit
   };
 };
+
+export default useRegisterForm;

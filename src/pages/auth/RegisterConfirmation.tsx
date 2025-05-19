@@ -1,67 +1,72 @@
 
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Heading } from "@/components/ui/heading";
 import { Button } from "@/components/ui/button";
-import { Check, AlertCircle } from "lucide-react";
+import { Mail, ArrowRight, Clock } from "lucide-react";
 
-const RegisterConfirmation: React.FC = () => {
-  const location = useLocation();
-  const role = location.state?.role || "buyer";
+const RegisterConfirmation = () => {
+  const [searchParams] = useSearchParams();
+  const role = searchParams.get("role") || "";
   
   const isSeller = role === "seller";
-
+  
   return (
     <Layout>
-      <div className="container max-w-md mx-auto py-12 px-4">
-        <Card className="bg-betting-dark-gray border-betting-light-gray">
-          <CardHeader>
-            <div className="mx-auto bg-betting-green/20 h-16 w-16 rounded-full flex items-center justify-center mb-4">
-              {isSeller ? (
-                <AlertCircle className="h-8 w-8 text-betting-accent" />
-              ) : (
-                <Check className="h-8 w-8 text-betting-green" />
-              )}
-            </div>
-            <CardTitle className="text-2xl text-center">Registration Successful</CardTitle>
-            <CardDescription className="text-center">
-              {isSeller
-                ? "Your seller account is pending approval"
-                : "Your account has been created successfully"
-              }
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
+      <div className="container max-w-xl py-16">
+        <div className="betting-card p-8 text-center space-y-6">
+          <div className="flex justify-center">
             {isSeller ? (
-              <div className="space-y-4">
-                <p>
-                  Thank you for registering as a seller on BetCode ZA. Your account is currently under review by our admin team.
-                </p>
-                <p className="text-muted-foreground text-sm">
-                  You will receive an email notification once your account has been approved. This typically takes 24-48 hours.
-                </p>
-              </div>
+              <Clock className="h-16 w-16 text-amber-500" />
             ) : (
-              <div className="space-y-4">
-                <p>
-                  Thank you for joining BetCode ZA. Your buyer account is now active.
-                </p>
-                <p className="text-muted-foreground text-sm">
-                  You can now browse and purchase tickets, and start earning loyalty rewards.
-                </p>
-              </div>
+              <Mail className="h-16 w-16 text-betting-green" />
             )}
-            
-            <div className="mt-6">
-              <Link to={isSeller ? "/" : "/buyer/dashboard"}>
-                <Button className="bg-betting-green hover:bg-betting-green-dark">
-                  {isSeller ? "Return to Homepage" : "Go to Dashboard"}
-                </Button>
-              </Link>
+          </div>
+          
+          <Heading as="h1" size="xl" className="text-center">
+            {isSeller ? "Account Awaiting Approval" : "Registration Complete"}
+          </Heading>
+          
+          {isSeller ? (
+            <div className="space-y-4">
+              <p className="text-muted-foreground">
+                Thank you for registering as a seller! Your account is currently under review.
+              </p>
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-md p-4 text-left">
+                <h3 className="font-semibold text-amber-500 mb-2">Next Steps:</h3>
+                <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">
+                  <li>An administrator will review your account</li>
+                  <li>This process typically takes 1-2 business days</li>
+                  <li>You'll receive an email notification once approved</li>
+                  <li>You will not be able to log in until your account is approved</li>
+                </ul>
+              </div>
+              <p className="text-muted-foreground">
+                If you have any questions, please contact our support team.
+              </p>
             </div>
-          </CardContent>
-        </Card>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-muted-foreground">
+                Thank you for registering! You can now log in to your account.
+              </p>
+              <p className="text-muted-foreground">
+                We've sent a confirmation email to your address. Please check your inbox.
+              </p>
+            </div>
+          )}
+          
+          <div className="pt-4">
+            <Button asChild className="w-full">
+              <Link to="/auth/login">
+                Continue to Login
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        </div>
       </div>
     </Layout>
   );

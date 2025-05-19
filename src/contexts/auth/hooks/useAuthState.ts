@@ -46,14 +46,38 @@ export const useAuthState = () => {
               const userProfile = await fetchUserProfile(session.user.id);
               if (userProfile) {
                 console.log("Profile found:", userProfile);
-                setCurrentUser(userProfile);
-                setUserRole(userProfile.role);
-                setIsAdmin(userProfile.role === 'admin');
+                
+                // Check if seller is approved
+                if (userProfile.role === 'seller' && userProfile.approved === false) {
+                  console.log("Unapproved seller detected in auth state change");
+                  // Do not set current user - effectively treating them as logged out
+                  setCurrentUser(null);
+                  setUserRole(null);
+                  setIsAdmin(false);
+                  
+                  // Attempt to sign them out
+                  try {
+                    await supabase.auth.signOut();
+                  } catch (err) {
+                    console.error("Error signing out unapproved seller:", err);
+                  }
+                } else {
+                  // User is either not a seller or is an approved seller
+                  setCurrentUser(userProfile);
+                  setUserRole(userProfile.role);
+                  setIsAdmin(userProfile.role === 'admin');
+                }
               } else {
                 console.log("No user profile found for", session.user.id);
+                setCurrentUser(null);
+                setUserRole(null);
+                setIsAdmin(false);
               }
             } catch (error) {
               console.error("Profile fetch error in auth listener:", error);
+              setCurrentUser(null);
+              setUserRole(null);
+              setIsAdmin(false);
             } finally {
               setLoading(false);
             }
@@ -99,9 +123,27 @@ export const useAuthState = () => {
           const userProfile = await fetchUserProfile(sessionUser.id);
           if (userProfile) {
             console.log("Initial profile found:", userProfile);
-            setCurrentUser(userProfile);
-            setUserRole(userProfile.role);
-            setIsAdmin(userProfile.role === 'admin');
+            
+            // Check if seller is approved
+            if (userProfile.role === 'seller' && userProfile.approved === false) {
+              console.log("Unapproved seller detected in initial session");
+              // Do not set current user - effectively treating them as logged out
+              setCurrentUser(null);
+              setUserRole(null);
+              setIsAdmin(false);
+              
+              // Attempt to sign them out
+              try {
+                await supabase.auth.signOut();
+              } catch (err) {
+                console.error("Error signing out unapproved seller:", err);
+              }
+            } else {
+              // User is either not a seller or is an approved seller
+              setCurrentUser(userProfile);
+              setUserRole(userProfile.role);
+              setIsAdmin(userProfile.role === 'admin');
+            }
           } else {
             console.log("No initial profile found for", sessionUser.id);
           }
