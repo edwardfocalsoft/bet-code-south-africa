@@ -112,14 +112,15 @@ export function PurchasesTable({ purchases, onRateSuccess }: PurchasesTableProps
     }
   };
 
-  // Check if the purchase date is in the past (the ticket has expired)
-  const isTicketExpired = (date: string) => {
-    return new Date(date) < new Date();
+  // Check if the ticket is expired based on its kickoff time
+  const isTicketExpired = (kickoffTime: string) => {
+    if (!kickoffTime) return false;
+    return new Date(kickoffTime) < new Date();
   };
   
   // A ticket can be rated if it's expired and hasn't been rated yet
   const canRateTicket = (purchase: Purchase) => {
-    return isTicketExpired(purchase.purchaseDate) && 
+    return isTicketExpired(purchase.kickoffTime) && 
            !purchase.isRated && 
            !ratedTickets[purchase.ticketId];
   };

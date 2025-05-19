@@ -29,21 +29,25 @@ const BuyerPurchases = () => {
   };
   
   // Filter for expired tickets that haven't been rated yet
+  // Use isTicketExpired function to correctly identify expired tickets
   const expiredTicketsToRate = purchases.filter(purchase => 
     !purchase.isRated && 
-    new Date(purchase.purchaseDate) < new Date()
+    isTicketExpired(purchase.kickoffTime)
   );
   
-  // Check if a purchase date is in the past (expired ticket)
-  const isExpiredTicket = (date: string) => new Date(date) < new Date();
+  // Check if a ticket is expired based on its kickoff time
+  const isTicketExpired = (kickoffTime: string) => {
+    if (!kickoffTime) return false;
+    return new Date(kickoffTime) < new Date();
+  };
   
   // Filter functions for each tab
   const getFilteredPurchases = (tab: string) => {
     switch (tab) {
       case "expired":
-        return currentItems.filter(item => isExpiredTicket(item.purchaseDate));
+        return currentItems.filter(item => isTicketExpired(item.kickoffTime));
       case "active":
-        return currentItems.filter(item => !isExpiredTicket(item.purchaseDate));
+        return currentItems.filter(item => !isTicketExpired(item.kickoffTime));
       case "all":
       default:
         return currentItems;
@@ -77,9 +81,6 @@ const BuyerPurchases = () => {
                 <TabsTrigger value="all">All Tickets</TabsTrigger>
                 <TabsTrigger value="active">Active Tickets</TabsTrigger>
                 <TabsTrigger value="expired">Expired Tickets</TabsTrigger>
-                <TabsTrigger value="pending">Pending Result</TabsTrigger>
-                <TabsTrigger value="wins">Wins</TabsTrigger>
-                <TabsTrigger value="losses">Losses</TabsTrigger>
               </TabsList>
               
               <TabsContent value="all">
@@ -99,30 +100,6 @@ const BuyerPurchases = () => {
                   getFilteredPurchases("expired"),
                   loading,
                   getFilteredPurchases("expired").length === 0
-                )}
-              </TabsContent>
-              
-              <TabsContent value="pending">
-                {renderContent(
-                  currentItems.filter(item => item.status === "pending"),
-                  loading,
-                  purchases.filter(p => p.status === "pending").length === 0
-                )}
-              </TabsContent>
-              
-              <TabsContent value="wins">
-                {renderContent(
-                  currentItems.filter(item => item.status === "win"),
-                  loading,
-                  purchases.filter(p => p.status === "win").length === 0
-                )}
-              </TabsContent>
-              
-              <TabsContent value="losses">
-                {renderContent(
-                  currentItems.filter(item => item.status === "loss"),
-                  loading,
-                  purchases.filter(p => p.status === "loss").length === 0
                 )}
               </TabsContent>
             </Tabs>

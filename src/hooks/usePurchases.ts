@@ -19,8 +19,9 @@ export type Purchase = {
   status: PurchaseStatus;
   isRated: boolean;
   sport?: string;
-  buyerId?: string; // Added to match the type in types/index.ts
-  price?: number;    // Added to match the type in types/index.ts
+  buyerId?: string;
+  price?: number;
+  kickoffTime: string; // Added kickoff time to Purchase type
 };
 
 export function usePurchases() {
@@ -40,7 +41,7 @@ export function usePurchases() {
     try {
       setLoading(true);
       
-      // Use specific column hints for the profiles relationship
+      // Include ticket kickoff_time in the query
       const { data, error } = await supabase
         .from('purchases')
         .select(`
@@ -52,7 +53,7 @@ export function usePurchases() {
           ticket_id,
           seller_id,
           buyer_id,
-          tickets:ticket_id (title),
+          tickets:ticket_id (title, kickoff_time),
           seller:profiles!seller_id (username)
         `)
         .eq('buyer_id', currentUser.id)
@@ -69,19 +70,20 @@ export function usePurchases() {
         return;
       }
       
-      // Transform data to match our Purchase type
+      // Transform data to match our Purchase type, including kickoff time
       const purchaseData: Purchase[] = data.map(item => ({
         id: item.id,
         ticketId: item.ticket_id,
         sellerId: item.seller_id,
-        buyerId: item.buyer_id, // Added to match the interface
+        buyerId: item.buyer_id,
         title: item.tickets?.title || "Unknown Ticket",
         seller: item.seller?.username || "Unknown Seller",
         purchaseDate: item.purchase_date,
         amount: parseFloat(String(item.price)),
-        price: parseFloat(String(item.price)), // Added to match the interface
+        price: parseFloat(String(item.price)),
         status: item.is_winner === null ? "pending" : item.is_winner ? "win" : "loss",
-        isRated: item.is_rated || false
+        isRated: item.is_rated || false,
+        kickoffTime: item.tickets?.kickoff_time || "" // Add the kickoff time
       }));
       
       setPurchases(purchaseData);
