@@ -23,9 +23,13 @@ export interface SellerStats {
 
 interface LeaderboardTableProps {
   sellers: SellerStats[];
+  dataSource?: 'week' | 'month';
 }
 
-const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ sellers }) => {
+const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ 
+  sellers,
+  dataSource = 'week'
+}) => {
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -33,7 +37,9 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ sellers }) => {
           <TableRow>
             <TableHead>Rank</TableHead>
             <TableHead>Seller</TableHead>
-            <TableHead className="text-center">Weekly Sales</TableHead>
+            <TableHead className="text-center">
+              {dataSource === 'week' ? 'Weekly Sales' : 'Monthly Sales'}
+            </TableHead>
             <TableHead className="text-center">Rating</TableHead>
             <TableHead></TableHead>
           </TableRow>

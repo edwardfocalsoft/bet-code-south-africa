@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,37 +26,26 @@ const FeaturedSellerSection: React.FC = () => {
     const fetchTopSeller = async () => {
       setLoading(true);
       try {
-        // Calculate week dates with buffer for timezone issues
+        // Use a simplified 7-day lookback for consistency with the leaderboard
         const now = new Date();
-        const day = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
         
-        // Calculate the date of Monday (start of week) with buffer for timezone
-        const mondayOffset = day === 0 ? -6 : 1 - day;
-        const monday = new Date(now);
-        monday.setDate(now.getDate() + mondayOffset);
-        monday.setUTCHours(0, 0, 0, 0); // Beginning of day in UTC
+        // End date (now)
+        const endDate = new Date(now);
+        endDate.setUTCHours(23, 59, 59, 999); // End of day in UTC
         
-        // Add one day buffer to start
-        const bufferStart = new Date(monday);
-        bufferStart.setDate(monday.getDate() - 1);
+        // Start date (7 days ago)
+        const startDate = new Date(now);
+        startDate.setDate(now.getDate() - 7); // Go back 7 days
+        startDate.setUTCHours(0, 0, 0, 0); // Beginning of day in UTC
         
-        // Calculate the date of Sunday (end of week) with buffer
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 6);
-        sunday.setUTCHours(23, 59, 59, 999); // End of day in UTC
-        
-        // Add one day buffer to end
-        const bufferEnd = new Date(sunday);
-        bufferEnd.setDate(sunday.getDate() + 1);
-        
-        console.log(`Fetching top seller for week with buffer: ${bufferStart.toISOString()} to ${bufferEnd.toISOString()}`);
+        console.log(`Fetching top seller for week: ${startDate.toISOString()} to ${endDate.toISOString()}`);
 
         // Call the SQL function to get the top seller
         const { data: weekTopSellers, error: weekError } = await supabase.rpc(
           'get_seller_leaderboard', 
           { 
-            start_date: bufferStart.toISOString(), 
-            end_date: bufferEnd.toISOString() 
+            start_date: startDate.toISOString(), 
+            end_date: endDate.toISOString() 
           }
         );
           
@@ -73,21 +61,21 @@ const FeaturedSellerSection: React.FC = () => {
           console.log("No top seller this week, trying last month");
           setDataSource('month');
           
-          // Get sales from the last month with better timezone handling
-          const lastMonth = new Date();
-          lastMonth.setMonth(lastMonth.getMonth() - 1);
-          lastMonth.setUTCHours(0, 0, 0, 0); // Beginning of day in UTC
+          // Get sales from the last month with simplified approach
+          const monthEndDate = new Date(now);
+          monthEndDate.setUTCHours(23, 59, 59, 999); // End of day in UTC
           
-          const currentDate = new Date();
-          currentDate.setUTCHours(23, 59, 59, 999); // End of day in UTC
+          const monthStartDate = new Date(now);
+          monthStartDate.setDate(monthStartDate.getDate() - 30); // Go back 30 days
+          monthStartDate.setUTCHours(0, 0, 0, 0); // Beginning of day in UTC
           
-          console.log(`Fetching top seller for month: ${lastMonth.toISOString()} to ${currentDate.toISOString()}`);
+          console.log(`Fetching top seller for month: ${monthStartDate.toISOString()} to ${monthEndDate.toISOString()}`);
           
           const { data: monthTopSellers, error: monthError } = await supabase.rpc(
             'get_seller_leaderboard', 
             { 
-              start_date: lastMonth.toISOString(), 
-              end_date: currentDate.toISOString() 
+              start_date: monthStartDate.toISOString(), 
+              end_date: monthEndDate.toISOString() 
             }
           );
             

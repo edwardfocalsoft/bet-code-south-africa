@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,53 +18,32 @@ const SellersLeaderboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [dataSource, setDataSource] = useState<'week' | 'month'>('week');
 
-  useEffect(() => {
-    // Calculate week start (Monday) and end (Sunday) in UTC
-    const calculateWeekDates = () => {
-      const now = new Date();
-      console.log("Current date (local):", now.toISOString());
-      
-      const day = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
-      console.log("Current day of week:", day);
-      
-      // Calculate the date of Monday (start of week)
-      // If today is Sunday (0), we need to go back 6 days
-      const mondayOffset = day === 0 ? -6 : 1 - day;
-      const monday = new Date(now);
-      monday.setDate(now.getDate() + mondayOffset);
-      
-      // Set to beginning of day (midnight) in UTC
-      monday.setUTCHours(0, 0, 0, 0);
-      
-      // Add buffer day to ensure we capture all sales
-      const bufferStart = new Date(monday);
-      bufferStart.setDate(monday.getDate() - 1); // One day earlier
-      
-      // Calculate the date of Sunday (end of week)
-      const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
-      
-      // Set to end of day in UTC
-      sunday.setUTCHours(23, 59, 59, 999);
-      
-      // Add buffer to ensure we capture all sales
-      const bufferEnd = new Date(sunday);
-      bufferEnd.setDate(sunday.getDate() + 1); // One day later
-      
-      console.log("Week start with buffer (UTC):", bufferStart.toISOString());
-      console.log("Week end with buffer (UTC):", bufferEnd.toISOString());
-      
-      setWeekStart(monday); // Keep the actual week dates for display
-      setWeekEnd(sunday);
-      
-      return { start: bufferStart, end: bufferEnd };
-    };
+  // Simplified date calculation function that uses a simple 7-day lookback
+  const calculateDateRange = useCallback(() => {
+    // Get current date
+    const now = new Date();
+    console.log("Current date (local):", now.toISOString());
     
-    const { start, end } = calculateWeekDates();
-    fetchLeaderboard(start, end);
+    // For week data, use a simple 7-day lookback instead of complicated week calculations
+    const endDate = new Date(now);
+    endDate.setUTCHours(23, 59, 59, 999); // End of day in UTC
+    
+    const startDate = new Date(now);
+    startDate.setDate(now.getDate() - 7); // Go back 7 days
+    startDate.setUTCHours(0, 0, 0, 0); // Beginning of day in UTC
+    
+    console.log("Simplified date range:");
+    console.log("- Start date:", startDate.toISOString());
+    console.log("- End date:", endDate.toISOString());
+    
+    // Set the display dates (these are just for UI display)
+    setWeekStart(startDate);
+    setWeekEnd(endDate);
+    
+    return { start: startDate, end: endDate };
   }, []);
 
-  const fetchLeaderboard = async (start: Date, end: Date) => {
+  const fetchLeaderboard = useCallback(async (start: Date, end: Date) => {
     setLoading(true);
     setError(null);
     
@@ -97,6 +76,10 @@ const SellersLeaderboard: React.FC = () => {
         
         const now = new Date();
         now.setUTCHours(23, 59, 59, 999); // End of day in UTC
+        
+        console.log("Monthly date range:");
+        console.log("- Start date (30 days ago):", thirtyDaysAgo.toISOString());
+        console.log("- End date (now):", now.toISOString());
         
         const { data: fallbackData, error: fallbackError } = await supabase.rpc(
           'get_seller_leaderboard',
@@ -134,7 +117,19 @@ const SellersLeaderboard: React.FC = () => {
       setError("Failed to load leaderboard data. Please try again later.");
       setLoading(false);
     }
-  };
+  }, []);
+
+  const handleRefresh = useCallback(() => {
+    console.log("Manual refresh triggered");
+    const { start, end } = calculateDateRange();
+    fetchLeaderboard(start, end);
+    toast.success("Refreshing leaderboard data...");
+  }, [calculateDateRange, fetchLeaderboard]);
+
+  useEffect(() => {
+    const { start, end } = calculateDateRange();
+    fetchLeaderboard(start, end);
+  }, [calculateDateRange, fetchLeaderboard]);
 
   return (
     <Layout>
@@ -142,7 +137,8 @@ const SellersLeaderboard: React.FC = () => {
         <LeaderboardHeader 
           weekStart={weekStart} 
           weekEnd={weekEnd} 
-          dataSource={dataSource} 
+          dataSource={dataSource}
+          onRefresh={handleRefresh}
         />
         
         <Card className="betting-card">
@@ -157,7 +153,10 @@ const SellersLeaderboard: React.FC = () => {
             ) : error ? (
               <EmptyLeaderboard message={error} />
             ) : (
-              <LeaderboardTable sellers={leaderboard} />
+              <LeaderboardTable 
+                sellers={leaderboard} 
+                dataSource={dataSource}
+              />
             )}
           </CardContent>
         </Card>
