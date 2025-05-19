@@ -373,10 +373,15 @@ const insertMockData = async () => {
       if (existingProfile) {
         mockSellers.push(existingProfile);
       } else {
+        // Generate a UUID for the new profile
+        const id = crypto.randomUUID();
+        
         // Insert new profile with role='seller' and approved=true
+        // Fixed: Added the required 'id' field
         const { data: newProfile, error } = await supabase
           .from('profiles')
           .insert({
+            id: id,
             username: seller.username,
             email: seller.email,
             role: 'seller',
