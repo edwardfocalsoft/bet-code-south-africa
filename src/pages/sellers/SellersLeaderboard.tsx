@@ -89,6 +89,7 @@ const SellersLeaderboard: React.FC = () => {
           return;
         }
         
+        // Make sure fallbackData has the expected shape with total_sales property
         setLeaderboard(fallbackData);
         // Update date range to reflect the 30-day period
         setWeekStart(thirtyDaysAgo);
