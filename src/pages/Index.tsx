@@ -5,7 +5,6 @@ import HeroSection from "@/components/home/HeroSection";
 import BettingSitesSection from "@/components/home/BettingSitesSection";
 import FeaturedTicketsSection from "@/components/home/FeaturedTicketsSection";
 import TopSellersSection from "@/components/home/TopSellersSection";
-import FeaturedSellerSection from "@/components/home/FeaturedSellerSection";
 import HowItWorksSection from "@/components/home/HowItWorksSection";
 import CTASection from "@/components/home/CTASection";
 import { useTickets } from "@/hooks/useTickets";
@@ -28,7 +27,6 @@ const Index: React.FC = () => {
     <Layout isHomePage={true}>
       <HeroSection />
       <BettingSitesSection />
-      <FeaturedSellerSection />
       <FeaturedTicketsSection 
         tickets={featuredTickets}
         loading={ticketsLoading}
