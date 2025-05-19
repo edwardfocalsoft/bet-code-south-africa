@@ -34,6 +34,22 @@ const BuyerPurchases = () => {
     new Date(purchase.purchaseDate) < new Date()
   );
   
+  // Check if a purchase date is in the past (expired ticket)
+  const isExpiredTicket = (date: string) => new Date(date) < new Date();
+  
+  // Filter functions for each tab
+  const getFilteredPurchases = (tab: string) => {
+    switch (tab) {
+      case "expired":
+        return currentItems.filter(item => isExpiredTicket(item.purchaseDate));
+      case "active":
+        return currentItems.filter(item => !isExpiredTicket(item.purchaseDate));
+      case "all":
+      default:
+        return currentItems;
+    }
+  };
+  
   return (
     <Layout>
       <div className="container px-4 py-8 mx-auto">
@@ -58,7 +74,9 @@ const BuyerPurchases = () => {
               className="w-full"
             >
               <TabsList className="w-full justify-start mb-4">
-                <TabsTrigger value="all">All Purchases</TabsTrigger>
+                <TabsTrigger value="all">All Tickets</TabsTrigger>
+                <TabsTrigger value="active">Active Tickets</TabsTrigger>
+                <TabsTrigger value="expired">Expired Tickets</TabsTrigger>
                 <TabsTrigger value="pending">Pending Result</TabsTrigger>
                 <TabsTrigger value="wins">Wins</TabsTrigger>
                 <TabsTrigger value="losses">Losses</TabsTrigger>
@@ -66,6 +84,22 @@ const BuyerPurchases = () => {
               
               <TabsContent value="all">
                 {renderContent(currentItems, loading, purchases.length === 0)}
+              </TabsContent>
+              
+              <TabsContent value="active">
+                {renderContent(
+                  getFilteredPurchases("active"),
+                  loading,
+                  getFilteredPurchases("active").length === 0
+                )}
+              </TabsContent>
+              
+              <TabsContent value="expired">
+                {renderContent(
+                  getFilteredPurchases("expired"),
+                  loading,
+                  getFilteredPurchases("expired").length === 0
+                )}
               </TabsContent>
               
               <TabsContent value="pending">

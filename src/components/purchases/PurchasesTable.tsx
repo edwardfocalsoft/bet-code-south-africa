@@ -112,12 +112,14 @@ export function PurchasesTable({ purchases, onRateSuccess }: PurchasesTableProps
     }
   };
 
-  const isPastPurchase = (date: string) => {
+  // Check if the purchase date is in the past (the ticket has expired)
+  const isTicketExpired = (date: string) => {
     return new Date(date) < new Date();
   };
   
+  // A ticket can be rated if it's expired and hasn't been rated yet
   const canRateTicket = (purchase: Purchase) => {
-    return isPastPurchase(purchase.purchaseDate) && 
+    return isTicketExpired(purchase.purchaseDate) && 
            !purchase.isRated && 
            !ratedTickets[purchase.ticketId];
   };
