@@ -89,12 +89,33 @@ const SellersLeaderboard: React.FC = () => {
           return;
         }
         
-        // Make sure fallbackData has the expected shape with total_sales property
-        setLeaderboard(fallbackData);
+        // Ensure the data includes all required fields according to the SellerStats interface
+        const typedData: SellerStats[] = (fallbackData || []).map((item: any) => ({
+          id: item.id,
+          username: item.username,
+          sales_count: item.sales_count,
+          total_sales: item.total_sales || 0, // Ensure total_sales is present
+          average_rating: item.average_rating,
+          rank: item.rank,
+          avatar_url: item.avatar_url
+        }));
+
+        setLeaderboard(typedData);
         // Update date range to reflect the 30-day period
         setWeekStart(thirtyDaysAgo);
       } else {
-        setLeaderboard(data);
+        // Also ensure the primary data includes all required fields
+        const typedData: SellerStats[] = (data || []).map((item: any) => ({
+          id: item.id,
+          username: item.username,
+          sales_count: item.sales_count,
+          total_sales: item.total_sales || 0, // Ensure total_sales is present
+          average_rating: item.average_rating,
+          rank: item.rank,
+          avatar_url: item.avatar_url
+        }));
+        
+        setLeaderboard(typedData);
       }
       
       setLoading(false);
