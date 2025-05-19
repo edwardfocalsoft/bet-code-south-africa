@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import AllTickets from './pages/tickets/AllTickets';
@@ -25,6 +26,7 @@ import NotFound from './pages/NotFound';
 import Home from './pages/Index'; 
 import Login from './pages/auth/Login'; 
 import Register from './pages/auth/Register'; 
+import RegisterConfirmation from './pages/auth/RegisterConfirmation';
 import SellerPublicProfile from './pages/sellers/SellerPublicProfile';
 import SellersLeaderboard from './pages/sellers/SellersLeaderboard';
 import Users from './pages/admin/Buyers';
@@ -43,6 +45,7 @@ const App: React.FC = () => {
           <Route path="/" element={<Home />} />
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/register" element={<Register />} />
+          <Route path="/auth/register/confirmation" element={<RegisterConfirmation />} />
           <Route path="/tickets" element={<AllTickets />} />
           <Route path="/tickets/:id" element={<TicketDetails />} />
           <Route path="/sellers/:id" element={<SellerPublicProfile />} />
