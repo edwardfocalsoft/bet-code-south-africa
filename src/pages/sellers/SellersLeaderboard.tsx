@@ -16,12 +16,13 @@ const SellersLeaderboard: React.FC = () => {
   const [weekStart, setWeekStart] = useState<Date>(new Date());
   const [weekEnd, setWeekEnd] = useState<Date>(new Date());
   const [error, setError] = useState<string | null>(null);
+  const [dataSource, setDataSource] = useState<'week' | 'month'>('week');
 
   useEffect(() => {
-    // Calculate week start (Monday) and end (Sunday)
+    // Calculate week start (Monday) and end (Sunday) in UTC
     const calculateWeekDates = () => {
       const now = new Date();
-      console.log("Current date:", now.toISOString());
+      console.log("Current date (local):", now.toISOString());
       
       const day = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
       console.log("Current day of week:", day);
@@ -31,20 +32,32 @@ const SellersLeaderboard: React.FC = () => {
       const mondayOffset = day === 0 ? -6 : 1 - day;
       const monday = new Date(now);
       monday.setDate(now.getDate() + mondayOffset);
-      monday.setHours(0, 0, 0, 0);
+      
+      // Set to beginning of day (midnight) in UTC
+      monday.setUTCHours(0, 0, 0, 0);
+      
+      // Add buffer day to ensure we capture all sales
+      const bufferStart = new Date(monday);
+      bufferStart.setDate(monday.getDate() - 1); // One day earlier
       
       // Calculate the date of Sunday (end of week)
       const sunday = new Date(monday);
       sunday.setDate(monday.getDate() + 6);
-      sunday.setHours(23, 59, 59, 999);
       
-      console.log("Week start (Monday):", monday.toISOString());
-      console.log("Week end (Sunday):", sunday.toISOString());
+      // Set to end of day in UTC
+      sunday.setUTCHours(23, 59, 59, 999);
       
-      setWeekStart(monday);
+      // Add buffer to ensure we capture all sales
+      const bufferEnd = new Date(sunday);
+      bufferEnd.setDate(sunday.getDate() + 1); // One day later
+      
+      console.log("Week start with buffer (UTC):", bufferStart.toISOString());
+      console.log("Week end with buffer (UTC):", bufferEnd.toISOString());
+      
+      setWeekStart(monday); // Keep the actual week dates for display
       setWeekEnd(sunday);
       
-      return { start: monday, end: sunday };
+      return { start: bufferStart, end: bufferEnd };
     };
     
     const { start, end } = calculateWeekDates();
@@ -77,14 +90,19 @@ const SellersLeaderboard: React.FC = () => {
       if (!data || data.length === 0) {
         // If no sales this week, try looking at the last 30 days
         console.log("No data for current week, trying last 30 days");
+        setDataSource('month');
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        thirtyDaysAgo.setUTCHours(0, 0, 0, 0); // Beginning of day in UTC
+        
+        const now = new Date();
+        now.setUTCHours(23, 59, 59, 999); // End of day in UTC
         
         const { data: fallbackData, error: fallbackError } = await supabase.rpc(
           'get_seller_leaderboard',
           { 
             start_date: thirtyDaysAgo.toISOString(),
-            end_date: new Date().toISOString()
+            end_date: now.toISOString()
           }
         );
         
@@ -105,6 +123,7 @@ const SellersLeaderboard: React.FC = () => {
         setLeaderboard(fallbackData);
       } else {
         // Process and format the current week data
+        setDataSource('week');
         setLeaderboard(data);
       }
       
@@ -120,11 +139,17 @@ const SellersLeaderboard: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto py-8">
-        <LeaderboardHeader weekStart={weekStart} weekEnd={weekEnd} />
+        <LeaderboardHeader 
+          weekStart={weekStart} 
+          weekEnd={weekEnd} 
+          dataSource={dataSource} 
+        />
         
         <Card className="betting-card">
           <CardHeader>
-            <CardTitle className="text-xl">Weekly Rankings</CardTitle>
+            <CardTitle className="text-xl">
+              {dataSource === 'week' ? 'Weekly Rankings' : 'Monthly Rankings (Last 30 Days)'}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (

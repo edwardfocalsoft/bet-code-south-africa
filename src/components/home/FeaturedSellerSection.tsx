@@ -21,34 +21,43 @@ interface TopSeller {
 const FeaturedSellerSection: React.FC = () => {
   const [featuredSeller, setFeaturedSeller] = useState<TopSeller | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dataSource, setDataSource] = useState<'week' | 'month'>('week');
 
   useEffect(() => {
     const fetchTopSeller = async () => {
       setLoading(true);
       try {
-        // Calculate week dates
+        // Calculate week dates with buffer for timezone issues
         const now = new Date();
         const day = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
         
-        // Calculate the date of Monday (start of week)
+        // Calculate the date of Monday (start of week) with buffer for timezone
         const mondayOffset = day === 0 ? -6 : 1 - day;
         const monday = new Date(now);
         monday.setDate(now.getDate() + mondayOffset);
-        monday.setHours(0, 0, 0, 0);
+        monday.setUTCHours(0, 0, 0, 0); // Beginning of day in UTC
         
-        // Calculate the date of Sunday (end of week)
+        // Add one day buffer to start
+        const bufferStart = new Date(monday);
+        bufferStart.setDate(monday.getDate() - 1);
+        
+        // Calculate the date of Sunday (end of week) with buffer
         const sunday = new Date(monday);
         sunday.setDate(monday.getDate() + 6);
-        sunday.setHours(23, 59, 59, 999);
+        sunday.setUTCHours(23, 59, 59, 999); // End of day in UTC
         
-        console.log(`Fetching top seller for week: ${monday.toISOString()} to ${sunday.toISOString()}`);
+        // Add one day buffer to end
+        const bufferEnd = new Date(sunday);
+        bufferEnd.setDate(sunday.getDate() + 1);
+        
+        console.log(`Fetching top seller for week with buffer: ${bufferStart.toISOString()} to ${bufferEnd.toISOString()}`);
 
         // Call the SQL function to get the top seller
         const { data: weekTopSellers, error: weekError } = await supabase.rpc(
           'get_seller_leaderboard', 
           { 
-            start_date: monday.toISOString(), 
-            end_date: sunday.toISOString() 
+            start_date: bufferStart.toISOString(), 
+            end_date: bufferEnd.toISOString() 
           }
         );
           
@@ -62,16 +71,23 @@ const FeaturedSellerSection: React.FC = () => {
         // If no sales this week, try last month
         if (!weekTopSellers || weekTopSellers.length === 0) {
           console.log("No top seller this week, trying last month");
+          setDataSource('month');
           
-          // Get sales from the last month
+          // Get sales from the last month with better timezone handling
           const lastMonth = new Date();
           lastMonth.setMonth(lastMonth.getMonth() - 1);
+          lastMonth.setUTCHours(0, 0, 0, 0); // Beginning of day in UTC
+          
+          const currentDate = new Date();
+          currentDate.setUTCHours(23, 59, 59, 999); // End of day in UTC
+          
+          console.log(`Fetching top seller for month: ${lastMonth.toISOString()} to ${currentDate.toISOString()}`);
           
           const { data: monthTopSellers, error: monthError } = await supabase.rpc(
             'get_seller_leaderboard', 
             { 
               start_date: lastMonth.toISOString(), 
-              end_date: new Date().toISOString() 
+              end_date: currentDate.toISOString() 
             }
           );
             
@@ -94,6 +110,7 @@ const FeaturedSellerSection: React.FC = () => {
         } else {
           // Process week top seller
           const topSeller = weekTopSellers[0];
+          setDataSource('week');
           setFeaturedSeller(topSeller);
         }
       } catch (error: any) {
@@ -110,7 +127,11 @@ const FeaturedSellerSection: React.FC = () => {
   return (
     <section className="py-16 px-4 bg-gradient-to-br from-betting-dark-gray to-betting-black">
       <div className="container mx-auto">
-        <h2 className="text-3xl font-bold mb-12 text-center">Featured Seller of the Week</h2>
+        <h2 className="text-3xl font-bold mb-12 text-center">
+          {dataSource === 'week' 
+            ? 'Featured Seller of the Week' 
+            : 'Featured Seller of the Month'}
+        </h2>
         
         {loading ? (
           <div className="max-w-3xl mx-auto">
@@ -147,7 +168,8 @@ const FeaturedSellerSection: React.FC = () => {
                   <div className="p-6">
                     <h3 className="text-2xl font-bold mb-2">{featuredSeller.username}</h3>
                     <p className="text-muted-foreground mb-6">
-                      Top performer with {featuredSeller.sales_count} sales this week
+                      Top performer with {featuredSeller.sales_count} sales 
+                      {dataSource === 'week' ? ' this week' : ' this month'}
                     </p>
                     
                     <SellerStats 
