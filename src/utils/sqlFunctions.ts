@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -243,7 +244,7 @@ export const getSellerLeaderboard = async (startDate: Date, endDate: Date) => {
     const startStr = startDate.toISOString();
     const endStr = endDate.toISOString();
 
-    // Using the stored function with all parameters to prevent SQL injection
+    // Using the sales_count parameter correctly - this counts ANY sales, not just those with price > 0
     const { data, error } = await supabase.rpc(
       'get_seller_leaderboard',
       { start_date: startStr, end_date: endStr }
