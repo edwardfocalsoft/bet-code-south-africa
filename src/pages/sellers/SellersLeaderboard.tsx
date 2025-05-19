@@ -60,16 +60,13 @@ const SellersLeaderboard: React.FC = () => {
       
       console.log("Fetching leaderboard data for date range:", startStr, "to", endStr);
       
-      // First, get all sales for the week with the FIXED foreign key reference
-      // Using profiles!purchases_seller_id_fkey to specify the correct relationship
+      // Get all purchases for the current week
       const { data: salesData, error: salesError } = await supabase
         .from('purchases')
-        .select(`
-          seller_id,
-          profiles!purchases_seller_id_fkey(id, username, avatar_url)
-        `)
+        .select('seller_id, price, payment_status')
         .gte('purchase_date', startStr)
-        .lte('purchase_date', endStr);
+        .lte('purchase_date', endStr)
+        .eq('payment_status', 'completed');
         
       if (salesError) {
         console.error("Error fetching sales data:", salesError);
@@ -77,34 +74,35 @@ const SellersLeaderboard: React.FC = () => {
       }
       
       console.log("Sales data retrieved:", salesData?.length || 0, "purchases");
-      console.log("Sample sales data:", salesData?.[0]);
       
-      // If no data for current week, try last 30 days
       if (!salesData || salesData.length === 0) {
+        console.log("No data for current week, trying last 30 days");
+        // If no sales this week, try looking at the last 30 days
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         
-        console.log("No data for current week, trying last 30 days from:", thirtyDaysAgo.toISOString());
-        
         const { data: fallbackSalesData, error: fallbackError } = await supabase
           .from('purchases')
-          .select(`
-            seller_id,
-            profiles!purchases_seller_id_fkey(id, username, avatar_url)
-          `)
-          .gte('purchase_date', thirtyDaysAgo.toISOString());
+          .select('seller_id, price, payment_status')
+          .gte('purchase_date', thirtyDaysAgo.toISOString())
+          .eq('payment_status', 'completed');
           
         if (fallbackError) throw fallbackError;
         
-        if (fallbackSalesData && fallbackSalesData.length > 0) {
-          processSalesData(fallbackSalesData);
-        } else {
+        console.log("Fallback sales data retrieved:", fallbackSalesData?.length || 0, "purchases");
+        
+        if (!fallbackSalesData || fallbackSalesData.length === 0) {
           setError("No sales data found for the current week or last 30 days.");
           setLeaderboard([]);
           setLoading(false);
+          return;
         }
+        
+        // Process fallback sales data
+        await processSalesData(fallbackSalesData);
       } else {
-        processSalesData(salesData);
+        // Process current week sales data
+        await processSalesData(salesData);
       }
     } catch (error: any) {
       console.error('Error fetching leaderboard data:', error);
@@ -116,49 +114,89 @@ const SellersLeaderboard: React.FC = () => {
   const processSalesData = async (salesData: any[]) => {
     try {
       // Count sales by seller
-      const salesBySellerMap = new Map<string, SellerStats>();
+      const salesBySellerMap = new Map<string, number>();
       
+      // Count purchases for each seller
       salesData.forEach(purchase => {
         const sellerId = purchase.seller_id;
-        const sellerProfile = purchase.profiles;
         
         if (!salesBySellerMap.has(sellerId)) {
-          salesBySellerMap.set(sellerId, {
-            id: sellerId,
-            username: sellerProfile?.username || 'Unknown',
-            avatar_url: sellerProfile?.avatar_url,
-            salesCount: 0,
-            averageRating: 0,
-            rank: 0
-          });
+          salesBySellerMap.set(sellerId, 0);
         }
         
-        const sellerData = salesBySellerMap.get(sellerId)!;
-        sellerData.salesCount += 1;
+        salesBySellerMap.set(sellerId, salesBySellerMap.get(sellerId)! + 1);
       });
       
-      // Get average ratings for each seller
-      for (const sellerId of salesBySellerMap.keys()) {
+      console.log("Sellers with sales:", salesBySellerMap.size);
+      
+      if (salesBySellerMap.size === 0) {
+        setError("No seller data found for the selected period.");
+        setLeaderboard([]);
+        setLoading(false);
+        return;
+      }
+      
+      // Fetch seller profiles and prepare leaderboard data
+      const sellerIds = Array.from(salesBySellerMap.keys());
+      
+      // Get seller profiles
+      const { data: sellerProfiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url')
+        .in('id', sellerIds);
+        
+      if (profilesError) {
+        console.error("Error fetching seller profiles:", profilesError);
+        throw profilesError;
+      }
+      
+      console.log("Seller profiles retrieved:", sellerProfiles?.length || 0);
+      
+      // Create a map of seller profiles by ID for easy lookup
+      const sellerProfilesMap = new Map();
+      sellerProfiles?.forEach(profile => {
+        sellerProfilesMap.set(profile.id, profile);
+      });
+      
+      // Create leaderboard data with seller information
+      const leaderboardData: SellerStats[] = [];
+      
+      for (const [sellerId, salesCount] of salesBySellerMap.entries()) {
+        const profile = sellerProfilesMap.get(sellerId);
+        
+        if (profile) {
+          leaderboardData.push({
+            id: sellerId,
+            username: profile.username || 'Unknown',
+            avatar_url: profile.avatar_url,
+            salesCount,
+            averageRating: 0, // Will be updated below
+            rank: 0 // Will be set after sorting
+          });
+        }
+      }
+      
+      // Fetch ratings for each seller
+      for (const seller of leaderboardData) {
         const { data: ratingsData, error: ratingsError } = await supabase
           .from('ratings')
           .select('score')
-          .eq('seller_id', sellerId);
+          .eq('seller_id', seller.id);
           
         if (!ratingsError && ratingsData && ratingsData.length > 0) {
           const totalRating = ratingsData.reduce((sum, item) => sum + item.score, 0);
           const average = totalRating / ratingsData.length;
-          const sellerData = salesBySellerMap.get(sellerId)!;
-          sellerData.averageRating = parseFloat(average.toFixed(1));
+          seller.averageRating = parseFloat(average.toFixed(1));
         }
       }
       
-      // Convert to array and sort by sales count (descending)
-      const leaderboardData = Array.from(salesBySellerMap.values())
-        .sort((a, b) => b.salesCount - a.salesCount)
-        .map((seller, index) => ({
-          ...seller,
-          rank: index + 1
-        }));
+      // Sort by sales count (descending) and assign ranks
+      leaderboardData.sort((a, b) => b.salesCount - a.salesCount);
+      
+      // Assign ranks (1-based)
+      leaderboardData.forEach((seller, index) => {
+        seller.rank = index + 1;
+      });
       
       console.log("Final leaderboard data:", leaderboardData);
       

@@ -41,16 +41,13 @@ const FeaturedSellerSection: React.FC = () => {
         
         console.log(`Querying sales from ${monday.toISOString()} to ${sunday.toISOString()}`);
 
-        // Get all sales for the current week with the FIXED foreign key reference
-        // Using profiles!purchases_seller_id_fkey to specify the seller profile relationship
+        // Get all sales for the current week
         const { data: weekSales, error: weekError } = await supabase
           .from('purchases')
-          .select(`
-            seller_id,
-            profiles!purchases_seller_id_fkey(id, username, avatar_url)
-          `)
+          .select('seller_id, price, payment_status')
           .gte('purchase_date', monday.toISOString())
-          .lte('purchase_date', sunday.toISOString());
+          .lte('purchase_date', sunday.toISOString())
+          .eq('payment_status', 'completed');
           
         if (weekError) {
           console.error("Error fetching week sales:", weekError);
@@ -69,11 +66,9 @@ const FeaturedSellerSection: React.FC = () => {
           
           const { data: monthSales, error: monthError } = await supabase
             .from('purchases')
-            .select(`
-              seller_id,
-              profiles!purchases_seller_id_fkey(id, username, avatar_url)
-            `)
-            .gte('purchase_date', lastMonth.toISOString());
+            .select('seller_id, price, payment_status')
+            .gte('purchase_date', lastMonth.toISOString())
+            .eq('payment_status', 'completed');
             
           if (monthError) {
             console.error("Error fetching month sales:", monthError);
@@ -110,12 +105,10 @@ const FeaturedSellerSection: React.FC = () => {
       
       salesData.forEach(purchase => {
         const sellerId = purchase.seller_id;
-        const sellerProfile = purchase.profiles;
         
         if (!sellerCounts.has(sellerId)) {
           sellerCounts.set(sellerId, {
             id: sellerId,
-            profile: sellerProfile,
             count: 0
           });
         }
@@ -130,31 +123,45 @@ const FeaturedSellerSection: React.FC = () => {
     // Helper function to process the top seller
     const processTopSeller = async (sellerCounts: Map<string, any>) => {
       // Find the seller with the most sales
-      let topSeller: any = null;
+      let topSellerId: string | null = null;
       let topSalesCount = 0;
       
       sellerCounts.forEach((data, sellerId) => {
         if (data.count > topSalesCount) {
           topSalesCount = data.count;
-          topSeller = {
-            id: sellerId,
-            username: data.profile?.username || 'Unknown',
-            avatar_url: data.profile?.avatar_url,
-            salesCount: data.count
-          };
+          topSellerId = sellerId;
         }
       });
       
-      if (!topSeller) {
+      if (!topSellerId) {
         console.log("No top seller found");
         return;
       }
+      
+      // Get the seller profile
+      const { data: sellerProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url')
+        .eq('id', topSellerId)
+        .single();
+        
+      if (profileError) {
+        console.error("Error fetching seller profile:", profileError);
+        throw profileError;
+      }
+      
+      const topSeller = {
+        id: topSellerId,
+        username: sellerProfile.username || 'Unknown',
+        avatar_url: sellerProfile.avatar_url,
+        salesCount: topSalesCount
+      };
       
       console.log("Top seller found:", topSeller);
       setFeaturedSeller(topSeller);
       
       // Get seller stats
-      await fetchSellerStats(topSeller.id);
+      await fetchSellerStats(topSellerId);
     };
     
     // Helper function to fetch seller stats
@@ -164,7 +171,8 @@ const FeaturedSellerSection: React.FC = () => {
         const { count: totalSales, error: salesError } = await supabase
           .from('purchases')
           .select('*', { count: 'exact', head: true })
-          .eq('seller_id', sellerId);
+          .eq('seller_id', sellerId)
+          .eq('payment_status', 'completed');
           
         if (salesError) throw salesError;
         
@@ -173,7 +181,8 @@ const FeaturedSellerSection: React.FC = () => {
           .from('purchases')
           .select('*', { count: 'exact', head: true })
           .eq('seller_id', sellerId)
-          .eq('is_winner', true);
+          .eq('is_winner', true)
+          .eq('payment_status', 'completed');
           
         if (winError) throw winError;
         
