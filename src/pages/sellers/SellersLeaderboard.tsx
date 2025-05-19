@@ -89,13 +89,11 @@ const SellersLeaderboard: React.FC = () => {
           return;
         }
         
-        // Fetch the total sales amounts for each seller
-        const leaderboardWithTotalSales = await fetchTotalSalesForSellers(fallbackData, thirtyDaysAgo, new Date());
-        setLeaderboard(leaderboardWithTotalSales);
+        setLeaderboard(fallbackData);
+        // Update date range to reflect the 30-day period
+        setWeekStart(thirtyDaysAgo);
       } else {
-        // Fetch the total sales amounts for each seller
-        const leaderboardWithTotalSales = await fetchTotalSalesForSellers(data, start, end);
-        setLeaderboard(leaderboardWithTotalSales);
+        setLeaderboard(data);
       }
       
       setLoading(false);
@@ -104,39 +102,6 @@ const SellersLeaderboard: React.FC = () => {
       toast.error("Failed to load leaderboard data");
       setError("Failed to load leaderboard data. Please try again later.");
       setLoading(false);
-    }
-  };
-
-  // New function to fetch total sales amounts
-  const fetchTotalSalesForSellers = async (sellerData: SellerStats[], start: Date, end: Date) => {
-    try {
-      // For each seller, fetch their total sales amount for the given period
-      const enhancedData = await Promise.all(
-        sellerData.map(async (seller) => {
-          const { data, error } = await supabase
-            .from('purchases')
-            .select('price')
-            .eq('seller_id', seller.id)
-            .eq('payment_status', 'completed')
-            .gt('price', 0) // Exclude free tickets
-            .gte('purchase_date', start.toISOString())
-            .lte('purchase_date', end.toISOString());
-            
-          if (error) {
-            console.error(`Error fetching sales for seller ${seller.id}:`, error);
-            return { ...seller, total_sales: 0 };
-          }
-          
-          const total = data?.reduce((sum, item) => sum + parseFloat(String(item.price || 0)), 0) || 0;
-          return { ...seller, total_sales: total };
-        })
-      );
-      
-      return enhancedData;
-    } catch (error) {
-      console.error('Error fetching total sales:', error);
-      // Return the original data if there was an error
-      return sellerData;
     }
   };
 
@@ -154,6 +119,8 @@ const SellersLeaderboard: React.FC = () => {
               <LoadingState />
             ) : error ? (
               <EmptyLeaderboard message={error} />
+            ) : leaderboard.length === 0 ? (
+              <EmptyLeaderboard message="No sales data found for the selected time period." />
             ) : (
               <LeaderboardTable sellers={leaderboard} />
             )}

@@ -16,7 +16,7 @@ export interface SellerStats {
   id: string;
   username: string;
   sales_count: number;
-  total_sales?: number; // New field for total sales amount
+  total_sales: number; // Now a required field directly from the SQL function
   average_rating: number;
   rank: number;
   avatar_url?: string;
@@ -29,7 +29,13 @@ interface LeaderboardTableProps {
 const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ sellers }) => {
   // Function to format currency
   const formatCurrency = (amount: number) => {
-    return `R${amount.toFixed(2)}`;
+    return new Intl.NumberFormat('en-ZA', {
+      style: 'currency',
+      currency: 'ZAR',
+      currencyDisplay: 'symbol',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount).replace('ZAR', 'R');
   };
 
   return (
@@ -56,7 +62,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ sellers }) => {
               </TableCell>
               <TableCell className="text-center">
                 <span className="text-betting-green font-semibold">
-                  {seller.total_sales ? formatCurrency(seller.total_sales) : 'R0.00'}
+                  {formatCurrency(seller.total_sales)}
                 </span>
               </TableCell>
               <TableCell className="text-center">

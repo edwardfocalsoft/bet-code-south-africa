@@ -12,9 +12,9 @@ const LeaderboardHeader: React.FC<LeaderboardHeaderProps> = ({ weekStart, weekEn
     <>
       <h1 className="text-3xl font-bold mb-2">Sellers Leaderboard</h1>
       <p className="text-muted-foreground mb-6">
-        Top performing sellers for the week of {formatDate(weekStart.toISOString())} to {formatDate(weekEnd.toISOString())}
+        Top performing sellers for the period of {formatDate(weekStart.toISOString())} to {formatDate(weekEnd.toISOString())}
         <br />
-        <span className="text-sm">Showing paid tickets only. Rankings based on number of sales.</span>
+        <span className="text-sm">Rankings based on number of sales. Showing paid tickets only.</span>
       </p>
     </>
   );
