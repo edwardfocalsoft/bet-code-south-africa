@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import SellerRankBadge from './SellerRankBadge';
 import RatingDisplay from './RatingDisplay';
+import { Badge } from "@/components/ui/badge";
 
 export interface SellerStats {
   id: string;
@@ -48,7 +49,11 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ sellers }) => {
                 {seller.username}
               </TableCell>
               <TableCell className="text-center">
-                <span className="text-betting-green font-semibold">{seller.sales_count}</span>
+                {seller.sales_count > 0 ? (
+                  <span className="text-betting-green font-semibold">{seller.sales_count}</span>
+                ) : (
+                  <Badge variant="outline" className="bg-betting-dark-gray text-muted-foreground">No sales yet</Badge>
+                )}
               </TableCell>
               <TableCell className="text-center">
                 <RatingDisplay rating={seller.average_rating} />

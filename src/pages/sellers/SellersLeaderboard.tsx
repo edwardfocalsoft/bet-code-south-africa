@@ -16,6 +16,7 @@ const SellersLeaderboard: React.FC = () => {
   const [weekStart, setWeekStart] = useState<Date>(new Date());
   const [weekEnd, setWeekEnd] = useState<Date>(new Date());
   const [error, setError] = useState<string | null>(null);
+  const [timeRange, setTimeRange] = useState<'week' | 'month'>('week');
 
   useEffect(() => {
     // Calculate week start (Monday) and end (Sunday)
@@ -74,9 +75,10 @@ const SellersLeaderboard: React.FC = () => {
       
       console.log("Leaderboard data retrieved:", data);
       
-      if (!data || data.length === 0) {
-        // If no sales this week, try looking at the last 30 days
-        console.log("No data for current week, trying last 30 days");
+      if (!data || data.length === 0 || (data.length > 0 && data.every(seller => seller.sales_count === 0))) {
+        // If no sales this week or all sellers have 0 sales, try looking at the last 30 days
+        console.log("No sales data for current week, trying last 30 days");
+        setTimeRange('month');
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         
@@ -95,7 +97,7 @@ const SellersLeaderboard: React.FC = () => {
         
         console.log("Fallback leaderboard data retrieved:", fallbackData);
         
-        if (!fallbackData || fallbackData.length === 0) {
+        if (!fallbackData || fallbackData.length === 0 || fallbackData.every(seller => seller.sales_count === 0)) {
           setError("No sales data found for the current week or last 30 days.");
           setLeaderboard([]);
           setLoading(false);
@@ -105,6 +107,7 @@ const SellersLeaderboard: React.FC = () => {
         setLeaderboard(fallbackData);
       } else {
         // Process and format the current week data
+        setTimeRange('week');
         setLeaderboard(data);
       }
       
@@ -120,11 +123,17 @@ const SellersLeaderboard: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto py-8">
-        <LeaderboardHeader weekStart={weekStart} weekEnd={weekEnd} />
+        <LeaderboardHeader 
+          weekStart={weekStart} 
+          weekEnd={weekEnd} 
+          timeRange={timeRange}
+        />
         
         <Card className="betting-card">
           <CardHeader>
-            <CardTitle className="text-xl">Weekly Rankings</CardTitle>
+            <CardTitle className="text-xl">
+              {timeRange === 'week' ? 'Weekly Rankings' : 'Monthly Rankings'}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
