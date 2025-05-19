@@ -20,19 +20,11 @@ const SellersLeaderboard: React.FC = () => {
 
   // Calculate the week start date (Monday of current week)
   const calculateDateRange = useCallback(() => {
-    // Get the current date
-    const now = new Date();
+    // Create a hardcoded date for May 19, 2025 (Monday)
+    const mondayDate = new Date(2025, 4, 19, 0, 0, 0, 0); // May is month 4 (zero-indexed)
     
-    // Find the most recent Monday (week start)
-    const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-    const mondayOffset = currentDay === 0 ? -6 : 1 - currentDay; // Calculate days to Monday
-    
-    const mondayDate = new Date(now);
-    mondayDate.setDate(now.getDate() + mondayOffset);
-    mondayDate.setHours(0, 0, 0, 0); // Start of day
-    
-    // End date is current date at end of day
-    const endDate = new Date(now);
+    // End date is current date
+    const endDate = new Date();
     endDate.setHours(23, 59, 59, 999);
     
     console.log("Weekly date range for leaderboard:");

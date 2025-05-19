@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -254,8 +253,7 @@ export const getSellerLeaderboard = async (startDate: Date, endDate: Date) => {
         price,
         profiles!purchases_seller_id_fkey (
           id,
-          username,
-          email
+          username
         )
       `)
       .gte('purchase_date', startStr)
@@ -263,13 +261,17 @@ export const getSellerLeaderboard = async (startDate: Date, endDate: Date) => {
       .gt('price', 0) // Exclude free tickets
       .eq('payment_status', 'completed');
 
-    if (error) throw error;
+    if (error) {
+      console.error('Query error:', error);
+      throw error;
+    }
+    
+    console.log('Raw purchase data:', data);
     
     // Process data to calculate totals and ranks
     const sellerSalesMap: Record<string, {
       sellerId: string,
       username: string | null,
-      email: string,
       totalSales: number,
       salesCount: number,
       avatar_url?: string | null
@@ -285,7 +287,6 @@ export const getSellerLeaderboard = async (startDate: Date, endDate: Date) => {
           sellerSalesMap[sellerId] = {
             sellerId,
             username: sellerProfile.username,
-            email: sellerProfile.email,
             totalSales: 0,
             salesCount: 0
           };
@@ -310,13 +311,12 @@ export const getSellerLeaderboard = async (startDate: Date, endDate: Date) => {
         rank: index + 1,
         id: seller.sellerId,
         username: seller.username || 'Unknown',
-        email: seller.email,
         total_sales: seller.totalSales,
         sales_count: seller.salesCount,
         avatar_url: seller.avatar_url
       }));
     
-    console.log(`Found ${rankedSellers.length} sellers in leaderboard`);
+    console.log(`Found ${rankedSellers.length} sellers in leaderboard:`, rankedSellers);
     return rankedSellers;
     
   } catch (error) {

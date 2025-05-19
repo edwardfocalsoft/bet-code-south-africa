@@ -39,7 +39,6 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
           <TableRow>
             <TableHead>Rank</TableHead>
             <TableHead>Seller</TableHead>
-            <TableHead>Email</TableHead>
             <TableHead className="text-right">Total Sales</TableHead>
             <TableHead className="text-center">Number of Sales</TableHead>
             <TableHead></TableHead>
@@ -48,7 +47,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
         <TableBody>
           {sellers.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-8">
+              <TableCell colSpan={5} className="text-center py-8">
                 <p className="text-muted-foreground">
                   No sales data found for this period.
                 </p>
@@ -62,9 +61,6 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({
                 </TableCell>
                 <TableCell className="font-medium">
                   {seller.username}
-                </TableCell>
-                <TableCell>
-                  {seller.email || 'N/A'}
                 </TableCell>
                 <TableCell className="text-right">
                   <span className="text-betting-green font-semibold">
