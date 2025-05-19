@@ -18,36 +18,21 @@ const SellersLeaderboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Calculate week start (Monday) and end (Sunday)
-    const calculateWeekDates = () => {
-      const now = new Date();
-      console.log("Current date:", now.toISOString());
+    // Set the specific week of May 19-25, 2025
+    const getSpecificWeek = () => {
+      const start = new Date(2025, 4, 19); // May 19, 2025 (month is 0-indexed)
+      const end = new Date(2025, 4, 25, 23, 59, 59, 999); // May 25, 2025, end of day
       
-      const day = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
-      console.log("Current day of week:", day);
+      console.log("Week start:", start.toISOString());
+      console.log("Week end:", end.toISOString());
       
-      // Calculate the date of Monday (start of week)
-      // If today is Sunday (0), we need to go back 6 days
-      const mondayOffset = day === 0 ? -6 : 1 - day;
-      const monday = new Date(now);
-      monday.setDate(now.getDate() + mondayOffset);
-      monday.setHours(0, 0, 0, 0);
+      setWeekStart(start);
+      setWeekEnd(end);
       
-      // Calculate the date of Sunday (end of week)
-      const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
-      sunday.setHours(23, 59, 59, 999);
-      
-      console.log("Week start (Monday):", monday.toISOString());
-      console.log("Week end (Sunday):", sunday.toISOString());
-      
-      setWeekStart(monday);
-      setWeekEnd(sunday);
-      
-      return { start: monday, end: sunday };
+      return { start, end };
     };
     
-    const { start, end } = calculateWeekDates();
+    const { start, end } = getSpecificWeek();
     fetchLeaderboard(start, end);
   }, []);
 
@@ -61,10 +46,11 @@ const SellersLeaderboard: React.FC = () => {
       
       console.log("Fetching leaderboard data for date range:", startStr, "to", endStr);
       
-      // Call the SQL function directly
+      // Call the updated SQL function with the limit parameter
       const { data, error } = await supabase.rpc('get_seller_leaderboard', {
         start_date: startStr,
-        end_date: endStr
+        end_date: endStr,
+        result_limit: 20 // Show more results to ensure we have enough data
       });
       
       if (error) {
@@ -76,7 +62,7 @@ const SellersLeaderboard: React.FC = () => {
       
       if (!data || data.length === 0) {
         // If no sales this week, try looking at the last 30 days
-        console.log("No data for current week, trying last 30 days");
+        console.log("No data for specified week, trying last 30 days");
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         
@@ -84,7 +70,8 @@ const SellersLeaderboard: React.FC = () => {
           'get_seller_leaderboard',
           { 
             start_date: thirtyDaysAgo.toISOString(),
-            end_date: new Date().toISOString()
+            end_date: new Date().toISOString(),
+            result_limit: 20
           }
         );
         
@@ -102,10 +89,13 @@ const SellersLeaderboard: React.FC = () => {
           return;
         }
         
-        setLeaderboard(fallbackData);
+        // Fetch the total sales amounts for each seller
+        const leaderboardWithTotalSales = await fetchTotalSalesForSellers(fallbackData, thirtyDaysAgo, new Date());
+        setLeaderboard(leaderboardWithTotalSales);
       } else {
-        // Process and format the current week data
-        setLeaderboard(data);
+        // Fetch the total sales amounts for each seller
+        const leaderboardWithTotalSales = await fetchTotalSalesForSellers(data, start, end);
+        setLeaderboard(leaderboardWithTotalSales);
       }
       
       setLoading(false);
@@ -114,6 +104,39 @@ const SellersLeaderboard: React.FC = () => {
       toast.error("Failed to load leaderboard data");
       setError("Failed to load leaderboard data. Please try again later.");
       setLoading(false);
+    }
+  };
+
+  // New function to fetch total sales amounts
+  const fetchTotalSalesForSellers = async (sellerData: SellerStats[], start: Date, end: Date) => {
+    try {
+      // For each seller, fetch their total sales amount for the given period
+      const enhancedData = await Promise.all(
+        sellerData.map(async (seller) => {
+          const { data, error } = await supabase
+            .from('purchases')
+            .select('price')
+            .eq('seller_id', seller.id)
+            .eq('payment_status', 'completed')
+            .gt('price', 0) // Exclude free tickets
+            .gte('purchase_date', start.toISOString())
+            .lte('purchase_date', end.toISOString());
+            
+          if (error) {
+            console.error(`Error fetching sales for seller ${seller.id}:`, error);
+            return { ...seller, total_sales: 0 };
+          }
+          
+          const total = data?.reduce((sum, item) => sum + parseFloat(String(item.price || 0)), 0) || 0;
+          return { ...seller, total_sales: total };
+        })
+      );
+      
+      return enhancedData;
+    } catch (error) {
+      console.error('Error fetching total sales:', error);
+      // Return the original data if there was an error
+      return sellerData;
     }
   };
 

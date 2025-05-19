@@ -16,6 +16,7 @@ export interface SellerStats {
   id: string;
   username: string;
   sales_count: number;
+  total_sales?: number; // New field for total sales amount
   average_rating: number;
   rank: number;
   avatar_url?: string;
@@ -26,6 +27,11 @@ interface LeaderboardTableProps {
 }
 
 const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ sellers }) => {
+  // Function to format currency
+  const formatCurrency = (amount: number) => {
+    return `R${amount.toFixed(2)}`;
+  };
+
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -33,7 +39,8 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ sellers }) => {
           <TableRow>
             <TableHead>Rank</TableHead>
             <TableHead>Seller</TableHead>
-            <TableHead className="text-center">Weekly Sales</TableHead>
+            <TableHead className="text-center">Total Sales</TableHead>
+            <TableHead className="text-center">Number of Sales</TableHead>
             <TableHead className="text-center">Rating</TableHead>
             <TableHead></TableHead>
           </TableRow>
@@ -48,7 +55,12 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ sellers }) => {
                 {seller.username}
               </TableCell>
               <TableCell className="text-center">
-                <span className="text-betting-green font-semibold">{seller.sales_count}</span>
+                <span className="text-betting-green font-semibold">
+                  {seller.total_sales ? formatCurrency(seller.total_sales) : 'R0.00'}
+                </span>
+              </TableCell>
+              <TableCell className="text-center">
+                <span className="font-semibold">{seller.sales_count}</span>
               </TableCell>
               <TableCell className="text-center">
                 <RatingDisplay rating={seller.average_rating} />

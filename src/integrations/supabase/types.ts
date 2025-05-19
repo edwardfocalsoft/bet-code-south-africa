@@ -541,7 +541,9 @@ export type Database = {
         Returns: string
       }
       get_seller_leaderboard: {
-        Args: { start_date: string; end_date: string }
+        Args:
+          | { start_date: string; end_date: string }
+          | { start_date: string; end_date: string; result_limit?: number }
         Returns: {
           rank: number
           id: string
