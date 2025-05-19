@@ -2,10 +2,10 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { UserCircle, Store } from "lucide-react";
-import type { Extract } from "@/types";
+import { UserRole } from "@/types";
 
 // Only allow 'buyer' or 'seller' roles for registration form
-type RegisterFormRole = 'buyer' | 'seller';
+type RegisterFormRole = Extract<UserRole, 'buyer' | 'seller'>;
 
 interface RoleSelectorProps {
   role: RegisterFormRole;
