@@ -33,7 +33,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ sellers }) => {
           <TableRow>
             <TableHead>Rank</TableHead>
             <TableHead>Seller</TableHead>
-            <TableHead className="text-center">Sales</TableHead>
+            <TableHead className="text-center">Weekly Sales</TableHead>
             <TableHead className="text-center">Rating</TableHead>
             <TableHead></TableHead>
           </TableRow>
@@ -48,11 +48,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ sellers }) => {
                 {seller.username}
               </TableCell>
               <TableCell className="text-center">
-                {seller.sales_count > 0 ? (
-                  <span className="text-betting-green font-semibold">{seller.sales_count}</span>
-                ) : (
-                  <span className="text-muted-foreground text-sm">No sales yet</span>
-                )}
+                <span className="text-betting-green font-semibold">{seller.sales_count}</span>
               </TableCell>
               <TableCell className="text-center">
                 <RatingDisplay rating={seller.average_rating} />
