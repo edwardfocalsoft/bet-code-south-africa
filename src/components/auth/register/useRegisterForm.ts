@@ -24,8 +24,11 @@ const formSchema = z.object({
 // Type for form data
 type FormData = z.infer<typeof formSchema>;
 
+// Only allow 'buyer' or 'seller' roles for registration form
+type RegisterFormRole = Extract<UserRole, 'buyer' | 'seller'>;
+
 export const useRegisterForm = () => {
-  const [role, setRole] = useState<UserRole>("buyer");
+  const [role, setRole] = useState<RegisterFormRole>("buyer");
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const { register: signUp } = useAuth();
@@ -64,7 +67,7 @@ export const useRegisterForm = () => {
     }
   });
 
-  const changeRole = (newRole: UserRole) => {
+  const changeRole = (newRole: RegisterFormRole) => {
     setRole(newRole);
   };
 

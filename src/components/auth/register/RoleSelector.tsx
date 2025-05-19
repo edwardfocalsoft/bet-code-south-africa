@@ -1,54 +1,48 @@
 
 import React from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { UserCircle, Store } from "lucide-react";
+import type { Extract } from "@/types";
+
+// Only allow 'buyer' or 'seller' roles for registration form
+type RegisterFormRole = 'buyer' | 'seller';
 
 interface RoleSelectorProps {
-  role: "buyer" | "seller";
-  onChange: (value: "buyer" | "seller") => void;
+  role: RegisterFormRole;
+  onChange: (role: RegisterFormRole) => void;
 }
 
 const RoleSelector: React.FC<RoleSelectorProps> = ({ role, onChange }) => {
   return (
-    <Tabs defaultValue={role} className="w-full" onValueChange={onChange}>
-      <TabsList className="grid grid-cols-2 mb-4">
-        <TabsTrigger value="buyer" className="data-[state=active]:bg-betting-green">
-          <User className="h-4 w-4 mr-2" />
-          Sign up as Buyer
-        </TabsTrigger>
-        <TabsTrigger value="seller" className="data-[state=active]:bg-betting-green">
-          <Users className="h-4 w-4 mr-2" />
-          Sign up as Seller
-        </TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="buyer">
-        <div className="space-y-1 text-sm text-muted-foreground mb-4">
-          <p>As a buyer, you can:</p>
-          <ul className="list-disc list-inside space-y-1">
-            <li>Browse all available betting codes</li>
-            <li>Purchase premium predictions</li>
-            <li>Rate sellers and their tickets</li>
-            <li>Earn loyalty points for future discounts</li>
-          </ul>
-        </div>
-      </TabsContent>
-      
-      <TabsContent value="seller">
-        <div className="space-y-1 text-sm text-muted-foreground mb-4">
-          <p>As a seller, you can:</p>
-          <ul className="list-disc list-inside space-y-1">
-            <li>Share free and paid betting codes</li>
-            <li>Build your reputation with good predictions</li>
-            <li>Earn commission from your betting knowledge</li>
-            <li>Gain followers and visibility on the platform</li>
-          </ul>
-          <p className="mt-2 font-medium text-betting-accent">
-            Note: Seller accounts require admin approval before activation.
-          </p>
-        </div>
-      </TabsContent>
-    </Tabs>
+    <div className="space-y-2">
+      <label className="block text-sm font-medium text-muted-foreground">
+        I want to register as a:
+      </label>
+      <div className="flex space-x-3">
+        <Button
+          type="button"
+          variant={role === "buyer" ? "default" : "outline"}
+          className={`flex-1 ${
+            role === "buyer" ? "bg-betting-green hover:bg-betting-green-dark" : ""
+          }`}
+          onClick={() => onChange("buyer")}
+        >
+          <UserCircle className="mr-2 h-4 w-4" />
+          Buyer
+        </Button>
+        <Button
+          type="button"
+          variant={role === "seller" ? "default" : "outline"}
+          className={`flex-1 ${
+            role === "seller" ? "bg-betting-green hover:bg-betting-green-dark" : ""
+          }`}
+          onClick={() => onChange("seller")}
+        >
+          <Store className="mr-2 h-4 w-4" />
+          Seller
+        </Button>
+      </div>
+    </div>
   );
 };
 
