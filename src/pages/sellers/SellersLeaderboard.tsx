@@ -60,7 +60,8 @@ const SellersLeaderboard: React.FC = () => {
       
       console.log("Fetching leaderboard data for date range:", startStr, "to", endStr);
       
-      // First, get all sales for the week with the correct foreign key reference
+      // First, get all sales for the week with the FIXED foreign key reference
+      // Using profiles!purchases_seller_id_fkey to specify the correct relationship
       const { data: salesData, error: salesError } = await supabase
         .from('purchases')
         .select(`

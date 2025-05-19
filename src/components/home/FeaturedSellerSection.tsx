@@ -41,12 +41,13 @@ const FeaturedSellerSection: React.FC = () => {
         
         console.log(`Querying sales from ${monday.toISOString()} to ${sunday.toISOString()}`);
 
-        // Get all sales for the current week with the correct foreign key reference
+        // Get all sales for the current week with the FIXED foreign key reference
+        // Using profiles!purchases_seller_id_fkey to specify the seller profile relationship
         const { data: weekSales, error: weekError } = await supabase
           .from('purchases')
           .select(`
             seller_id,
-            profiles(id, username, avatar_url)
+            profiles!purchases_seller_id_fkey(id, username, avatar_url)
           `)
           .gte('purchase_date', monday.toISOString())
           .lte('purchase_date', sunday.toISOString());
@@ -70,7 +71,7 @@ const FeaturedSellerSection: React.FC = () => {
             .from('purchases')
             .select(`
               seller_id,
-              profiles(id, username, avatar_url)
+              profiles!purchases_seller_id_fkey(id, username, avatar_url)
             `)
             .gte('purchase_date', lastMonth.toISOString());
             
