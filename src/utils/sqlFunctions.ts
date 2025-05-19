@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -74,7 +73,8 @@ export const getSellerStats = async (sellerId: string) => {
     const { count: totalSales, error: salesError } = await supabase
       .from('purchases')
       .select('*', { count: 'exact', head: true })
-      .eq('seller_id', sellerId);
+      .eq('seller_id', sellerId)
+      .eq('payment_status', 'completed');
       
     if (salesError) throw salesError;
 
@@ -82,7 +82,8 @@ export const getSellerStats = async (sellerId: string) => {
     const { data: revenueData, error: revenueError } = await supabase
       .from('purchases')
       .select('price')
-      .eq('seller_id', sellerId);
+      .eq('seller_id', sellerId)
+      .eq('payment_status', 'completed');
       
     if (revenueError) throw revenueError;
 
@@ -94,7 +95,8 @@ export const getSellerStats = async (sellerId: string) => {
       .from('purchases')
       .select('*', { count: 'exact', head: true })
       .eq('seller_id', sellerId)
-      .eq('is_winner', true);
+      .eq('is_winner', true)
+      .eq('payment_status', 'completed');
     
     if (winningError) throw winningError;
     
@@ -226,6 +228,32 @@ export const getRecentSales = async (sellerId: string, limit = 5) => {
     return data;
   } catch (error) {
     console.error('Error getting recent sales:', error);
+    return null;
+  }
+};
+
+/**
+ * Get leaderboard for top sellers based on sales in a given time period
+ * @param startDate Start date for leaderboard calculation
+ * @param endDate End date for leaderboard calculation
+ * @returns Array of seller statistics or null if there was an error
+ */
+export const getSellerLeaderboard = async (startDate: Date, endDate: Date) => {
+  try {
+    const startStr = startDate.toISOString();
+    const endStr = endDate.toISOString();
+
+    // Using native query with all parameters to prevent SQL injection
+    const { data, error } = await supabase.rpc(
+      'get_seller_leaderboard',
+      { start_date: startStr, end_date: endStr }
+    );
+
+    if (error) throw error;
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error getting seller leaderboard:', error);
     return null;
   }
 };

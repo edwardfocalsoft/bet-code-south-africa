@@ -22,8 +22,6 @@ const FeaturedSellerSection: React.FC = () => {
     const fetchTopSeller = async () => {
       setLoading(true);
       try {
-        console.log("Fetching top seller...");
-        
         // Calculate week dates
         const now = new Date();
         const day = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
@@ -39,129 +37,86 @@ const FeaturedSellerSection: React.FC = () => {
         sunday.setDate(monday.getDate() + 6);
         sunday.setHours(23, 59, 59, 999);
         
-        console.log(`Querying sales from ${monday.toISOString()} to ${sunday.toISOString()}`);
+        console.log(`Fetching top seller for week: ${monday.toISOString()} to ${sunday.toISOString()}`);
 
-        // Get all sales for the current week
-        const { data: weekSales, error: weekError } = await supabase
-          .from('purchases')
-          .select('seller_id, price, payment_status')
-          .gte('purchase_date', monday.toISOString())
-          .lte('purchase_date', sunday.toISOString())
-          .eq('payment_status', 'completed');
+        // Call the RPC function to get the top seller
+        const { data: weekTopSeller, error: weekError } = await supabase.rpc(
+          'get_seller_leaderboard', 
+          { 
+            start_date: monday.toISOString(), 
+            end_date: sunday.toISOString() 
+          }
+        );
           
         if (weekError) {
-          console.error("Error fetching week sales:", weekError);
+          console.error("Error fetching week top seller:", weekError);
           throw weekError;
         }
         
-        console.log("Week sales data retrieved:", weekSales?.length || 0, "purchases");
+        console.log("Week top seller data:", weekTopSeller);
         
         // If no sales this week, try last month
-        if (!weekSales || weekSales.length === 0) {
-          console.log("No sales this week, trying last month");
+        if (!weekTopSeller || weekTopSeller.length === 0) {
+          console.log("No top seller this week, trying last month");
           
           // Get sales from the last month
           const lastMonth = new Date();
           lastMonth.setMonth(lastMonth.getMonth() - 1);
           
-          const { data: monthSales, error: monthError } = await supabase
-            .from('purchases')
-            .select('seller_id, price, payment_status')
-            .gte('purchase_date', lastMonth.toISOString())
-            .eq('payment_status', 'completed');
+          const { data: monthTopSeller, error: monthError } = await supabase.rpc(
+            'get_seller_leaderboard', 
+            { 
+              start_date: lastMonth.toISOString(), 
+              end_date: new Date().toISOString() 
+            }
+          );
             
           if (monthError) {
-            console.error("Error fetching month sales:", monthError);
+            console.error("Error fetching month top seller:", monthError);
             throw monthError;
           }
           
-          if (!monthSales || monthSales.length === 0) {
-            console.log("No sales in the last month either");
+          console.log("Month top seller data:", monthTopSeller);
+          
+          if (!monthTopSeller || monthTopSeller.length === 0) {
+            console.log("No top seller in the last month either");
             setLoading(false);
             return;
           }
           
-          console.log("Month sales data retrieved:", monthSales.length, "purchases");
-          
-          // Process month sales
-          const sellerCounts = countSalesPerSeller(monthSales);
-          await processTopSeller(sellerCounts);
+          // Process month top seller
+          processTopSeller(monthTopSeller[0]);
         } else {
-          // Process week sales
-          const sellerCounts = countSalesPerSeller(weekSales);
-          await processTopSeller(sellerCounts);
+          // Process week top seller
+          processTopSeller(weekTopSeller[0]);
         }
       } catch (error: any) {
         console.error("Error fetching featured seller:", error);
-        toast("Error loading featured seller data");
+        toast.error("Error loading featured seller data");
       } finally {
         setLoading(false);
       }
     };
     
-    // Helper function to count sales per seller
-    const countSalesPerSeller = (salesData: any[]) => {
-      const sellerCounts = new Map();
-      
-      salesData.forEach(purchase => {
-        const sellerId = purchase.seller_id;
-        
-        if (!sellerCounts.has(sellerId)) {
-          sellerCounts.set(sellerId, {
-            id: sellerId,
-            count: 0
-          });
-        }
-        
-        const sellerData = sellerCounts.get(sellerId);
-        sellerData.count += 1;
-      });
-      
-      return sellerCounts;
-    };
-    
     // Helper function to process the top seller
-    const processTopSeller = async (sellerCounts: Map<string, any>) => {
-      // Find the seller with the most sales
-      let topSellerId: string | null = null;
-      let topSalesCount = 0;
-      
-      sellerCounts.forEach((data, sellerId) => {
-        if (data.count > topSalesCount) {
-          topSalesCount = data.count;
-          topSellerId = sellerId;
-        }
-      });
-      
-      if (!topSellerId) {
+    const processTopSeller = async (seller: any) => {
+      if (!seller) {
         console.log("No top seller found");
         return;
       }
       
-      // Get the seller profile
-      const { data: sellerProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_url')
-        .eq('id', topSellerId)
-        .single();
-        
-      if (profileError) {
-        console.error("Error fetching seller profile:", profileError);
-        throw profileError;
-      }
-      
       const topSeller = {
-        id: topSellerId,
-        username: sellerProfile.username || 'Unknown',
-        avatar_url: sellerProfile.avatar_url,
-        salesCount: topSalesCount
+        id: seller.id,
+        username: seller.username || 'Unknown',
+        avatar_url: seller.avatar_url,
+        salesCount: seller.sales_count
       };
       
       console.log("Top seller found:", topSeller);
       setFeaturedSeller(topSeller);
       
       // Get seller stats
-      await fetchSellerStats(topSellerId);
+      await fetchSellerStats(seller.id);
     };
     
     // Helper function to fetch seller stats
