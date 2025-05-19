@@ -21,7 +21,6 @@ interface TopSeller {
 const FeaturedSellerSection: React.FC = () => {
   const [featuredSeller, setFeaturedSeller] = useState<TopSeller | null>(null);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<'week' | 'month'>('week');
 
   useEffect(() => {
     const fetchTopSeller = async () => {
@@ -61,9 +60,8 @@ const FeaturedSellerSection: React.FC = () => {
         console.log("Week top seller data:", weekTopSellers);
         
         // If no sales this week, try last month
-        if (!weekTopSellers || weekTopSellers.length === 0 || weekTopSellers[0].sales_count === 0) {
-          console.log("No top seller with sales this week, trying last month");
-          setTimeRange('month');
+        if (!weekTopSellers || weekTopSellers.length === 0) {
+          console.log("No top seller this week, trying last month");
           
           // Get sales from the last month
           const lastMonth = new Date();
@@ -84,8 +82,8 @@ const FeaturedSellerSection: React.FC = () => {
           
           console.log("Month top seller data:", monthTopSellers);
           
-          if (!monthTopSellers || monthTopSellers.length === 0 || monthTopSellers[0].sales_count === 0) {
-            console.log("No top seller in the last month with sales either");
+          if (!monthTopSellers || monthTopSellers.length === 0) {
+            console.log("No top seller in the last month either");
             setLoading(false);
             return;
           }
@@ -95,7 +93,6 @@ const FeaturedSellerSection: React.FC = () => {
           setFeaturedSeller(topSeller);
         } else {
           // Process week top seller
-          setTimeRange('week');
           const topSeller = weekTopSellers[0];
           setFeaturedSeller(topSeller);
         }
@@ -113,7 +110,7 @@ const FeaturedSellerSection: React.FC = () => {
   return (
     <section className="py-16 px-4 bg-gradient-to-br from-betting-dark-gray to-betting-black">
       <div className="container mx-auto">
-        <h2 className="text-3xl font-bold mb-12 text-center">Featured Seller of the {timeRange === 'week' ? 'Week' : 'Month'}</h2>
+        <h2 className="text-3xl font-bold mb-12 text-center">Featured Seller of the Week</h2>
         
         {loading ? (
           <div className="max-w-3xl mx-auto">
@@ -150,9 +147,7 @@ const FeaturedSellerSection: React.FC = () => {
                   <div className="p-6">
                     <h3 className="text-2xl font-bold mb-2">{featuredSeller.username}</h3>
                     <p className="text-muted-foreground mb-6">
-                      {featuredSeller.sales_count > 0 
-                        ? `Top performer with ${featuredSeller.sales_count} sales this ${timeRange}` 
-                        : `Top ranked seller this ${timeRange}`}
+                      Top performer with {featuredSeller.sales_count} sales this week
                     </p>
                     
                     <SellerStats 
