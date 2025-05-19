@@ -34,9 +34,12 @@ const TopSellersSection: React.FC<TopSellersSectionProps> = ({
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {sellers.length > 0 ? (
+            {sellers && sellers.length > 0 ? (
               sellers.map((seller, index) => (
-                <SellerCard key={seller.id} seller={{...seller, ranking: index + 1}} />
+                <SellerCard 
+                  key={seller.id} 
+                  seller={{...seller, ranking: index + 1}} 
+                />
               ))
             ) : (
               <div className="col-span-3 text-center py-12">

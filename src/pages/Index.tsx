@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import HeroSection from "@/components/home/HeroSection";
 import BettingSitesSection from "@/components/home/BettingSitesSection";
@@ -13,7 +13,7 @@ import { useSellers } from "@/hooks/useSellers";
 const Index: React.FC = () => {
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
   const { tickets: allTickets, loading: ticketsLoading } = useTickets();
-  const { sellers: allSellers, loading: sellersLoading } = useSellers();
+  const { sellers: allSellers, loading: sellersLoading } = useSellers(); 
   
   // Filter for featured tickets (non-expired tickets, limit to 6)
   const featuredTickets = allTickets
@@ -22,6 +22,10 @@ const Index: React.FC = () => {
   
   // Filter for top sellers (limit to 3)
   const topSellers = allSellers.slice(0, 3);
+
+  useEffect(() => {
+    console.log("Home page - top sellers data:", topSellers);
+  }, [topSellers]);
 
   return (
     <Layout isHomePage={true}>

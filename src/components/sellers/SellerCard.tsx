@@ -9,100 +9,31 @@ import SubscribeButton from "./SubscribeButton";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useSellerStats } from "@/hooks/sellers/useSellerStats";
 
 interface SellerCardProps {
   seller: UserType & { ranking?: number };
 }
 
-interface SellerRealStats {
-  winRate: number;
-  ticketsSold: number;
-  followers: number;
-  averageRating: number;
-  memberSince: string;
-}
-
 const SellerCard: React.FC<SellerCardProps> = ({ seller }) => {
-  const [stats, setStats] = useState<SellerRealStats>({
-    winRate: 0,
-    ticketsSold: 0,
-    followers: 0,
-    averageRating: 0,
-    memberSince: ""
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchSellerStats = async () => {
-      setLoading(true);
-      try {
-        // Get total sales
-        const { count: totalSales, error: salesError } = await supabase
-          .from("purchases")
-          .select("*", { count: 'exact', head: true })
-          .eq("seller_id", seller.id);
-          
-        if (salesError) throw salesError;
-        
-        // Get winning tickets for win rate
-        const { count: winCount, error: winError } = await supabase
-          .from("purchases")
-          .select("*", { count: 'exact', head: true })
-          .eq("seller_id", seller.id)
-          .eq("is_winner", true);
-          
-        if (winError) throw winError;
-        
-        // Get followers count
-        const { count: followerCount, error: followerError } = await supabase
-          .from("subscriptions")
-          .select("*", { count: 'exact', head: true })
-          .eq("seller_id", seller.id);
-          
-        if (followerError) throw followerError;
-        
-        // Get average rating
-        const { data: ratings, error: ratingError } = await supabase
-          .from("ratings")
-          .select("score")
-          .eq("seller_id", seller.id);
-          
-        if (ratingError) throw ratingError;
-
-        // Calculate stats
-        const winRate = totalSales && totalSales > 0 ? 
-          Math.round((winCount || 0) / totalSales * 100) : 0;
-          
-        const averageRating = ratings && ratings.length > 0 ? 
-          parseFloat((ratings.reduce((sum, item) => sum + item.score, 0) / ratings.length).toFixed(1)) : 0;
-        
-        // Format member since date
-        const memberSinceDate = seller.createdAt ? format(new Date(seller.createdAt), 'MMM yyyy') : 'Unknown';
-        
-        setStats({
-          winRate,
-          ticketsSold: totalSales || 0,
-          followers: followerCount || 0,
-          averageRating,
-          memberSince: memberSinceDate
-        });
-      } catch (error) {
-        console.error("Error fetching seller stats:", error);
-        // Set default values in case of error
-        setStats({
-          winRate: 0,
-          ticketsSold: 0,
-          followers: 0,
-          averageRating: 0,
-          memberSince: seller.createdAt ? format(new Date(seller.createdAt), 'MMM yyyy') : 'Unknown'
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { stats, loading } = useSellerStats(seller.id);
+  
+  // Format member since date from seller's createdAt
+  const memberSince = React.useMemo(() => {
+    if (!seller.createdAt) return "Unknown";
     
-    fetchSellerStats();
-  }, [seller.id, seller.createdAt]);
+    try {
+      // Handle both Date object and ISO string formats
+      const date = typeof seller.createdAt === 'string' 
+        ? new Date(seller.createdAt)
+        : seller.createdAt;
+      
+      return format(date, 'MMM yyyy');
+    } catch (error) {
+      console.error("Error formatting member since date:", error, seller.createdAt);
+      return "Unknown";
+    }
+  }, [seller.createdAt]);
 
   return (
     <Card className="betting-card overflow-hidden">
@@ -127,7 +58,7 @@ const SellerCard: React.FC<SellerCardProps> = ({ seller }) => {
               </h3>
               <div className="flex items-center text-sm">
                 <Star className="h-3 w-3 text-yellow-500 mr-1" fill="#eab308" />
-                <span>{stats.averageRating > 0 ? stats.averageRating.toFixed(1) : '0.0'} Rating</span>
+                <span>{stats?.averageRating > 0 ? stats.averageRating.toFixed(1) : '0.0'} Rating</span>
               </div>
             </div>
           </div>
@@ -148,19 +79,19 @@ const SellerCard: React.FC<SellerCardProps> = ({ seller }) => {
             <div className="grid grid-cols-2 gap-2 text-sm mb-4">
               <div>
                 <p className="text-muted-foreground">Win Rate</p>
-                <p className="font-medium">{stats.winRate}%</p>
+                <p className="font-medium">{stats?.winRate || 0}%</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Tickets Sold</p>
-                <p className="font-medium">{stats.ticketsSold}</p>
+                <p className="font-medium">{stats?.ticketsSold || 0}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Member Since</p>
-                <p className="font-medium">{stats.memberSince}</p>
+                <p className="font-medium">{memberSince}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Followers</p>
-                <p className="font-medium">{stats.followers}</p>
+                <p className="font-medium">{stats?.followersCount || 0}</p>
               </div>
             </div>
             <div className="flex gap-2 mt-2">
