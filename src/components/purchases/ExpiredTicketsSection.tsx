@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Star } from "lucide-react";
 import RateTicketDialog from "@/components/tickets/RateTicketDialog";
 import { useAuth } from "@/contexts/auth";
+import { isTicketExpired } from "@/utils/ticketUtils";
 
 interface ExpiredTicketsSectionProps {
   purchases: Purchase[];

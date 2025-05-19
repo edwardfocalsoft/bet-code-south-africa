@@ -9,6 +9,7 @@ import { Pagination } from "@/components/ui/pagination";
 import ExpiredTicketsSection from "@/components/purchases/ExpiredTicketsSection";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { isTicketExpired } from "@/utils/ticketUtils";
 
 const BuyerPurchases = () => {
   const { 
@@ -29,17 +30,10 @@ const BuyerPurchases = () => {
   };
   
   // Filter for expired tickets that haven't been rated yet
-  // Use isTicketExpired function to correctly identify expired tickets
   const expiredTicketsToRate = purchases.filter(purchase => 
     !purchase.isRated && 
     isTicketExpired(purchase.kickoffTime)
   );
-  
-  // Check if a ticket is expired based on its kickoff time
-  const isTicketExpired = (kickoffTime: string) => {
-    if (!kickoffTime) return false;
-    return new Date(kickoffTime) < new Date();
-  };
   
   // Filter functions for each tab
   const getFilteredPurchases = (tab: string) => {

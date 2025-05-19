@@ -18,6 +18,7 @@ import { Purchase } from "@/hooks/usePurchases";
 import { useAuth } from "@/contexts/auth";
 import RateTicketDialog from "@/components/tickets/RateTicketDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { isTicketExpired } from "@/utils/ticketUtils";
 
 interface PurchasesTableProps {
   purchases: Purchase[];
@@ -110,12 +111,6 @@ export function PurchasesTable({ purchases, onRateSuccess }: PurchasesTableProps
     if (onRateSuccess) {
       onRateSuccess();
     }
-  };
-
-  // Check if the ticket is expired based on its kickoff time
-  const isTicketExpired = (kickoffTime: string) => {
-    if (!kickoffTime) return false;
-    return new Date(kickoffTime) < new Date();
   };
   
   // A ticket can be rated if it's expired and hasn't been rated yet
