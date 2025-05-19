@@ -61,7 +61,7 @@ const SellersLeaderboard: React.FC = () => {
       
       console.log("Fetching leaderboard data for date range:", startStr, "to", endStr);
       
-      // Using direct SQL query with RANK() for better performance and accuracy
+      // Call the SQL function directly
       const { data, error } = await supabase.rpc('get_seller_leaderboard', {
         start_date: startStr,
         end_date: endStr
@@ -102,13 +102,10 @@ const SellersLeaderboard: React.FC = () => {
           return;
         }
         
-        // Process and format the fallback data
-        const formattedLeaderboard = formatLeaderboardData(fallbackData);
-        setLeaderboard(formattedLeaderboard);
+        setLeaderboard(fallbackData);
       } else {
         // Process and format the current week data
-        const formattedLeaderboard = formatLeaderboardData(data);
-        setLeaderboard(formattedLeaderboard);
+        setLeaderboard(data);
       }
       
       setLoading(false);
@@ -118,19 +115,6 @@ const SellersLeaderboard: React.FC = () => {
       setError("Failed to load leaderboard data. Please try again later.");
       setLoading(false);
     }
-  };
-  
-  const formatLeaderboardData = (data: any[]): SellerStats[] => {
-    return data.map(seller => {
-      return {
-        id: seller.id,
-        username: seller.username || 'Unknown',
-        avatar_url: seller.avatar_url,
-        salesCount: seller.sales_count,
-        averageRating: seller.average_rating || 0,
-        rank: seller.rank
-      };
-    });
   };
 
   return (

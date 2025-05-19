@@ -243,7 +243,7 @@ export const getSellerLeaderboard = async (startDate: Date, endDate: Date) => {
     const startStr = startDate.toISOString();
     const endStr = endDate.toISOString();
 
-    // Using native query with all parameters to prevent SQL injection
+    // Using the stored function with all parameters to prevent SQL injection
     const { data, error } = await supabase.rpc(
       'get_seller_leaderboard',
       { start_date: startStr, end_date: endStr }

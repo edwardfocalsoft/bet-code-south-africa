@@ -9,13 +9,17 @@ import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
+interface TopSeller {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+  rank: number;
+  sales_count: number;
+  average_rating: number;
+}
+
 const FeaturedSellerSection: React.FC = () => {
-  const [featuredSeller, setFeaturedSeller] = useState<any | null>(null);
-  const [sellerStats, setSellerStats] = useState({
-    totalSales: 0,
-    winRate: 0,
-    averageRating: 0
-  });
+  const [featuredSeller, setFeaturedSeller] = useState<TopSeller | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,8 +43,8 @@ const FeaturedSellerSection: React.FC = () => {
         
         console.log(`Fetching top seller for week: ${monday.toISOString()} to ${sunday.toISOString()}`);
 
-        // Call the RPC function to get the top seller
-        const { data: weekTopSeller, error: weekError } = await supabase.rpc(
+        // Call the SQL function to get the top seller
+        const { data: weekTopSellers, error: weekError } = await supabase.rpc(
           'get_seller_leaderboard', 
           { 
             start_date: monday.toISOString(), 
@@ -53,17 +57,17 @@ const FeaturedSellerSection: React.FC = () => {
           throw weekError;
         }
         
-        console.log("Week top seller data:", weekTopSeller);
+        console.log("Week top seller data:", weekTopSellers);
         
         // If no sales this week, try last month
-        if (!weekTopSeller || weekTopSeller.length === 0) {
+        if (!weekTopSellers || weekTopSellers.length === 0) {
           console.log("No top seller this week, trying last month");
           
           // Get sales from the last month
           const lastMonth = new Date();
           lastMonth.setMonth(lastMonth.getMonth() - 1);
           
-          const { data: monthTopSeller, error: monthError } = await supabase.rpc(
+          const { data: monthTopSellers, error: monthError } = await supabase.rpc(
             'get_seller_leaderboard', 
             { 
               start_date: lastMonth.toISOString(), 
@@ -76,93 +80,27 @@ const FeaturedSellerSection: React.FC = () => {
             throw monthError;
           }
           
-          console.log("Month top seller data:", monthTopSeller);
+          console.log("Month top seller data:", monthTopSellers);
           
-          if (!monthTopSeller || monthTopSeller.length === 0) {
+          if (!monthTopSellers || monthTopSellers.length === 0) {
             console.log("No top seller in the last month either");
             setLoading(false);
             return;
           }
           
           // Process month top seller
-          processTopSeller(monthTopSeller[0]);
+          const topSeller = monthTopSellers[0];
+          setFeaturedSeller(topSeller);
         } else {
           // Process week top seller
-          processTopSeller(weekTopSeller[0]);
+          const topSeller = weekTopSellers[0];
+          setFeaturedSeller(topSeller);
         }
       } catch (error: any) {
         console.error("Error fetching featured seller:", error);
         toast.error("Error loading featured seller data");
       } finally {
         setLoading(false);
-      }
-    };
-    
-    // Helper function to process the top seller
-    const processTopSeller = async (seller: any) => {
-      if (!seller) {
-        console.log("No top seller found");
-        return;
-      }
-      
-      const topSeller = {
-        id: seller.id,
-        username: seller.username || 'Unknown',
-        avatar_url: seller.avatar_url,
-        salesCount: seller.sales_count
-      };
-      
-      console.log("Top seller found:", topSeller);
-      setFeaturedSeller(topSeller);
-      
-      // Get seller stats
-      await fetchSellerStats(seller.id);
-    };
-    
-    // Helper function to fetch seller stats
-    const fetchSellerStats = async (sellerId: string) => {
-      try {
-        // Get total sales
-        const { count: totalSales, error: salesError } = await supabase
-          .from('purchases')
-          .select('*', { count: 'exact', head: true })
-          .eq('seller_id', sellerId)
-          .eq('payment_status', 'completed');
-          
-        if (salesError) throw salesError;
-        
-        // Get winning tickets
-        const { count: winningCount, error: winError } = await supabase
-          .from('purchases')
-          .select('*', { count: 'exact', head: true })
-          .eq('seller_id', sellerId)
-          .eq('is_winner', true)
-          .eq('payment_status', 'completed');
-          
-        if (winError) throw winError;
-        
-        // Calculate win rate
-        const winRate = totalSales && totalSales > 0 ? 
-          Math.round((winningCount || 0) / totalSales * 100) : 0;
-        
-        // Get average rating
-        const { data: ratings, error: ratingError } = await supabase
-          .from('ratings')
-          .select('score')
-          .eq('seller_id', sellerId);
-          
-        if (ratingError) throw ratingError;
-        
-        const averageRating = ratings && ratings.length > 0 ? 
-          parseFloat((ratings.reduce((sum, rating) => sum + rating.score, 0) / ratings.length).toFixed(1)) : 0;
-        
-        setSellerStats({
-          totalSales: totalSales || 0,
-          winRate,
-          averageRating
-        });
-      } catch (error) {
-        console.error("Error fetching seller stats:", error);
       }
     };
 
@@ -209,13 +147,13 @@ const FeaturedSellerSection: React.FC = () => {
                   <div className="p-6">
                     <h3 className="text-2xl font-bold mb-2">{featuredSeller.username}</h3>
                     <p className="text-muted-foreground mb-6">
-                      Top performer with {featuredSeller.salesCount} sales this week
+                      Top performer with {featuredSeller.sales_count} sales this week
                     </p>
                     
                     <SellerStats 
-                      totalSales={sellerStats.totalSales}
-                      winRate={sellerStats.winRate}
-                      averageRating={sellerStats.averageRating}
+                      totalSales={featuredSeller.sales_count}
+                      winRate={0} // Not provided by the function currently
+                      averageRating={featuredSeller.average_rating}
                     />
                     
                     <Link to={`/sellers/${featuredSeller.id}`}>

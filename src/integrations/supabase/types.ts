@@ -540,6 +540,17 @@ export type Database = {
         Args: { p_amount: number; p_description: string; p_user_id: string }
         Returns: string
       }
+      get_seller_leaderboard: {
+        Args: { start_date: string; end_date: string }
+        Returns: {
+          rank: number
+          id: string
+          username: string
+          avatar_url: string
+          sales_count: number
+          average_rating: number
+        }[]
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean

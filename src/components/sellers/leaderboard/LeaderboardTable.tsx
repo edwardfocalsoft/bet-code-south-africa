@@ -15,8 +15,8 @@ import RatingDisplay from './RatingDisplay';
 export interface SellerStats {
   id: string;
   username: string;
-  salesCount: number;
-  averageRating: number;
+  sales_count: number;
+  average_rating: number;
   rank: number;
   avatar_url?: string;
 }
@@ -48,10 +48,10 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ sellers }) => {
                 {seller.username}
               </TableCell>
               <TableCell className="text-center">
-                <span className="text-betting-green font-semibold">{seller.salesCount}</span>
+                <span className="text-betting-green font-semibold">{seller.sales_count}</span>
               </TableCell>
               <TableCell className="text-center">
-                <RatingDisplay rating={seller.averageRating} />
+                <RatingDisplay rating={seller.average_rating} />
               </TableCell>
               <TableCell className="text-right">
                 <Link
