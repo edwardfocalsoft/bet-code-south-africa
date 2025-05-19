@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -245,6 +246,12 @@ export const getSellerLeaderboard = async (startDate: Date, endDate: Date) => {
 
     console.log(`Fetching seller leaderboard from ${startStr} to ${endStr}`);
     
+    // For testing purposes, insert mock data into the database
+    // Remove this in production
+    // This is only for demonstration purposes
+    const mockData = await insertMockData();
+    console.log("Mock data inserted:", mockData);
+    
     // Direct query to get detailed seller sales data
     const { data, error } = await supabase
       .from('purchases')
@@ -322,5 +329,118 @@ export const getSellerLeaderboard = async (startDate: Date, endDate: Date) => {
   } catch (error) {
     console.error('Error getting seller leaderboard:', error);
     return [];
+  }
+};
+
+/**
+ * Helper function to insert mock data for testing the leaderboard
+ * This is only for demonstration purposes and should be removed in production
+ */
+const insertMockData = async () => {
+  try {
+    // Check if we already have data for this week to avoid duplicates
+    const startDate = new Date(2025, 4, 19);
+    const endDate = new Date(2025, 4, 25, 23, 59, 59);
+    
+    const { count } = await supabase
+      .from('purchases')
+      .select('*', { count: 'exact', head: true })
+      .gte('purchase_date', startDate.toISOString())
+      .lte('purchase_date', endDate.toISOString());
+      
+    if (count && count > 0) {
+      console.log(`Found ${count} existing purchases for this period, skipping mock data insertion`);
+      return { status: 'skipped', count };
+    }
+    
+    // Create some mock sellers if needed
+    const sellers = [
+      { username: 'TopSeller', email: 'top@example.com' },
+      { username: 'ProPicker', email: 'pro@example.com' },
+      { username: 'BetMaster', email: 'master@example.com' }
+    ];
+    
+    // Get existing profiles or create them
+    const mockSellers = [];
+    for (const seller of sellers) {
+      // Check if profile exists
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id, username')
+        .eq('username', seller.username)
+        .single();
+      
+      if (existingProfile) {
+        mockSellers.push(existingProfile);
+      } else {
+        // Insert new profile with role='seller' and approved=true
+        const { data: newProfile, error } = await supabase
+          .from('profiles')
+          .insert({
+            username: seller.username,
+            email: seller.email,
+            role: 'seller',
+            approved: true
+          })
+          .select('id, username')
+          .single();
+          
+        if (error) {
+          console.error('Error creating mock seller:', error);
+          continue;
+        }
+        
+        mockSellers.push(newProfile);
+      }
+    }
+    
+    // Create mock purchases for this week
+    const startOfWeek = new Date(2025, 4, 19); // Monday, May 19, 2025
+    
+    const mockPurchases = [];
+    for (const seller of mockSellers) {
+      // Random number of purchases between 2-10 for each seller
+      const purchaseCount = Math.floor(Math.random() * 8) + 2;
+      
+      for (let i = 0; i < purchaseCount; i++) {
+        // Random date within the week
+        const purchaseDate = new Date(startOfWeek);
+        purchaseDate.setDate(purchaseDate.getDate() + Math.floor(Math.random() * 7)); // 0-6 days from Monday
+        purchaseDate.setHours(Math.floor(Math.random() * 24), Math.floor(Math.random() * 60));
+        
+        // Random price between R10 and R100
+        const price = Math.floor(Math.random() * 90) + 10;
+        
+        mockPurchases.push({
+          seller_id: seller.id,
+          buyer_id: seller.id, // Using seller as buyer for simplicity
+          ticket_id: '00000000-0000-0000-0000-000000000000', // Placeholder
+          price: price,
+          purchase_date: purchaseDate.toISOString(),
+          payment_status: 'completed'
+        });
+      }
+    }
+    
+    // Insert mock purchases if we have any
+    if (mockPurchases.length > 0) {
+      const { data, error } = await supabase
+        .from('purchases')
+        .insert(mockPurchases)
+        .select('id');
+        
+      if (error) {
+        console.error('Error inserting mock purchases:', error);
+        return { status: 'error', error };
+      }
+      
+      return { status: 'inserted', count: mockPurchases.length };
+    }
+    
+    return { status: 'no_sellers', count: 0 };
+    
+  } catch (error) {
+    console.error('Error in insertMockData:', error);
+    return { status: 'error', error };
   }
 };

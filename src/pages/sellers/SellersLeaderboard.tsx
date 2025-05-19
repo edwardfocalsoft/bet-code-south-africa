@@ -18,24 +18,23 @@ const SellersLeaderboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [dataSource] = useState<'week'>('week');
 
-  // Calculate the week start date (Monday of current week)
+  // Calculate the week start date (Monday) and end date (Sunday)
   const calculateDateRange = useCallback(() => {
     // Create a hardcoded date for May 19, 2025 (Monday)
     const mondayDate = new Date(2025, 4, 19, 0, 0, 0, 0); // May is month 4 (zero-indexed)
     
-    // End date is current date
-    const endDate = new Date();
-    endDate.setHours(23, 59, 59, 999);
+    // Create a hardcoded date for May 25, 2025 (Sunday)
+    const sundayDate = new Date(2025, 4, 25, 23, 59, 59, 999);
     
     console.log("Weekly date range for leaderboard:");
     console.log("- Week start (Monday):", mondayDate.toISOString());
-    console.log("- Current date (end):", endDate.toISOString());
+    console.log("- Week end (Sunday):", sundayDate.toISOString());
     
     // Set the display dates
     setWeekStart(mondayDate);
-    setWeekEnd(endDate);
+    setWeekEnd(sundayDate);
     
-    return { start: mondayDate, end: endDate };
+    return { start: mondayDate, end: sundayDate };
   }, []);
 
   const fetchLeaderboard = useCallback(async () => {

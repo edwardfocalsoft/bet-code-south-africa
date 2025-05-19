@@ -15,7 +15,6 @@ import { formatCurrency } from '@/utils/formatting';
 export interface SellerStats {
   id: string;
   username: string;
-  email?: string;
   total_sales?: number;
   sales_count: number;
   average_rating?: number;
