@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -243,17 +244,83 @@ export const getSellerLeaderboard = async (startDate: Date, endDate: Date) => {
     const startStr = startDate.toISOString();
     const endStr = endDate.toISOString();
 
-    // Using the stored function with all parameters to prevent SQL injection
-    const { data, error } = await supabase.rpc(
-      'get_seller_leaderboard',
-      { start_date: startStr, end_date: endStr }
-    );
+    console.log(`Fetching seller leaderboard from ${startStr} to ${endStr}`);
+    
+    // Direct query to get detailed seller sales data
+    const { data, error } = await supabase
+      .from('purchases')
+      .select(`
+        seller_id,
+        price,
+        profiles!purchases_seller_id_fkey (
+          id,
+          username,
+          email
+        )
+      `)
+      .gte('purchase_date', startStr)
+      .lte('purchase_date', endStr)
+      .gt('price', 0) // Exclude free tickets
+      .eq('payment_status', 'completed');
 
     if (error) throw error;
     
-    return data || [];
+    // Process data to calculate totals and ranks
+    const sellerSalesMap: Record<string, {
+      sellerId: string,
+      username: string | null,
+      email: string,
+      totalSales: number,
+      salesCount: number,
+      avatar_url?: string | null
+    }> = {};
+    
+    data?.forEach(purchase => {
+      const sellerId = purchase.seller_id;
+      const price = parseFloat(String(purchase.price || 0));
+      const sellerProfile = purchase.profiles;
+      
+      if (sellerProfile && price > 0) {
+        if (!sellerSalesMap[sellerId]) {
+          sellerSalesMap[sellerId] = {
+            sellerId,
+            username: sellerProfile.username,
+            email: sellerProfile.email,
+            totalSales: 0,
+            salesCount: 0
+          };
+        }
+        
+        sellerSalesMap[sellerId].totalSales += price;
+        sellerSalesMap[sellerId].salesCount += 1;
+      }
+    });
+    
+    // Convert to array and sort
+    const rankedSellers = Object.values(sellerSalesMap)
+      .sort((a, b) => {
+        // Sort by total sales (descending)
+        if (b.totalSales !== a.totalSales) {
+          return b.totalSales - a.totalSales;
+        }
+        // If total sales are equal, sort by number of sales (descending)
+        return b.salesCount - a.salesCount;
+      })
+      .map((seller, index) => ({
+        rank: index + 1,
+        id: seller.sellerId,
+        username: seller.username || 'Unknown',
+        email: seller.email,
+        total_sales: seller.totalSales,
+        sales_count: seller.salesCount,
+        avatar_url: seller.avatar_url
+      }));
+    
+    console.log(`Found ${rankedSellers.length} sellers in leaderboard`);
+    return rankedSellers;
+    
   } catch (error) {
     console.error('Error getting seller leaderboard:', error);
-    return null;
+    return [];
   }
 };

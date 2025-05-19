@@ -33,15 +33,11 @@ const LeaderboardHeader: React.FC<LeaderboardHeaderProps> = ({
           </Button>
         )}
       </div>
-      {dataSource === 'week' ? (
-        <p className="text-muted-foreground mb-6">
-          Top performing sellers for the week of {formatDate(weekStart.toISOString())} to {formatDate(weekEnd.toISOString())}
-        </p>
-      ) : (
-        <p className="text-muted-foreground mb-6">
-          Top performing sellers for the last 30 days
-        </p>
-      )}
+      <p className="text-muted-foreground mb-6">
+        Top performing sellers for the week starting {formatDate(weekStart.toISOString())}
+        {" "}to{" "} 
+        {formatDate(weekEnd.toISOString())}
+      </p>
     </>
   );
 };
