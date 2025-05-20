@@ -260,7 +260,7 @@ export const getSellerLeaderboard = async (startDate: Date, endDate: Date) => {
 
 /**
  * Get leaderboard for top sellers based on consistent sales metrics
- * Uses the same logic as individual seller profiles for accuracy
+ * Uses the new public_leaderboard function for public access
  * @param startDate Start date for leaderboard calculation
  * @param endDate End date for leaderboard calculation
  * @param limit Maximum number of sellers to return (default: 10)
@@ -268,84 +268,48 @@ export const getSellerLeaderboard = async (startDate: Date, endDate: Date) => {
  */
 export const fetchSellerLeaderboard = async (startDate: Date, endDate: Date, limit = 10) => {
   try {
-    // First, get all approved, non-suspended sellers
-    const { data: sellers, error: sellersError } = await supabase
-      .from('profiles')
-      .select('id, username, avatar_url')
-      .eq('role', 'seller')
-      .eq('approved', true)
-      .eq('suspended', false);
-      
-    if (sellersError) throw sellersError;
+    // Using the new public function that allows anonymous access
+    const { data, error } = await supabase.rpc(
+      'get_public_leaderboard',
+      { 
+        start_date: startDate.toISOString(), 
+        end_date: endDate.toISOString(),
+        result_limit: limit 
+      }
+    );
     
-    if (!sellers || sellers.length === 0) {
-      return [];
+    if (error) {
+      console.error('Error fetching public seller leaderboard:', error);
+      throw error;
     }
     
-    // For each seller, get their stats in the date range
-    const leaderboardPromises = sellers.map(async (seller) => {
-      // Get total sales count in date range
-      const { count: salesCount, error: salesError } = await supabase
-        .from('purchases')
-        .select('*', { count: 'exact', head: true })
-        .eq('seller_id', seller.id)
-        .eq('payment_status', 'completed')
-        .gte('purchase_date', startDate.toISOString())
-        .lte('purchase_date', endDate.toISOString());
-        
-      if (salesError) throw salesError;
-      
-      // Get total revenue in date range
-      const { data: revenueData, error: revenueError } = await supabase
-        .from('purchases')
-        .select('price')
-        .eq('seller_id', seller.id)
-        .eq('payment_status', 'completed')
-        .gte('purchase_date', startDate.toISOString())
-        .lte('purchase_date', endDate.toISOString());
-        
-      if (revenueError) throw revenueError;
-      
-      const totalSales = revenueData?.reduce((sum, item) => 
-        sum + parseFloat(String(item.price || 0)), 0) || 0;
-        
-      // Get average rating
-      const { data: ratingsData, error: ratingsError } = await supabase
-        .from('ratings')
-        .select('score')
-        .eq('seller_id', seller.id);
-        
-      if (ratingsError) throw ratingsError;
-      
-      const totalRatings = ratingsData?.length || 0;
-      const sumRatings = ratingsData?.reduce((sum, item) => sum + item.score, 0) || 0;
-      const averageRating = totalRatings > 0 ? sumRatings / totalRatings : 0;
-      
-      return {
-        id: seller.id,
-        username: seller.username,
-        avatar_url: seller.avatar_url,
-        sales_count: salesCount || 0,
-        total_sales: totalSales,
-        average_rating: parseFloat(averageRating.toFixed(1)),
-        rank: 0 // Adding initial rank that will be updated below
-      };
-    });
-    
-    let leaderboardData = await Promise.all(leaderboardPromises);
-    
-    // Sort by sales count (desc) and add ranking
-    leaderboardData = leaderboardData
-      .sort((a, b) => b.sales_count - a.sales_count || b.total_sales - a.total_sales)
-      .map((seller, index) => ({
-        ...seller,
-        rank: index + 1
-      }))
-      .slice(0, limit);
-      
-    return leaderboardData;
+    return data;
   } catch (error) {
-    console.error('Error fetching seller leaderboard:', error);
+    console.error('Error in fetchSellerLeaderboard:', error);
+    return null;
+  }
+};
+
+/**
+ * Get public seller statistics that are accessible to all users
+ * @param sellerId The seller ID to get statistics for
+ * @returns An object with public seller statistics or null if there was an error
+ */
+export const getPublicSellerStats = async (sellerId: string) => {
+  try {
+    const { data, error } = await supabase.rpc(
+      'get_public_seller_stats',
+      { seller_id: sellerId }
+    );
+    
+    if (error) {
+      console.error('Error getting public seller stats:', error);
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error in getPublicSellerStats:', error);
     return null;
   }
 };

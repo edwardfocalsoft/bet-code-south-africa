@@ -540,6 +540,22 @@ export type Database = {
         Args: { p_amount: number; p_description: string; p_user_id: string }
         Returns: string
       }
+      get_public_leaderboard: {
+        Args: { start_date: string; end_date: string; result_limit?: number }
+        Returns: {
+          rank: number
+          id: string
+          username: string
+          avatar_url: string
+          sales_count: number
+          total_sales: number
+          average_rating: number
+        }[]
+      }
+      get_public_seller_stats: {
+        Args: { seller_id: string }
+        Returns: Json
+      }
       get_seller_leaderboard: {
         Args:
           | { start_date: string; end_date: string }

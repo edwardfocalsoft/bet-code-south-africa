@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,12 +42,13 @@ const FeaturedSellerSection: React.FC = () => {
         
         console.log(`Fetching top seller for week: ${monday.toISOString()} to ${sunday.toISOString()}`);
 
-        // Call the SQL function to get the top seller
+        // Call the public leaderboard function instead
         const { data: weekTopSellers, error: weekError } = await supabase.rpc(
-          'get_seller_leaderboard', 
+          'get_public_leaderboard', 
           { 
             start_date: monday.toISOString(), 
-            end_date: sunday.toISOString() 
+            end_date: sunday.toISOString(),
+            result_limit: 1
           }
         );
           
@@ -68,10 +68,11 @@ const FeaturedSellerSection: React.FC = () => {
           lastMonth.setMonth(lastMonth.getMonth() - 1);
           
           const { data: monthTopSellers, error: monthError } = await supabase.rpc(
-            'get_seller_leaderboard', 
+            'get_public_leaderboard', 
             { 
               start_date: lastMonth.toISOString(), 
-              end_date: new Date().toISOString() 
+              end_date: new Date().toISOString(),
+              result_limit: 1
             }
           );
             

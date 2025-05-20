@@ -43,7 +43,7 @@ const SellersLeaderboard: React.FC = () => {
     try {
       console.log("Fetching leaderboard data for date range:", start.toISOString(), "to", end.toISOString());
       
-      // Use our improved function that uses the same logic as individual seller profiles
+      // Use our improved function that uses the public leaderboard function
       const data = await fetchSellerLeaderboard(start, end, 20);
       
       if (!data || data.length === 0) {
@@ -61,13 +61,11 @@ const SellersLeaderboard: React.FC = () => {
           return;
         }
         
-        // Ensure the data is properly typed as SellerStats[]
-        setLeaderboard(fallbackData as SellerStats[]);
+        setLeaderboard(fallbackData);
         // Update date range to reflect the 30-day period
         setWeekStart(thirtyDaysAgo);
       } else {
-        // Ensure the data is properly typed as SellerStats[]
-        setLeaderboard(data as SellerStats[]);
+        setLeaderboard(data);
       }
       
       setLoading(false);

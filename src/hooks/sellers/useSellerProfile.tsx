@@ -1,140 +1,99 @@
 
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { SellerStats } from '@/types';
+import { getPublicSellerStats } from '@/utils/sqlFunctions';
 
-interface SellerStats {
-  winRate: number;
-  ticketsSold: number;
-  followers: number;
-  satisfaction: number;
-  averageRating: number;
-  totalRatings: number;
-}
-
-export const useSellerProfile = (sellerId: string | undefined) => {
-  const [loading, setLoading] = useState(true);
+export const useSellerProfile = (id: string | undefined) => {
+  const [loading, setLoading] = useState<boolean>(true);
   const [seller, setSeller] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
-  const [stats, setStats] = useState<SellerStats>({
-    winRate: 0,
-    ticketsSold: 0,
-    followers: 0,
-    satisfaction: 0,
-    averageRating: 0,
-    totalRatings: 0
-  });
+  const [stats, setStats] = useState<SellerStats | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch reviews for this seller
-  const fetchReviews = async (sellerId: string) => {
+  const fetchSeller = async () => {
+    if (!id) return;
+    
+    setLoading(true);
+    setError(null);
+    
     try {
-      const { data, error } = await supabase
+      // Fetch seller profile
+      const { data: sellerData, error: sellerError } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url, display_whatsapp, whatsapp_number')
+        .eq('id', id)
+        .single();
+        
+      if (sellerError) {
+        throw sellerError;
+      }
+      
+      if (!sellerData) {
+        setError('Seller not found');
+        setLoading(false);
+        return;
+      }
+      
+      setSeller(sellerData);
+      
+      // Fetch seller stats using public function
+      const statsData = await getPublicSellerStats(id);
+      
+      if (statsData) {
+        // Convert the JSON response to expected SellerStats format
+        setStats({
+          totalSales: statsData.sales_count || 0,
+          totalRevenue: statsData.total_sales || 0,
+          averageRating: statsData.average_rating || 0,
+          winRate: statsData.win_rate || 0
+        });
+      } else {
+        // Set default stats if none found
+        setStats({
+          totalSales: 0,
+          totalRevenue: 0,
+          averageRating: 0,
+          winRate: 0
+        });
+      }
+      
+      // Fetch seller reviews
+      const { data: reviewsData, error: reviewsError } = await supabase
         .from('ratings')
         .select(`
-          *,
+          id, 
+          score, 
+          comment, 
+          created_at,
+          ticket_id,
+          buyer_id,
           profiles:buyer_id (username, avatar_url)
         `)
-        .eq('seller_id', sellerId)
+        .eq('seller_id', id)
         .order('created_at', { ascending: false });
         
-      if (error) throw error;
+      if (reviewsError) {
+        console.error('Error fetching reviews:', reviewsError);
+        // Don't throw here, we still want to show the profile
+      } else {
+        setReviews(reviewsData || []);
+      }
       
-      return data || [];
-    } catch (error) {
-      console.error("Error fetching reviews:", error);
-      return [];
+      setLoading(false);
+    } catch (error: any) {
+      console.error('Error fetching seller profile:', error);
+      setError('Failed to load seller profile');
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    const fetchSellerProfile = async () => {
-      if (!sellerId) return;
-      
-      setLoading(true);
-      try {
-        // Get the seller's profile
-        const { data: sellerData, error: sellerError } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", sellerId)
-          .eq("role", "seller")
-          .single();
-        
-        if (sellerError) throw sellerError;
-        if (!sellerData) {
-          toast("Seller not found");
-          return;
-        }
-        
-        setSeller(sellerData);
-        
-        // Get sales count
-        const { count: salesCount, error: salesError } = await supabase
-          .from("purchases")
-          .select("*", { count: 'exact', head: true })
-          .eq("seller_id", sellerId);
-          
-        if (salesError) throw salesError;
-        
-        // Get winning tickets count for win rate
-        const { count: winCount, error: winError } = await supabase
-          .from("purchases")
-          .select("*", { count: 'exact', head: true })
-          .eq("seller_id", sellerId)
-          .eq("is_winner", true);
-          
-        if (winError) throw winError;
-        
-        // Get followers count
-        const { count: followerCount, error: followerError } = await supabase
-          .from("subscriptions")
-          .select("*", { count: 'exact', head: true })
-          .eq("seller_id", sellerId);
-          
-        if (followerError) throw followerError;
-        
-        // Fetch reviews
-        const reviewsData = await fetchReviews(sellerId);
-        setReviews(reviewsData);
-        
-        // Calculate win rate
-        const winRate = salesCount && salesCount > 0 && winCount !== null 
-          ? Math.round((winCount / salesCount) * 100) 
-          : 0;
-          
-        // Calculate average rating from reviews
-        let averageRating = 0;
-        let satisfactionPercentage = 0;
-        
-        if (reviewsData.length > 0) {
-          const totalScore = reviewsData.reduce((sum, review) => sum + review.score, 0);
-          averageRating = parseFloat((totalScore / reviewsData.length).toFixed(1));
-          satisfactionPercentage = Math.round(averageRating * 20); // Convert 5-star rating to percentage
-        }
-          
-        setStats({
-          winRate,
-          ticketsSold: salesCount || 0,
-          followers: followerCount || 0,
-          satisfaction: satisfactionPercentage || 0,
-          averageRating: averageRating,
-          totalRatings: reviewsData.length
-        });
-      } catch (error) {
-        console.error("Error fetching seller profile:", error);
-        toast("Failed to load seller profile");
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchSellerProfile();
-  }, [sellerId]);
+    fetchSeller();
+  }, [id]);
 
-  return {
-    loading,
-    seller,
-    reviews,
-    stats
-  };
+  return { loading, seller, reviews, stats, error };
 };
+
+export default useSellerProfile;
