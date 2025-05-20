@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -298,6 +297,8 @@ export const fetchSellerLeaderboard = async (startDate: Date, endDate: Date, lim
  */
 export const getPublicSellerStats = async (sellerId: string) => {
   try {
+    console.log('Fetching public seller stats for:', sellerId);
+    
     const { data, error } = await supabase.rpc(
       'get_public_seller_stats',
       { seller_id: sellerId }
@@ -308,9 +309,18 @@ export const getPublicSellerStats = async (sellerId: string) => {
       throw error;
     }
     
+    console.log('Received seller stats:', data);
+    
     return data;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in getPublicSellerStats:', error);
-    return null;
+    // Return a default stats object instead of null to prevent UI errors
+    return {
+      sales_count: 0,
+      total_sales: 0,
+      average_rating: 0,
+      win_rate: 0,
+      total_ratings: 0
+    };
   }
 };
