@@ -22,7 +22,7 @@ export const useSellerProfile = (id: string | undefined) => {
       // Fetch seller profile
       const { data: sellerData, error: sellerError } = await supabase
         .from('profiles')
-        .select('id, username, avatar_url, display_whatsapp, whatsapp_number')
+        .select('id, username, avatar_url, display_whatsapp, whatsapp_number, created_at')
         .eq('id', id)
         .single();
         
@@ -42,12 +42,20 @@ export const useSellerProfile = (id: string | undefined) => {
       const statsData = await getPublicSellerStats(id);
       
       if (statsData) {
+        // Parse the response and ensure we're working with the right types
+        const statsObj = typeof statsData === 'string' ? JSON.parse(statsData) : statsData;
+        
         // Convert the JSON response to expected SellerStats format
         setStats({
-          totalSales: statsData.sales_count || 0,
-          totalRevenue: statsData.total_sales || 0,
-          averageRating: statsData.average_rating || 0,
-          winRate: statsData.win_rate || 0
+          totalSales: Number(statsObj.sales_count) || 0,
+          totalRevenue: Number(statsObj.total_sales) || 0,
+          averageRating: Number(statsObj.average_rating) || 0,
+          winRate: Number(statsObj.win_rate) || 0,
+          // Add additional properties needed by the components
+          ticketsSold: Number(statsObj.sales_count) || 0,
+          followers: 0, // Default value as this isn't provided by our function yet
+          satisfaction: statsObj.average_rating ? Math.min(Number(statsObj.average_rating) * 20, 100) : 0, // Convert rating to percentage
+          totalRatings: Number(statsObj.total_ratings) || 0
         });
       } else {
         // Set default stats if none found
@@ -55,7 +63,11 @@ export const useSellerProfile = (id: string | undefined) => {
           totalSales: 0,
           totalRevenue: 0,
           averageRating: 0,
-          winRate: 0
+          winRate: 0,
+          ticketsSold: 0,
+          followers: 0,
+          satisfaction: 0,
+          totalRatings: 0
         });
       }
       

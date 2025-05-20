@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -270,7 +271,7 @@ export const fetchSellerLeaderboard = async (startDate: Date, endDate: Date, lim
   try {
     // Using the new public function that allows anonymous access
     const { data, error } = await supabase.rpc(
-      'get_public_leaderboard',
+      'get_public_leaderboard', 
       { 
         start_date: startDate.toISOString(), 
         end_date: endDate.toISOString(),

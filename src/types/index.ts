@@ -92,6 +92,11 @@ export interface SellerStats {
   totalRevenue: number;
   averageRating: number;
   winRate: number;
+  // Additional fields needed by the SellerProfileHeader and SellerStatsTab components
+  ticketsSold: number;
+  followers: number;
+  satisfaction: number;
+  totalRatings: number;
 }
 
 export interface DashboardStats {
