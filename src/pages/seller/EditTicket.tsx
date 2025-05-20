@@ -13,6 +13,8 @@ import { toast } from 'sonner';
 import { BettingTicket, BettingSite } from '@/types';
 import { LoadingState } from '@/components/purchases/LoadingState';
 import { ArrowLeft, Save } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const EditTicket: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -71,8 +73,10 @@ const EditTicket: React.FC = () => {
           title: data.title,
           description: data.description,
           bettingSite: data.betting_site as BettingSite,
-          price: parseFloat(data.price) || 0,
-          odds: data.odds ? String(data.odds) : '',
+          // Make sure price is converted to a number
+          price: typeof data.price === 'string' ? parseFloat(data.price) : data.price || 0,
+          // Ensure odds is a string
+          odds: data.odds !== null ? String(data.odds) : '',
         });
       }
     } catch (error: any) {
@@ -95,6 +99,10 @@ const EditTicket: React.FC = () => {
     }
   };
 
+  const handleBettingSiteChange = (value: BettingSite) => {
+    setFormData(prev => ({ ...prev, bettingSite: value }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -106,7 +114,9 @@ const EditTicket: React.FC = () => {
           title: formData.title,
           description: formData.description,
           betting_site: formData.bettingSite,
+          // Ensure price is stored as a number
           price: formData.price,
+          // Ensure odds is properly converted to a number or null
           odds: formData.odds ? parseFloat(formData.odds) : null,
         })
         .eq('id', id)
@@ -147,6 +157,15 @@ const EditTicket: React.FC = () => {
       </Layout>
     );
   }
+
+  const bettingSites: BettingSite[] = [
+    "Betway", 
+    "HollywoodBets", 
+    "Supabets", 
+    "Playa", 
+    "10bet", 
+    "Easybet"
+  ];
 
   return (
     <Layout requireAuth={true} allowedRoles={['seller']}>
@@ -196,16 +215,22 @@ const EditTicket: React.FC = () => {
               </div>
               
               <div>
-                <label htmlFor="bettingSite" className="block text-sm font-medium mb-1">
-                  Betting Site
-                </label>
-                <Input
-                  id="bettingSite"
-                  name="bettingSite"
-                  value={formData.bettingSite}
-                  onChange={handleInputChange}
-                  required
-                />
+                <Label htmlFor="bettingSite">Betting Site</Label>
+                <Select 
+                  value={formData.bettingSite} 
+                  onValueChange={(value) => handleBettingSiteChange(value as BettingSite)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a betting site" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bettingSites.map((site) => (
+                      <SelectItem key={site} value={site}>
+                        {site}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -271,3 +296,4 @@ const EditTicket: React.FC = () => {
 };
 
 export default EditTicket;
+
