@@ -1,4 +1,3 @@
-
 import { BettingTicket, BettingSite, User, Purchase, Rating, Withdrawal, SellerStats, UserRole } from "../types";
 
 export const BETTING_SITES: BettingSite[] = [
@@ -226,13 +225,21 @@ export const mockSellerStats: Record<string, SellerStats> = {
     totalSales: 42,
     totalRevenue: 890,
     averageRating: 4.8,
-    winRate: 0.76
+    winRate: 0.76,
+    ticketsSold: 42,
+    followers: 15,
+    satisfaction: 96, // 4.8 * 20 = 96%
+    totalRatings: 38
   },
   u3: {
     totalSales: 28,
     totalRevenue: 420,
     averageRating: 3.9,
-    winRate: 0.64
+    winRate: 0.64,
+    ticketsSold: 28,
+    followers: 8,
+    satisfaction: 78, // 3.9 * 20 = 78%
+    totalRatings: 21
   }
 };
 
