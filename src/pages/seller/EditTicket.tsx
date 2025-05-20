@@ -103,6 +103,10 @@ const EditTicket: React.FC = () => {
     setFormData(prev => ({ ...prev, bettingSite: value }));
   };
 
+  const handleTitleChange = (value: string) => {
+    setFormData(prev => ({ ...prev, title: value }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -166,6 +170,12 @@ const EditTicket: React.FC = () => {
     "10bet", 
     "Easybet"
   ];
+  
+  const ticketTypes = [
+    "Standard Ticket",
+    "High Stake Ticket",
+    "Long Ticket"
+  ];
 
   return (
     <Layout requireAuth={true} allowedRoles={['seller']}>
@@ -187,17 +197,24 @@ const EditTicket: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
               <div>
-                <label htmlFor="title" className="block text-sm font-medium mb-1">
+                <Label htmlFor="title" className="block text-sm font-medium mb-1">
                   Title
-                </label>
-                <Input
-                  id="title"
-                  name="title"
+                </Label>
+                <Select
                   value={formData.title}
-                  onChange={handleInputChange}
-                  maxLength={100}
-                  required
-                />
+                  onValueChange={handleTitleChange}
+                >
+                  <SelectTrigger id="title">
+                    <SelectValue placeholder="Select ticket type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ticketTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               
               <div>
@@ -296,4 +313,3 @@ const EditTicket: React.FC = () => {
 };
 
 export default EditTicket;
-
