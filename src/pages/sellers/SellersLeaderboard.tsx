@@ -61,13 +61,13 @@ const SellersLeaderboard: React.FC = () => {
           return;
         }
         
-        // The data already includes rank from the fetchSellerLeaderboard function
-        setLeaderboard(fallbackData);
+        // Ensure the data is properly typed as SellerStats[]
+        setLeaderboard(fallbackData as SellerStats[]);
         // Update date range to reflect the 30-day period
         setWeekStart(thirtyDaysAgo);
       } else {
-        // Data includes rank from the fetchSellerLeaderboard function
-        setLeaderboard(data);
+        // Ensure the data is properly typed as SellerStats[]
+        setLeaderboard(data as SellerStats[]);
       }
       
       setLoading(false);

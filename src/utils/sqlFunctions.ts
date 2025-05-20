@@ -327,7 +327,8 @@ export const fetchSellerLeaderboard = async (startDate: Date, endDate: Date, lim
         avatar_url: seller.avatar_url,
         sales_count: salesCount || 0,
         total_sales: totalSales,
-        average_rating: parseFloat(averageRating.toFixed(1))
+        average_rating: parseFloat(averageRating.toFixed(1)),
+        rank: 0 // Adding initial rank that will be updated below
       };
     });
     
