@@ -9,6 +9,7 @@ import EmptyLeaderboard from "@/components/sellers/leaderboard/EmptyLeaderboard"
 import LoadingState from "@/components/sellers/leaderboard/LoadingState";
 import { SellerStats } from "@/components/sellers/leaderboard/LeaderboardTable";
 import { toast } from "sonner";
+import { fetchSellerLeaderboard } from "@/utils/sqlFunctions";
 
 const SellersLeaderboard: React.FC = () => {
   const [leaderboard, setLeaderboard] = useState<SellerStats[]>([]);
@@ -41,24 +42,10 @@ const SellersLeaderboard: React.FC = () => {
     setError(null);
     
     try {
-      const startStr = start.toISOString();
-      const endStr = end.toISOString();
+      console.log("Fetching leaderboard data for date range:", start.toISOString(), "to", end.toISOString());
       
-      console.log("Fetching leaderboard data for date range:", startStr, "to", endStr);
-      
-      // Call the updated SQL function with the limit parameter
-      const { data, error } = await supabase.rpc('get_seller_leaderboard', {
-        start_date: startStr,
-        end_date: endStr,
-        result_limit: 20 // Show more results to ensure we have enough data
-      });
-      
-      if (error) {
-        console.error("Error fetching leaderboard data:", error);
-        throw error;
-      }
-      
-      console.log("Leaderboard data retrieved:", data);
+      // Use our improved function that uses the same logic as individual seller profiles
+      const data = await fetchSellerLeaderboard(start, end, 20);
       
       if (!data || data.length === 0) {
         // If no sales this week, try looking at the last 30 days
@@ -66,21 +53,7 @@ const SellersLeaderboard: React.FC = () => {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         
-        const { data: fallbackData, error: fallbackError } = await supabase.rpc(
-          'get_seller_leaderboard',
-          { 
-            start_date: thirtyDaysAgo.toISOString(),
-            end_date: new Date().toISOString(),
-            result_limit: 20
-          }
-        );
-        
-        if (fallbackError) {
-          console.error("Error fetching fallback leaderboard data:", fallbackError);
-          throw fallbackError;
-        }
-        
-        console.log("Fallback leaderboard data retrieved:", fallbackData);
+        const fallbackData = await fetchSellerLeaderboard(thirtyDaysAgo, new Date(), 20);
         
         if (!fallbackData || fallbackData.length === 0) {
           setError("No sales data found for the current week or last 30 days.");
@@ -89,33 +62,11 @@ const SellersLeaderboard: React.FC = () => {
           return;
         }
         
-        // Ensure the data includes all required fields according to the SellerStats interface
-        const typedData: SellerStats[] = (fallbackData || []).map((item: any) => ({
-          id: item.id,
-          username: item.username,
-          sales_count: item.sales_count,
-          total_sales: item.total_sales || 0, // Ensure total_sales is present
-          average_rating: item.average_rating,
-          rank: item.rank,
-          avatar_url: item.avatar_url
-        }));
-
-        setLeaderboard(typedData);
+        setLeaderboard(fallbackData);
         // Update date range to reflect the 30-day period
         setWeekStart(thirtyDaysAgo);
       } else {
-        // Also ensure the primary data includes all required fields
-        const typedData: SellerStats[] = (data || []).map((item: any) => ({
-          id: item.id,
-          username: item.username,
-          sales_count: item.sales_count,
-          total_sales: item.total_sales || 0, // Ensure total_sales is present
-          average_rating: item.average_rating,
-          rank: item.rank,
-          avatar_url: item.avatar_url
-        }));
-        
-        setLeaderboard(typedData);
+        setLeaderboard(data);
       }
       
       setLoading(false);

@@ -257,3 +257,94 @@ export const getSellerLeaderboard = async (startDate: Date, endDate: Date) => {
     return null;
   }
 };
+
+/**
+ * Get leaderboard for top sellers based on consistent sales metrics
+ * Uses the same logic as individual seller profiles for accuracy
+ * @param startDate Start date for leaderboard calculation
+ * @param endDate End date for leaderboard calculation
+ * @param limit Maximum number of sellers to return (default: 10)
+ * @returns Array of seller statistics or null if there was an error
+ */
+export const fetchSellerLeaderboard = async (startDate: Date, endDate: Date, limit = 10) => {
+  try {
+    // First, get all approved, non-suspended sellers
+    const { data: sellers, error: sellersError } = await supabase
+      .from('profiles')
+      .select('id, username, avatar_url')
+      .eq('role', 'seller')
+      .eq('approved', true)
+      .eq('suspended', false);
+      
+    if (sellersError) throw sellersError;
+    
+    if (!sellers || sellers.length === 0) {
+      return [];
+    }
+    
+    // For each seller, get their stats in the date range
+    const leaderboardPromises = sellers.map(async (seller) => {
+      // Get total sales count in date range
+      const { count: salesCount, error: salesError } = await supabase
+        .from('purchases')
+        .select('*', { count: 'exact', head: true })
+        .eq('seller_id', seller.id)
+        .eq('payment_status', 'completed')
+        .gte('purchase_date', startDate.toISOString())
+        .lte('purchase_date', endDate.toISOString());
+        
+      if (salesError) throw salesError;
+      
+      // Get total revenue in date range
+      const { data: revenueData, error: revenueError } = await supabase
+        .from('purchases')
+        .select('price')
+        .eq('seller_id', seller.id)
+        .eq('payment_status', 'completed')
+        .gte('purchase_date', startDate.toISOString())
+        .lte('purchase_date', endDate.toISOString());
+        
+      if (revenueError) throw revenueError;
+      
+      const totalSales = revenueData?.reduce((sum, item) => 
+        sum + parseFloat(String(item.price || 0)), 0) || 0;
+        
+      // Get average rating
+      const { data: ratingsData, error: ratingsError } = await supabase
+        .from('ratings')
+        .select('score')
+        .eq('seller_id', seller.id);
+        
+      if (ratingsError) throw ratingsError;
+      
+      const totalRatings = ratingsData?.length || 0;
+      const sumRatings = ratingsData?.reduce((sum, item) => sum + item.score, 0) || 0;
+      const averageRating = totalRatings > 0 ? sumRatings / totalRatings : 0;
+      
+      return {
+        id: seller.id,
+        username: seller.username,
+        avatar_url: seller.avatar_url,
+        sales_count: salesCount || 0,
+        total_sales: totalSales,
+        average_rating: parseFloat(averageRating.toFixed(1))
+      };
+    });
+    
+    let leaderboardData = await Promise.all(leaderboardPromises);
+    
+    // Sort by sales count (desc) and add ranking
+    leaderboardData = leaderboardData
+      .sort((a, b) => b.sales_count - a.sales_count || b.total_sales - a.total_sales)
+      .map((seller, index) => ({
+        ...seller,
+        rank: index + 1
+      }))
+      .slice(0, limit);
+      
+    return leaderboardData;
+  } catch (error) {
+    console.error('Error fetching seller leaderboard:', error);
+    return null;
+  }
+};
