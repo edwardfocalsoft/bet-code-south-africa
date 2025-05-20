@@ -22,7 +22,7 @@ export const useSellerProfile = (id: string | undefined) => {
       // Fetch seller profile
       const { data: sellerData, error: sellerError } = await supabase
         .from('profiles')
-        .select('id, username, avatar_url, display_whatsapp, whatsapp_number, created_at')
+        .select('id, username, avatar_url, created_at')
         .eq('id', id)
         .single();
         
