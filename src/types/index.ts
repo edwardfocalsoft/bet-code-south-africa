@@ -1,4 +1,3 @@
-
 export type UserRole = "buyer" | "seller" | "admin";
 
 export type BettingSite = 
@@ -55,6 +54,7 @@ export interface BettingTicket {
   isHidden?: boolean;
   isExpired?: boolean;
   eventResults?: string;
+  ticketCode?: string; // Added the ticketCode property
 }
 
 export interface Purchase {
