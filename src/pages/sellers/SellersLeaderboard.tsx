@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
 import LeaderboardHeader from "@/components/sellers/leaderboard/LeaderboardHeader";
 import LeaderboardTable from "@/components/sellers/leaderboard/LeaderboardTable";
 import EmptyLeaderboard from "@/components/sellers/leaderboard/EmptyLeaderboard";
@@ -62,10 +61,12 @@ const SellersLeaderboard: React.FC = () => {
           return;
         }
         
+        // The data already includes rank from the fetchSellerLeaderboard function
         setLeaderboard(fallbackData);
         // Update date range to reflect the 30-day period
         setWeekStart(thirtyDaysAgo);
       } else {
+        // Data includes rank from the fetchSellerLeaderboard function
         setLeaderboard(data);
       }
       
