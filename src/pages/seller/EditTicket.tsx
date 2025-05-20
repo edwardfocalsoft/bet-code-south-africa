@@ -28,6 +28,7 @@ const EditTicket: React.FC = () => {
     bettingSite: '' as BettingSite,
     price: 0,
     odds: '',
+    ticketCode: '', // Added ticket code to form data
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -65,7 +66,8 @@ const EditTicket: React.FC = () => {
           odds: data.odds,
           isHidden: data.is_hidden,
           isExpired: data.is_expired,
-          eventResults: data.event_results
+          eventResults: data.event_results,
+          ticketCode: data.ticket_code, // Added ticket code to ticket data
         };
         
         setTicket(ticketData);
@@ -77,6 +79,8 @@ const EditTicket: React.FC = () => {
           price: typeof data.price === 'string' ? parseFloat(data.price) : data.price || 0,
           // Ensure odds is a string
           odds: data.odds !== null ? String(data.odds) : '',
+          // Add ticket code to form data
+          ticketCode: data.ticket_code || '',
         });
       }
     } catch (error: any) {
@@ -122,6 +126,8 @@ const EditTicket: React.FC = () => {
           price: formData.price,
           // Ensure odds is properly converted to a number or null
           odds: formData.odds ? parseFloat(formData.odds) : null,
+          // Add ticket_code to the update
+          ticket_code: formData.ticketCode,
         })
         .eq('id', id)
         .eq('seller_id', currentUser?.id);
@@ -248,6 +254,21 @@ const EditTicket: React.FC = () => {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Added ticket code field */}
+              <div>
+                <label htmlFor="ticketCode" className="block text-sm font-medium mb-1">
+                  Ticket Code
+                </label>
+                <Input
+                  id="ticketCode"
+                  name="ticketCode"
+                  value={formData.ticketCode}
+                  onChange={handleInputChange}
+                  placeholder="Enter betting ticket code"
+                  required
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
