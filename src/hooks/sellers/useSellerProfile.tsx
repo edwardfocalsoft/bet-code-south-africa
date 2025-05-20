@@ -38,6 +38,16 @@ export const useSellerProfile = (id: string | undefined) => {
       
       setSeller(sellerData);
       
+      // Get subscriber count
+      const { count: subscribersCount, error: subscribersError } = await supabase
+        .from('subscriptions')
+        .select('*', { count: 'exact', head: true })
+        .eq('seller_id', id);
+      
+      if (subscribersError) {
+        console.error('Error fetching subscribers count:', subscribersError);
+      }
+      
       // Fetch seller stats using public function
       const statsData = await getPublicSellerStats(id);
       
@@ -53,7 +63,7 @@ export const useSellerProfile = (id: string | undefined) => {
           winRate: Number(statsObj.win_rate) || 0,
           // Add additional properties needed by the components
           ticketsSold: Number(statsObj.sales_count) || 0,
-          followers: 0, // Default value as this isn't provided by our function yet
+          followers: subscribersCount || 0, // Update this to use the actual subscribers count
           satisfaction: statsObj.average_rating ? Math.min(Number(statsObj.average_rating) * 20, 100) : 0, // Convert rating to percentage
           totalRatings: Number(statsObj.total_ratings) || 0
         });
@@ -65,7 +75,7 @@ export const useSellerProfile = (id: string | undefined) => {
           averageRating: 0,
           winRate: 0,
           ticketsSold: 0,
-          followers: 0,
+          followers: subscribersCount || 0, // Set default with actual subscribers count
           satisfaction: 0,
           totalRatings: 0
         });

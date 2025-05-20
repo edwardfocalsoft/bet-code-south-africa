@@ -94,7 +94,7 @@ export interface SellerStats {
   winRate: number;
   // Additional fields needed by the SellerProfileHeader and SellerStatsTab components
   ticketsSold: number;
-  followers: number;
+  followers: number;  // This represents subscriber count
   satisfaction: number;
   totalRatings: number;
 }

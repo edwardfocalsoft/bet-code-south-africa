@@ -73,7 +73,7 @@ const SellerProfileHeader: React.FC<SellerProfileHeaderProps> = ({
           </div>
           <div className="bg-betting-light-gray/20 rounded-md p-3">
             <p className="text-lg font-bold">{stats.followers}</p>
-            <p className="text-xs text-muted-foreground">Followers</p>
+            <p className="text-xs text-muted-foreground">Subscribers</p>
           </div>
           <div className="bg-betting-light-gray/20 rounded-md p-3">
             <p className="text-lg font-bold">{stats.satisfaction}%</p>
