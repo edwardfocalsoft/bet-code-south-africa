@@ -72,7 +72,9 @@ const TicketsTable: React.FC<TicketsTableProps> = ({
                   <TableCell>{renderTicketStatusBadge(ticket)}</TableCell>
                   <TableCell className="text-right">
                     <TicketActions 
-                      ticket={ticket} 
+                      ticketId={ticket.id}
+                      isHidden={!!ticket.isHidden}
+                      isExpired={!!ticket.isExpired}
                       onToggleVisibility={onToggleVisibility}
                       onDelete={onDelete}
                     />

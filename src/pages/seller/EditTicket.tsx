@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { BettingTicket } from '@/types';
+import { BettingTicket, BettingSite } from '@/types';
 import { LoadingState } from '@/components/purchases/LoadingState';
 import { ArrowLeft, Save } from 'lucide-react';
 
@@ -23,7 +23,7 @@ const EditTicket: React.FC = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    bettingSite: '',
+    bettingSite: '' as BettingSite,
     price: 0,
     odds: '',
   });
@@ -57,7 +57,7 @@ const EditTicket: React.FC = () => {
           sellerUsername: '',
           price: data.price,
           isFree: data.is_free,
-          bettingSite: data.betting_site,
+          bettingSite: data.betting_site as BettingSite,
           kickoffTime: new Date(data.kickoff_time),
           createdAt: new Date(data.created_at),
           odds: data.odds,
@@ -70,9 +70,9 @@ const EditTicket: React.FC = () => {
         setFormData({
           title: data.title,
           description: data.description,
-          bettingSite: data.betting_site,
-          price: data.price,
-          odds: data.odds || '',
+          bettingSite: data.betting_site as BettingSite,
+          price: parseFloat(data.price) || 0,
+          odds: data.odds ? String(data.odds) : '',
         });
       }
     } catch (error: any) {
@@ -107,7 +107,7 @@ const EditTicket: React.FC = () => {
           description: formData.description,
           betting_site: formData.bettingSite,
           price: formData.price,
-          odds: formData.odds,
+          odds: formData.odds ? parseFloat(formData.odds) : null,
         })
         .eq('id', id)
         .eq('seller_id', currentUser?.id);

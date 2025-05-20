@@ -14,8 +14,8 @@ interface TicketActionsProps {
   ticketId: string;
   isHidden: boolean;
   isExpired: boolean;
-  onToggleVisibility: () => void;
-  onDelete: () => void;
+  onToggleVisibility: (ticketId: string, currentHidden: boolean) => void;
+  onDelete: (ticketId: string) => void;
 }
 
 const TicketActions: React.FC<TicketActionsProps> = ({
@@ -47,7 +47,7 @@ const TicketActions: React.FC<TicketActionsProps> = ({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={onToggleVisibility}>
+        <DropdownMenuItem onClick={() => onToggleVisibility(ticketId, isHidden)}>
           {isHidden ? (
             <>
               <Eye className="mr-2 h-4 w-4" />
@@ -68,7 +68,7 @@ const TicketActions: React.FC<TicketActionsProps> = ({
           </Link>
         </DropdownMenuItem>
         
-        <DropdownMenuItem onClick={onDelete} className="text-red-600">
+        <DropdownMenuItem onClick={() => onDelete(ticketId)} className="text-red-600">
           <Trash2 className="mr-2 h-4 w-4" />
           <span>Delete Ticket</span>
         </DropdownMenuItem>
