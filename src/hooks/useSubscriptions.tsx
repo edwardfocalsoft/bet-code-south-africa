@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -11,9 +11,17 @@ export const useSubscriptions = () => {
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [subscribersCount, setSubscribersCount] = useState(0);
-  const [isCountLoading, setIsCountLoading] = useState(false);
 
-  const fetchSubscriptions = useCallback(async () => {
+  useEffect(() => {
+    if (currentUser?.id) {
+      fetchSubscriptions();
+      if (currentUser.role === "seller") {
+        fetchSubscribersCount();
+      }
+    }
+  }, [currentUser]);
+
+  const fetchSubscriptions = async () => {
     if (!currentUser?.id) return;
     
     try {
@@ -32,50 +40,25 @@ export const useSubscriptions = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentUser?.id]);
+  };
 
-  const fetchSubscribersCount = useCallback(async () => {
+  const fetchSubscribersCount = async () => {
     if (!currentUser?.id) return;
     
     try {
-      console.log("Fetching subscribers count for user:", currentUser.id);
-      setIsCountLoading(true);
-      
-      // Using count with head: true to efficiently count rows
       const { count, error } = await supabase
         .from("subscriptions")
         .select("*", { count: "exact", head: true })
         .eq("seller_id", currentUser.id);
         
-      if (error) {
-        console.error("Error in fetchSubscribersCount:", error);
-        throw error;
-      }
-      
-      console.log("Subscriber count result:", count);
+      if (error) throw error;
+      console.log("Subscriber count:", count);
       setSubscribersCount(count || 0);
     } catch (error: any) {
       console.error("Error fetching subscribers count:", error);
       toast.error("Failed to load subscriber count");
-    } finally {
-      setIsCountLoading(false);
     }
-  }, [currentUser?.id]);
-
-  // Separate effect for subscriptions
-  useEffect(() => {
-    if (currentUser?.id) {
-      fetchSubscriptions();
-    }
-  }, [currentUser?.id, fetchSubscriptions]);
-
-  // Dedicated effect for subscriber count to ensure it runs independently
-  useEffect(() => {
-    if (currentUser?.id && currentUser.role === "seller") {
-      console.log("Running fetchSubscribersCount effect for:", currentUser.id);
-      fetchSubscribersCount();
-    }
-  }, [currentUser?.id, currentUser?.role, fetchSubscribersCount]);
+  };
 
   const subscribeToSeller = async (sellerId: string) => {
     if (!currentUser?.id) {
@@ -119,12 +102,6 @@ export const useSubscriptions = () => {
       toast.success("You are now subscribed to this seller");
       
       await fetchSubscriptions();
-      
-      // Update subscriber count for the current user if they are a seller
-      if (currentUser.role === 'seller') {
-        await fetchSubscribersCount();
-      }
-      
       return true;
     } catch (error: any) {
       console.error("Error subscribing to seller:", error);
@@ -151,12 +128,6 @@ export const useSubscriptions = () => {
       toast.success("You have unsubscribed from this seller");
       
       await fetchSubscriptions();
-      
-      // Update subscriber count for the current user if they are a seller
-      if (currentUser.role === 'seller') {
-        await fetchSubscribersCount();
-      }
-      
       return true;
     } catch (error: any) {
       console.error("Error unsubscribing from seller:", error);
@@ -180,7 +151,6 @@ export const useSubscriptions = () => {
     subscriptions,
     subscribersCount,
     loading,
-    isCountLoading,
     isSubscribed,
     getSubscriptionId,
     subscribeToSeller,

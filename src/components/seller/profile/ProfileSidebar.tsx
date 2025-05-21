@@ -1,10 +1,9 @@
 
-import React, { useEffect } from "react";
+import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, BadgeCheck, Mail } from "lucide-react";
-import { useSubscriptions } from "@/hooks/useSubscriptions";
-import { useSellerStats } from "@/hooks/sellers/useSellerStats";
+import { useSellerDashboard } from "@/hooks/useSellerDashboard";
 import { ProfileData } from "@/types";
 
 interface ProfileSidebarProps {
@@ -27,21 +26,7 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
   isUploading,
   isSaving
 }) => {
-  const { subscribersCount, fetchSubscribersCount, isCountLoading } = useSubscriptions();
-  const { stats, loading: statsLoading } = useSellerStats(currentUser?.id);
-  
-  // Make sure to fetch data when the component mounts or currentUser changes
-  useEffect(() => {
-    if (currentUser?.id) {
-      console.log("ProfileSidebar - Fetching subscribers count for:", currentUser.id);
-      fetchSubscribersCount();
-    }
-  }, [currentUser?.id, fetchSubscribersCount]);
-
-  // Log whenever subscribersCount changes for debugging
-  useEffect(() => {
-    console.log("ProfileSidebar - Current subscribers count:", subscribersCount);
-  }, [subscribersCount]);
+  const { winRate, averageRating, ticketsSold, subscribersCount } = useSellerDashboard(currentUser);
 
   return (
     <Card className="betting-card h-full">
@@ -93,19 +78,19 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
           <h3 className="text-sm font-medium mb-2">Seller Statistics</h3>
           <div className="grid grid-cols-2 gap-4 text-center">
             <div>
-              <p className="text-2xl font-bold text-betting-green">{statsLoading ? "-" : `${stats?.winRate || 0}%`}</p>
+              <p className="text-2xl font-bold text-betting-green">{winRate}%</p>
               <p className="text-xs text-muted-foreground">Win Rate</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-betting-green">{statsLoading ? "-" : stats?.averageRating || 0}</p>
+              <p className="text-2xl font-bold text-betting-green">{averageRating || "N/A"}</p>
               <p className="text-xs text-muted-foreground">Rating</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-betting-green">{statsLoading ? "-" : stats?.ticketsSold || 0}</p>
+              <p className="text-2xl font-bold text-betting-green">{ticketsSold}</p>
               <p className="text-xs text-muted-foreground">Tickets Sold</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-betting-green">{isCountLoading ? "-" : subscribersCount}</p>
+              <p className="text-2xl font-bold text-betting-green">{subscribersCount}</p>
               <p className="text-xs text-muted-foreground">Subscribers</p>
             </div>
           </div>

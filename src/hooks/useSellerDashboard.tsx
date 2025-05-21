@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useSubscriptions } from "@/hooks/useSubscriptions";
 
 export const useSellerDashboard = (user: any) => {
   const [winRate, setWinRate] = useState<number>(0);
@@ -14,15 +14,6 @@ export const useSellerDashboard = (user: any) => {
   const [profileComplete, setProfileComplete] = useState<boolean>(true);
   const [performanceData, setPerformanceData] = useState<Array<{name: string; sales: number}>>([]);
   const [recentSales, setRecentSales] = useState<any[]>([]);
-  
-  // Use the useSubscriptions hook to access subscriptions data
-  const { subscribersCount: hookSubscribersCount, fetchSubscribersCount } = useSubscriptions();
-
-  // Make sure we keep our local state in sync with the hook's state
-  useEffect(() => {
-    console.log("Dashboard - Subscription count from hook:", hookSubscribersCount);
-    setSubscribersCount(hookSubscribersCount);
-  }, [hookSubscribersCount]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -61,11 +52,14 @@ export const useSellerDashboard = (user: any) => {
           setAverageRating(Number(average.toFixed(1)));
         }
 
-        // Explicitly fetch subscribers count using the hook's function
-        if (user.role === 'seller') {
-          console.log("Dashboard - Fetching subscribers count for seller:", user.id);
-          await fetchSubscribersCount();
-        }
+        // Fetch subscribers count - Fixed to correctly count all subscribers
+        const { count: subCount, error: subError } = await supabase
+          .from('subscriptions')
+          .select('*', { count: 'exact', head: true })
+          .eq('seller_id', user.id);
+          
+        if (subError) throw subError;
+        setSubscribersCount(subCount || 0);
         
         // Fetch total revenue
         const { data: salesData, error: salesError } = await supabase
@@ -189,7 +183,7 @@ export const useSellerDashboard = (user: any) => {
     };
     
     fetchDashboardStats();
-  }, [user, fetchSubscribersCount]);
+  }, [user]);
 
   return {
     isLoading,

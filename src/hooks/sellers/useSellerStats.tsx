@@ -50,7 +50,7 @@ export const useSellerStats = (sellerId: string | undefined) => {
           ? Math.round((winCount / totalSales) * 100) 
           : 0;
         
-        // Get followers count - Use the subscriptions table directly with explicit count
+        // Get followers count
         const { count: followersCount, error: followersError } = await supabase
           .from("subscriptions")
           .select("*", { count: 'exact', head: true })
