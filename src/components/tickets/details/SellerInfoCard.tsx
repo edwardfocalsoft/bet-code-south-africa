@@ -7,6 +7,7 @@ import { Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, isValid } from "date-fns";
 import { getPublicSellerStats } from "@/utils/sqlFunctions";
+import SubscribeButton from "@/components/sellers/SubscribeButton";
 
 interface SellerInfoCardProps {
   seller: any;
@@ -162,11 +163,7 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
         </div>
         
         <div className="mt-6">
-          <Button variant="outline" className="w-full" asChild>
-            <Link to={`/sellers/${ticket.seller_id}`}>
-              View Seller Profile
-            </Link>
-          </Button>
+          <SubscribeButton sellerId={ticket.seller_id} variant="outline" />
         </div>
       </CardContent>
     </Card>

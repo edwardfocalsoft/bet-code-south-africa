@@ -59,6 +59,7 @@ export const useSellerDashboard = (user: any) => {
           .eq('seller_id', user.id);
           
         if (subError) throw subError;
+        console.log("Fetched subscriber count for dashboard:", subCount);
         setSubscribersCount(subCount || 0);
         
         // Fetch total revenue

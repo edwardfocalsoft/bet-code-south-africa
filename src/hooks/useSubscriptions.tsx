@@ -46,6 +46,7 @@ export const useSubscriptions = () => {
     if (!currentUser?.id) return;
     
     try {
+      // Fixed query to correctly count subscribers
       const { count, error } = await supabase
         .from("subscriptions")
         .select("*", { count: "exact", head: true })

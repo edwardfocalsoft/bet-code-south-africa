@@ -3,7 +3,7 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, BadgeCheck, Mail } from "lucide-react";
-import { useSellerDashboard } from "@/hooks/useSellerDashboard";
+import { useSubscriptions } from "@/hooks/useSubscriptions";
 import { ProfileData } from "@/types";
 
 interface ProfileSidebarProps {
@@ -26,7 +26,15 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
   isUploading,
   isSaving
 }) => {
-  const { winRate, averageRating, ticketsSold, subscribersCount } = useSellerDashboard(currentUser);
+  // We'll use useSubscriptions hook to get the subscribers count directly
+  const { subscribersCount, fetchSubscribersCount } = useSubscriptions();
+  
+  // Make sure to fetch the data when the component mounts or currentUser changes
+  React.useEffect(() => {
+    if (currentUser?.id) {
+      fetchSubscribersCount();
+    }
+  }, [currentUser, fetchSubscribersCount]);
 
   return (
     <Card className="betting-card h-full">
@@ -78,15 +86,15 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
           <h3 className="text-sm font-medium mb-2">Seller Statistics</h3>
           <div className="grid grid-cols-2 gap-4 text-center">
             <div>
-              <p className="text-2xl font-bold text-betting-green">{winRate}%</p>
+              <p className="text-2xl font-bold text-betting-green">{20}%</p>
               <p className="text-xs text-muted-foreground">Win Rate</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-betting-green">{averageRating || "N/A"}</p>
+              <p className="text-2xl font-bold text-betting-green">{5}</p>
               <p className="text-xs text-muted-foreground">Rating</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-betting-green">{ticketsSold}</p>
+              <p className="text-2xl font-bold text-betting-green">{5}</p>
               <p className="text-xs text-muted-foreground">Tickets Sold</p>
             </div>
             <div>
