@@ -363,6 +363,36 @@ export type Database = {
           },
         ]
       }
+      site_settings: {
+        Row: {
+          favicon_url: string | null
+          google_ads_code: string | null
+          id: string
+          logo_url: string | null
+          maintenance_mode: boolean | null
+          site_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          favicon_url?: string | null
+          google_ads_code?: string | null
+          id?: string
+          logo_url?: string | null
+          maintenance_mode?: boolean | null
+          site_name?: string
+          updated_at?: string | null
+        }
+        Update: {
+          favicon_url?: string | null
+          google_ads_code?: string | null
+          id?: string
+          logo_url?: string | null
+          maintenance_mode?: boolean | null
+          site_name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           buyer_id: string

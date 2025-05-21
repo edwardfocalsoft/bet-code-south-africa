@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -13,11 +12,12 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface SiteSettings {
   site_name: string;
-  favicon_url: string;
-  logo_url: string;
+  favicon_url: string | null;
+  logo_url: string | null;
   maintenance_mode: boolean;
-  google_ads_code: string;
+  google_ads_code: string | null;
   updated_at?: string;
+  id?: string;
 }
 
 const defaultSettings: SiteSettings = {
@@ -43,15 +43,16 @@ export const SiteSettingsTab: React.FC = () => {
   const fetchSiteSettings = async () => {
     setIsLoading(true);
     try {
+      // Using as { data: any } to bypass TypeScript errors until types are regenerated
       const { data, error } = await supabase
         .from('site_settings')
         .select('*')
-        .maybeSingle();
+        .maybeSingle() as { data: any, error: any };
 
       if (error) throw error;
 
       if (data) {
-        setSettings(data);
+        setSettings(data as SiteSettings);
       }
     } catch (error: any) {
       console.error("Error fetching site settings:", error.message);
@@ -139,12 +140,13 @@ export const SiteSettingsTab: React.FC = () => {
       }
       
       // Update site settings in database
+      // Using as { error: any } to bypass TypeScript errors until types are regenerated
       const { error } = await supabase
         .from('site_settings')
         .upsert({ 
           ...updatedSettings,
           updated_at: new Date().toISOString()
-        });
+        }) as { error: any };
         
       if (error) throw error;
       
@@ -152,7 +154,7 @@ export const SiteSettingsTab: React.FC = () => {
       if (faviconFile) {
         const favicon = document.querySelector('link[rel="icon"]');
         if (favicon) {
-          favicon.setAttribute('href', updatedSettings.favicon_url);
+          favicon.setAttribute('href', updatedSettings.favicon_url || '');
         }
       }
       

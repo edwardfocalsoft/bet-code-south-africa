@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const injectGoogleAdsScript = async () => {
   try {
+    // Using as { data: any } to bypass TypeScript errors until types are regenerated
     const { data } = await supabase
       .from('site_settings')
       .select('google_ads_code')
-      .maybeSingle();
+      .maybeSingle() as { data: any };
     
     if (data && data.google_ads_code) {
       // Create a script element
@@ -27,10 +28,11 @@ export const injectGoogleAdsScript = async () => {
 
 export const updateFavicon = async () => {
   try {
+    // Using as { data: any } to bypass TypeScript errors until types are regenerated
     const { data } = await supabase
       .from('site_settings')
       .select('favicon_url')
-      .maybeSingle();
+      .maybeSingle() as { data: any };
     
     if (data && data.favicon_url) {
       // Find the existing favicon link element or create a new one
@@ -52,10 +54,11 @@ export const updateFavicon = async () => {
 
 export const updateDocumentTitle = async () => {
   try {
+    // Using as { data: any } to bypass TypeScript errors until types are regenerated
     const { data } = await supabase
       .from('site_settings')
       .select('site_name')
-      .maybeSingle();
+      .maybeSingle() as { data: any };
     
     if (data && data.site_name) {
       document.title = data.site_name;

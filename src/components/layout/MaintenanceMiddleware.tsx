@@ -18,10 +18,11 @@ const MaintenanceMiddleware: React.FC<MaintenanceMiddlewareProps> = ({ children 
   useEffect(() => {
     const checkMaintenanceMode = async () => {
       try {
+        // Using as { data: any } to bypass TypeScript errors until types are regenerated
         const { data } = await supabase
           .from('site_settings')
           .select('maintenance_mode')
-          .maybeSingle();
+          .maybeSingle() as { data: any };
 
         setIsMaintenanceMode(data?.maintenance_mode || false);
       } catch (error) {

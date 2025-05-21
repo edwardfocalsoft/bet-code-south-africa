@@ -11,10 +11,11 @@ const MaintenancePage: React.FC = () => {
   useEffect(() => {
     const fetchSiteSettings = async () => {
       try {
+        // Using as { data: any } to bypass TypeScript errors until types are regenerated
         const { data } = await supabase
           .from('site_settings')
           .select('site_name, logo_url')
-          .maybeSingle();
+          .maybeSingle() as { data: any };
 
         if (data) {
           setSiteName(data.site_name);
