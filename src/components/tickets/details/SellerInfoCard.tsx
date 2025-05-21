@@ -13,6 +13,15 @@ interface SellerInfoCardProps {
   ticket: any;
 }
 
+// Define an interface for the seller stats returned by the function
+interface PublicSellerStats {
+  sales_count: number;
+  total_sales: number;
+  average_rating: number;
+  win_rate: number;
+  total_ratings: number;
+}
+
 const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
   const [sellerStats, setSellerStats] = useState({
     winRate: 0,
@@ -55,6 +64,9 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
         console.log("Received seller stats:", statsData);
         
         if (statsData) {
+          // Type assert the statsData as PublicSellerStats to work with it safely
+          const typedStats = statsData as PublicSellerStats;
+          
           // Get seller profile for member since date
           const { data: sellerProfile } = await supabase
             .from("profiles")
@@ -63,13 +75,13 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
             .single();
           
           setSellerStats({
-            winRate: statsData.win_rate || 0,
-            ticketsSold: statsData.sales_count || 0,
+            winRate: typedStats.win_rate || 0,
+            ticketsSold: typedStats.sales_count || 0,
             memberSince: sellerProfile?.created_at 
               ? safeFormat(sellerProfile.created_at, 'MMMM yyyy', 'Unknown')
               : 'Unknown',
-            ratingScore: statsData.average_rating || 0,
-            totalRatings: statsData.total_ratings || 0
+            ratingScore: typedStats.average_rating || 0,
+            totalRatings: typedStats.total_ratings || 0
           });
         }
       } catch (err) {
