@@ -1,87 +1,85 @@
 
 import React from "react";
-import { User, Star, Calendar } from "lucide-react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import SubscribeButton from "@/components/sellers/SubscribeButton";
-import { formatDistanceToNow } from "date-fns";
-
-interface SellerStats {
-  winRate: number;
-  ticketsSold: number;
-  followers: number;
-  satisfaction: number;
-  averageRating: number;
-  totalRatings: number;
-}
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Star, Award, Trophy, TrendingUp } from "lucide-react";
+import TipButton from "@/components/sellers/TipButton";
+import { useAuth } from "@/contexts/auth";
 
 interface SellerProfileHeaderProps {
   seller: any;
-  stats: SellerStats;
+  stats: any;
 }
 
-const SellerProfileHeader: React.FC<SellerProfileHeaderProps> = ({ 
-  seller, 
-  stats 
-}) => {
+const SellerProfileHeader: React.FC<SellerProfileHeaderProps> = ({ seller, stats }) => {
+  const { currentUser } = useAuth();
+  const isSelf = currentUser?.id === seller.id;
+  
   return (
-    <Card className="betting-card sticky top-20">
-      <CardHeader className="border-b border-betting-light-gray pb-4">
-        <div className="flex flex-col items-center text-center">
-          <div className="h-24 w-24 rounded-full bg-betting-light-gray/30 flex items-center justify-center mb-4">
-            {seller.avatar_url ? (
-              <img 
-                src={seller.avatar_url} 
-                alt={seller.username} 
-                className="h-24 w-24 rounded-full object-cover"
-              />
-            ) : (
-              <User className="h-12 w-12 text-betting-green" />
-            )}
-          </div>
-          <h1 className="text-2xl font-bold mb-1">
-            {seller.username || "Anonymous Seller"}
-          </h1>
-          <div className="flex items-center text-sm text-muted-foreground">
-            <Star className="h-4 w-4 text-yellow-500 mr-1" fill="#eab308" />
-            <span>
-              {stats.averageRating > 0 
-                ? `${stats.averageRating.toFixed(1)} Rating (${stats.totalRatings} reviews)` 
-                : "No ratings yet"}
-            </span>
-          </div>
-          <div className="flex items-center text-sm text-muted-foreground mt-1">
-            <Calendar className="h-4 w-4 mr-1" />
-            <span>
-              Member since {
-                seller.created_at ? formatDistanceToNow(new Date(seller.created_at), { 
-                  addSuffix: true 
-                }) : "unknown date"
-              }
-            </span>
-          </div>
-        </div>
+    <Card className="betting-card mb-4">
+      <CardHeader className="space-y-1 pb-2">
+        <CardTitle className="flex justify-between">
+          <span className="text-xl">Seller Profile</span>
+          {stats && (
+            <Badge className="bg-betting-green text-white">
+              {stats.winRate || 0}% Win Rate
+            </Badge>
+          )}
+        </CardTitle>
+        <CardDescription>Ticket Provider</CardDescription>
       </CardHeader>
-      <CardContent className="pt-6">
-        <div className="grid grid-cols-2 gap-4 text-center mb-6">
-          <div className="bg-betting-light-gray/20 rounded-md p-3">
-            <p className="text-lg font-bold">{stats.winRate}%</p>
-            <p className="text-xs text-muted-foreground">Win Rate</p>
+      <CardContent>
+        <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
+          <Avatar className="h-16 w-16 border border-betting-light-gray">
+            <AvatarImage
+              src={seller.avatar_url}
+              alt={seller.username}
+            />
+            <AvatarFallback className="text-lg bg-betting-green text-betting-dark-gray">
+              {seller.username ? seller.username.substring(0, 2).toUpperCase() : "BC"}
+            </AvatarFallback>
+          </Avatar>
+
+          <div className="flex-1 text-center md:text-left">
+            <h3 className="font-bold text-xl mb-1">{seller.username || "Anonymous"}</h3>
+            <p className="text-sm text-muted-foreground">
+              Member since {seller.created_at ? new Date(seller.created_at).toLocaleDateString() : "Unknown"}
+            </p>
           </div>
-          <div className="bg-betting-light-gray/20 rounded-md p-3">
-            <p className="text-lg font-bold">{stats.ticketsSold}</p>
-            <p className="text-xs text-muted-foreground">Tickets Sold</p>
+          
+          {!isSelf && currentUser && (
+            <TipButton 
+              sellerId={seller.id}
+              sellerName={seller.username || "Seller"}
+              variant="outline"
+              size="default"
+            />
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center py-2 border-t border-b border-betting-light-gray/20">
+          <div className="flex flex-col items-center p-2">
+            <Trophy className="h-5 w-5 text-yellow-500 mb-1" />
+            <span className="text-sm text-muted-foreground">Sales</span>
+            <span className="font-bold">{stats?.totalSales || 0}</span>
           </div>
-          <div className="bg-betting-light-gray/20 rounded-md p-3">
-            <p className="text-lg font-bold">{stats.followers}</p>
-            <p className="text-xs text-muted-foreground">Subscribers</p>
+          <div className="flex flex-col items-center p-2">
+            <TrendingUp className="h-5 w-5 text-green-500 mb-1" />
+            <span className="text-sm text-muted-foreground">Followers</span>
+            <span className="font-bold">{stats?.followers || 0}</span>
           </div>
-          <div className="bg-betting-light-gray/20 rounded-md p-3">
-            <p className="text-lg font-bold">{stats.satisfaction}%</p>
-            <p className="text-xs text-muted-foreground">Satisfaction</p>
+          <div className="flex flex-col items-center p-2">
+            <Star className="h-5 w-5 text-yellow-600 mb-1" />
+            <span className="text-sm text-muted-foreground">Rating</span>
+            <span className="font-bold">{stats?.averageRating?.toFixed(1) || "0.0"}</span>
+          </div>
+          <div className="flex flex-col items-center p-2">
+            <Award className="h-5 w-5 text-betting-green mb-1" />
+            <span className="text-sm text-muted-foreground">Satisfaction</span>
+            <span className="font-bold">{stats?.satisfaction?.toFixed(0) || 0}%</span>
           </div>
         </div>
-        
-        <SubscribeButton sellerId={seller.id} variant="default" />
       </CardContent>
     </Card>
   );

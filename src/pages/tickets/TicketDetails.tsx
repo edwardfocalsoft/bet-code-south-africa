@@ -14,6 +14,7 @@ import TicketPurchaseDialog from "@/components/tickets/details/TicketPurchaseDia
 import SellerInfoCard from "@/components/tickets/details/SellerInfoCard";
 import SimilarTicketsCard from "@/components/tickets/details/SimilarTicketsCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import TipButton from "@/components/sellers/TipButton";
 
 const TicketDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -163,6 +164,17 @@ const TicketDetails: React.FC = () => {
               onPurchase={handlePurchase}
               purchaseId={purchaseId}
             />
+            
+            {seller && !isSeller && currentUser && (
+              <div className="mt-6 flex justify-end">
+                <TipButton 
+                  sellerId={seller.id}
+                  sellerName={seller.username || "Seller"}
+                  variant="outline"
+                  size="default"
+                />
+              </div>
+            )}
           </div>
 
           <div>

@@ -7,15 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth";
 import { useWallet } from "@/hooks/useWallet";
-import { AlertCircle, Loader2, Wallet, CreditCard } from "lucide-react";
+import { AlertCircle, Loader2, Wallet, CreditCard, Info } from "lucide-react";
 import { formatCurrency } from "@/utils/formatting";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const SellerWithdrawals: React.FC = () => {
   const { currentUser } = useAuth();
   const { creditBalance } = useWallet();
   const [amount, setAmount] = useState("");
   const [processing, setProcessing] = useState(false);
+
+  const WITHDRAWAL_FEE_PERCENTAGE = 10;
 
   const handleWithdrawRequest = async () => {
     setProcessing(true);
@@ -54,12 +57,30 @@ const SellerWithdrawals: React.FC = () => {
     }
   };
 
+  const calculateFee = (amount: number) => {
+    return (amount * WITHDRAWAL_FEE_PERCENTAGE) / 100;
+  };
+
+  const calculateNetAmount = (amount: number) => {
+    return amount - calculateFee(amount);
+  };
+
   const isEligible = (creditBalance || 0) >= 1000;
+  const inputAmount = parseFloat(amount) || 0;
+  const feeAmount = calculateFee(inputAmount);
+  const netAmount = calculateNetAmount(inputAmount);
 
   return (
     <Layout requireAuth={true} allowedRoles={["seller", "admin"]}>
       <div className="container mx-auto py-8">
         <h1 className="text-3xl font-bold mb-6">Withdrawals</h1>
+        
+        <Alert className="mb-6 border-betting-green/20 bg-betting-green/10">
+          <Info className="h-4 w-4 text-betting-green" />
+          <AlertDescription>
+            A {WITHDRAWAL_FEE_PERCENTAGE}% fee is charged on all withdrawals. The fee covers transaction costs and platform maintenance.
+          </AlertDescription>
+        </Alert>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="betting-card">
@@ -132,6 +153,26 @@ const SellerWithdrawals: React.FC = () => {
                     </div>
                   </div>
                   
+                  {inputAmount > 0 && (
+                    <div className="p-4 border border-betting-light-gray/10 rounded-md bg-betting-light-gray/5">
+                      <h4 className="font-medium mb-2">Withdrawal Summary</h4>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex justify-between">
+                          <span>Withdrawal Amount:</span>
+                          <span>{formatCurrency(inputAmount)}</span>
+                        </div>
+                        <div className="flex justify-between text-yellow-500">
+                          <span>Platform Fee ({WITHDRAWAL_FEE_PERCENTAGE}%):</span>
+                          <span>-{formatCurrency(feeAmount)}</span>
+                        </div>
+                        <div className="flex justify-between font-bold pt-1 border-t border-betting-light-gray/10 mt-1">
+                          <span>You'll Receive:</span>
+                          <span>{formatCurrency(netAmount)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="pt-4 border-t border-betting-light-gray/20">
                     <h3 className="text-sm font-medium mb-2">Withdrawal Information</h3>
                     <ul className="text-sm text-muted-foreground space-y-2">
@@ -142,6 +183,10 @@ const SellerWithdrawals: React.FC = () => {
                       <li className="flex items-start gap-2">
                         <CreditCard className="h-4 w-4 mt-0.5" />
                         <span>Make sure your banking details are correct before requesting a withdrawal.</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Info className="h-4 w-4 mt-0.5" />
+                        <span>A {WITHDRAWAL_FEE_PERCENTAGE}% fee is charged on all withdrawals.</span>
                       </li>
                     </ul>
                   </div>
