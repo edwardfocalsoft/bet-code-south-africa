@@ -33,7 +33,7 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
 
   // Calculate member since date
   const memberSince = ticket.profiles?.created_at
-    ? safeFormat(ticket.profiles.created_at, 'MMMM yyyy')
+    ? safeFormat(ticket.profiles.created_at, 'MMMM yyyy', 'Unknown')
     : 'Unknown';
 
   return (
