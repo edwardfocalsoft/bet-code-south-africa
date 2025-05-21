@@ -1,6 +1,6 @@
 
 import React from "react";
-import TicketsList from "@/components/tickets/TicketsList";
+import TicketsTable from "@/components/tickets/TicketsTable";
 import { LoadingState } from "@/components/purchases/LoadingState";
 
 interface SellerTicketsTabProps {
@@ -27,7 +27,10 @@ const SellerTicketsTab: React.FC<SellerTicketsTabProps> = ({
           No active tickets available from this seller.
         </p>
       ) : (
-        <TicketsList tickets={tickets} />
+        <TicketsTable 
+          tickets={tickets} 
+          emptyMessage={`No active tickets available from ${sellerName}.`}
+        />
       )}
     </div>
   );
