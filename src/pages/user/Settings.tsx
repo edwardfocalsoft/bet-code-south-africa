@@ -9,10 +9,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Save, CreditCard } from "lucide-react";
+import { Loader2, Save, CreditCard, Settings as SettingsIcon } from "lucide-react";
 import { usePaymentSettings } from "@/hooks/usePaymentSettings";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import SiteSettingsTab from "@/components/admin/site/SiteSettingsTab";
 
 const UserSettings: React.FC = () => {
   const { currentUser, userRole } = useAuth();
@@ -157,6 +158,7 @@ const UserSettings: React.FC = () => {
   };
 
   const showPaymentSettings = userRole === "admin";
+  const showSiteSettings = userRole === "admin";
 
   return (
     <Layout requireAuth={true}>
@@ -164,10 +166,11 @@ const UserSettings: React.FC = () => {
         <h1 className="text-3xl font-bold mb-6">Account Settings</h1>
         
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className={`grid w-full ${showSiteSettings && showPaymentSettings ? 'grid-cols-4' : showSiteSettings || showPaymentSettings ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <TabsTrigger value="profile">Profile Information</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
             {showPaymentSettings && <TabsTrigger value="payment">Payment Gateway</TabsTrigger>}
+            {showSiteSettings && <TabsTrigger value="site"><SettingsIcon className="mr-2 h-4 w-4" /> Site Settings</TabsTrigger>}
           </TabsList>
           
           <TabsContent value="profile">
@@ -404,6 +407,12 @@ const UserSettings: React.FC = () => {
                   </Button>
                 </CardFooter>
               </Card>
+            </TabsContent>
+          )}
+
+          {showSiteSettings && (
+            <TabsContent value="site">
+              <SiteSettingsTab />
             </TabsContent>
           )}
         </Tabs>
