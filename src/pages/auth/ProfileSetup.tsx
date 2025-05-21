@@ -9,8 +9,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react";
 
 const ProfileSetup: React.FC = () => {
   const { currentUser, userRole } = useAuth();
@@ -69,11 +68,6 @@ const ProfileSetup: React.FC = () => {
 
       toast.success("Profile setup completed!");
       
-      // If user is a seller, show them the approval notice before redirecting
-      if (userRole === "seller") {
-        toast.info("Your seller account will need to be approved by an admin before you can start selling.");
-      }
-      
       // Redirect based on user role
       redirectToDashboard();
     } catch (error: any) {
@@ -105,7 +99,7 @@ const ProfileSetup: React.FC = () => {
   }
 
   return (
-    <Layout>
+    <Layout hideNavigation>
       <div className="container max-w-md mx-auto py-12 px-4">
         <Card className="bg-betting-dark-gray border-betting-light-gray">
           <CardHeader>
@@ -113,14 +107,6 @@ const ProfileSetup: React.FC = () => {
             <CardDescription>
               Please choose a username to continue
             </CardDescription>
-            {userRole === "seller" && (
-              <Alert className="mt-4 bg-amber-950/30 text-amber-300 border-amber-700">
-                <AlertCircle className="h-4 w-4 text-amber-400" />
-                <AlertDescription>
-                  Note: Seller accounts require admin approval after setting up your profile.
-                </AlertDescription>
-              </Alert>
-            )}
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">

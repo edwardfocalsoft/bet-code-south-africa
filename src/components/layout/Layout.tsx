@@ -12,6 +12,7 @@ interface LayoutProps {
   allowedRoles?: string[];
   redirectIfAuth?: boolean;
   isHomePage?: boolean; // Added property to identify home page
+  hideNavigation?: boolean; // Added property to hide navigation
 }
 
 const Layout: React.FC<LayoutProps> = ({ 
@@ -19,7 +20,8 @@ const Layout: React.FC<LayoutProps> = ({
   requireAuth = false,
   allowedRoles = ["buyer", "seller", "admin"],
   redirectIfAuth = false,
-  isHomePage = false // Default is false
+  isHomePage = false, // Default is false
+  hideNavigation = false // Default is false
 }) => {
   const { currentUser, userRole, loading } = useAuth();
   const navigate = useNavigate();
@@ -82,7 +84,7 @@ const Layout: React.FC<LayoutProps> = ({
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Navbar />
+      {!hideNavigation && <Navbar />}
       <main className="flex-1">
         {children}
       </main>
