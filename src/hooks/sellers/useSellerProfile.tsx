@@ -38,7 +38,8 @@ export const useSellerProfile = (id: string | undefined) => {
       
       setSeller(sellerData);
       
-      // Get subscriber count - Fixed to correctly count all subscribers
+      // Get subscriber count with explicit count parameter
+      console.log("Fetching subscribers count for seller profile:", id);
       const { count: subscribersCount, error: subscribersError } = await supabase
         .from('subscriptions')
         .select('*', { count: 'exact', head: true })
@@ -48,7 +49,7 @@ export const useSellerProfile = (id: string | undefined) => {
         console.error('Error fetching subscribers count:', subscribersError);
       }
       
-      console.log('Fetched subscribers count:', subscribersCount);
+      console.log('Fetched subscribers count for profile:', subscribersCount);
       
       // Fetch seller stats using public function
       const statsData = await getPublicSellerStats(id);

@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
 import { useToast } from "@/hooks/use-toast";
@@ -12,16 +11,7 @@ export const useSubscriptions = () => {
   const [loading, setLoading] = useState(false);
   const [subscribersCount, setSubscribersCount] = useState(0);
 
-  useEffect(() => {
-    if (currentUser?.id) {
-      fetchSubscriptions();
-      if (currentUser.role === "seller") {
-        fetchSubscribersCount();
-      }
-    }
-  }, [currentUser]);
-
-  const fetchSubscriptions = async () => {
+  const fetchSubscriptions = useCallback(async () => {
     if (!currentUser?.id) return;
     
     try {
@@ -40,26 +30,38 @@ export const useSubscriptions = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUser?.id]);
 
-  const fetchSubscribersCount = async () => {
+  const fetchSubscribersCount = useCallback(async () => {
     if (!currentUser?.id) return;
     
     try {
-      // Fixed query to correctly count subscribers
+      console.log("Fetching subscribers count for user:", currentUser.id);
+      
+      // Using count with head: true to efficiently count rows
       const { count, error } = await supabase
         .from("subscriptions")
         .select("*", { count: "exact", head: true })
         .eq("seller_id", currentUser.id);
         
       if (error) throw error;
-      console.log("Subscriber count:", count);
+      
+      console.log("Subscriber count result:", count);
       setSubscribersCount(count || 0);
     } catch (error: any) {
       console.error("Error fetching subscribers count:", error);
       toast.error("Failed to load subscriber count");
     }
-  };
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    if (currentUser?.id) {
+      fetchSubscriptions();
+      if (currentUser.role === "seller") {
+        fetchSubscribersCount();
+      }
+    }
+  }, [currentUser, fetchSubscriptions, fetchSubscribersCount]);
 
   const subscribeToSeller = async (sellerId: string) => {
     if (!currentUser?.id) {

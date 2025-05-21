@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const useSellerDashboard = (user: any) => {
@@ -14,6 +13,26 @@ export const useSellerDashboard = (user: any) => {
   const [profileComplete, setProfileComplete] = useState<boolean>(true);
   const [performanceData, setPerformanceData] = useState<Array<{name: string; sales: number}>>([]);
   const [recentSales, setRecentSales] = useState<any[]>([]);
+
+  const fetchSubscribersCount = useCallback(async (userId: string) => {
+    try {
+      console.log("Fetching dashboard subscribers count for user:", userId);
+      
+      // Using count with head: true to efficiently count rows
+      const { count, error } = await supabase
+        .from("subscriptions")
+        .select("*", { count: "exact", head: true })
+        .eq("seller_id", userId);
+        
+      if (error) throw error;
+      
+      console.log("Dashboard subscriber count result:", count);
+      return count || 0;
+    } catch (error: any) {
+      console.error("Error fetching dashboard subscribers count:", error);
+      return 0;
+    }
+  }, []);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -52,15 +71,9 @@ export const useSellerDashboard = (user: any) => {
           setAverageRating(Number(average.toFixed(1)));
         }
 
-        // Fetch subscribers count - Fixed to correctly count all subscribers
-        const { count: subCount, error: subError } = await supabase
-          .from('subscriptions')
-          .select('*', { count: 'exact', head: true })
-          .eq('seller_id', user.id);
-          
-        if (subError) throw subError;
-        console.log("Fetched subscriber count for dashboard:", subCount);
-        setSubscribersCount(subCount || 0);
+        // Fetch subscribers count directly with our helper function
+        const subCount = await fetchSubscribersCount(user.id);
+        setSubscribersCount(subCount);
         
         // Fetch total revenue
         const { data: salesData, error: salesError } = await supabase
@@ -184,7 +197,7 @@ export const useSellerDashboard = (user: any) => {
     };
     
     fetchDashboardStats();
-  }, [user]);
+  }, [user, fetchSubscribersCount]);
 
   return {
     isLoading,
