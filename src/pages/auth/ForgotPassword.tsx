@@ -43,7 +43,7 @@ const ForgotPassword: React.FC = () => {
   
   return (
     <Layout>
-      <div className="container max-w-md py-16">
+      <div className="container mx-auto max-w-md py-16">
         <div className="betting-card p-6 md:p-8">
           {!isSubmitted ? (
             <>
