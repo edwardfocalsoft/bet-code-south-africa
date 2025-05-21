@@ -11,6 +11,7 @@ import { AlertCircle, Loader2, Wallet, CreditCard, Info } from "lucide-react";
 import { formatCurrency } from "@/utils/formatting";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import TransactionsTable from "@/components/seller/dashboard/TransactionsTable";
 
 const SellerWithdrawals: React.FC = () => {
   const { currentUser } = useAuth();
@@ -195,6 +196,9 @@ const SellerWithdrawals: React.FC = () => {
             </CardContent>
           </Card>
         </div>
+        
+        <h2 className="text-2xl font-bold mt-8 mb-4">Transaction History</h2>
+        <TransactionsTable className="mb-8" />
       </div>
     </Layout>
   );

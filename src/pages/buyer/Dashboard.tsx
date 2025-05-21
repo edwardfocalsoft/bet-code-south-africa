@@ -8,7 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import StatCard from "@/components/buyer/dashboard/StatCard";
 import RecentPurchasesCard from "@/components/buyer/dashboard/RecentPurchasesCard";
 import SupportCard from "@/components/buyer/dashboard/SupportCard";
-import LoyaltyPointsCard from "@/components/buyer/dashboard/LoyaltyPointsCard";
 
 const BuyerDashboard: React.FC = () => {
   const { currentUser } = useAuth();
@@ -121,13 +120,9 @@ const BuyerDashboard: React.FC = () => {
           />
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <RecentPurchasesCard />
           <SupportCard />
-          <LoyaltyPointsCard 
-            points={dashboardData.loyaltyPoints} 
-            loading={loading} 
-          />
         </div>
       </div>
     </Layout>

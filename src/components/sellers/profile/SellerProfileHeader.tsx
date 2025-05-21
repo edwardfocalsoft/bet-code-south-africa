@@ -47,15 +47,6 @@ const SellerProfileHeader: React.FC<SellerProfileHeaderProps> = ({ seller, stats
               Member since {seller.created_at ? new Date(seller.created_at).toLocaleDateString() : "Unknown"}
             </p>
           </div>
-          
-          {!isSelf && currentUser && (
-            <TipButton 
-              sellerId={seller.id}
-              sellerName={seller.username || "Seller"}
-              variant="outline"
-              size="default"
-            />
-          )}
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center py-2 border-t border-b border-betting-light-gray/20">
@@ -80,6 +71,18 @@ const SellerProfileHeader: React.FC<SellerProfileHeaderProps> = ({ seller, stats
             <span className="font-bold">{stats?.satisfaction?.toFixed(0) || 0}%</span>
           </div>
         </div>
+        
+        {!isSelf && currentUser && (
+          <div className="mt-4 flex justify-center">
+            <TipButton 
+              sellerId={seller.id}
+              sellerName={seller.username || "Seller"}
+              variant="outline"
+              size="default"
+              className="w-full sm:w-auto"
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );

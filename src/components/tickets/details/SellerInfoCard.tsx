@@ -5,9 +5,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
-import { Loader2 } from "lucide-react";
+import { Loader2, User } from "lucide-react";
 import TipButton from "@/components/sellers/TipButton";
 import { useAuth } from "@/contexts/auth";
+import { Button } from "@/components/ui/button";
 
 interface SellerInfoCardProps {
   seller: any;
@@ -52,23 +53,28 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
           </div>
         </div>
         
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="space-y-2">
           <Link to={`/sellers/${seller.id}`}>
-            <Badge variant="outline" className="cursor-pointer hover:bg-betting-dark-gray transition-colors">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="w-full flex items-center gap-1"
+            >
+              <User className="h-4 w-4" />
               View Profile
-            </Badge>
+            </Button>
           </Link>
+          
+          {!isSeller && currentUser && (
+            <TipButton 
+              sellerId={seller.id}
+              sellerName={seller.username || "Seller"}
+              variant="outline"
+              size="sm"
+              className="w-full mt-2"
+            />
+          )}
         </div>
-        
-        {!isSeller && currentUser && (
-          <TipButton 
-            sellerId={seller.id}
-            sellerName={seller.username || "Seller"}
-            variant="outline"
-            size="sm"
-            className="w-full mt-2"
-          />
-        )}
       </CardContent>
     </Card>
   );
