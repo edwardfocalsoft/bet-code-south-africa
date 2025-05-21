@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSubscriptions } from "@/hooks/useSubscriptions";
 
 export const useSellerDashboard = (user: any) => {
   const [winRate, setWinRate] = useState<number>(0);
@@ -13,26 +14,15 @@ export const useSellerDashboard = (user: any) => {
   const [profileComplete, setProfileComplete] = useState<boolean>(true);
   const [performanceData, setPerformanceData] = useState<Array<{name: string; sales: number}>>([]);
   const [recentSales, setRecentSales] = useState<any[]>([]);
+  
+  // Use the useSubscriptions hook to access subscriptions data
+  const { subscribersCount: hookSubscribersCount, fetchSubscribersCount } = useSubscriptions();
 
-  const fetchSubscribersCount = useCallback(async (userId: string) => {
-    try {
-      console.log("Fetching dashboard subscribers count for user:", userId);
-      
-      // Using count with head: true to efficiently count rows
-      const { count, error } = await supabase
-        .from("subscriptions")
-        .select("*", { count: "exact", head: true })
-        .eq("seller_id", userId);
-        
-      if (error) throw error;
-      
-      console.log("Dashboard subscriber count result:", count);
-      return count || 0;
-    } catch (error: any) {
-      console.error("Error fetching dashboard subscribers count:", error);
-      return 0;
-    }
-  }, []);
+  // Make sure we keep our local state in sync with the hook's state
+  useEffect(() => {
+    console.log("Dashboard - Subscription count from hook:", hookSubscribersCount);
+    setSubscribersCount(hookSubscribersCount);
+  }, [hookSubscribersCount]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -71,9 +61,11 @@ export const useSellerDashboard = (user: any) => {
           setAverageRating(Number(average.toFixed(1)));
         }
 
-        // Fetch subscribers count directly with our helper function
-        const subCount = await fetchSubscribersCount(user.id);
-        setSubscribersCount(subCount);
+        // Explicitly fetch subscribers count using the hook's function
+        if (user.role === 'seller') {
+          console.log("Dashboard - Fetching subscribers count for seller:", user.id);
+          await fetchSubscribersCount();
+        }
         
         // Fetch total revenue
         const { data: salesData, error: salesError } = await supabase

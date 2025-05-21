@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -7,6 +7,7 @@ import { PlusCircle, Ticket, CreditCard, Award, Wallet } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useWallet } from "@/hooks/useWallet";
 import { useSellerDashboard } from "@/hooks/useSellerDashboard";
+import { useSubscriptions } from "@/hooks/useSubscriptions";
 import StatCard from "@/components/seller/dashboard/StatCard";
 import PerformanceChart from "@/components/seller/dashboard/PerformanceChart";
 import SalesTipsCard from "@/components/seller/dashboard/SalesTipsCard";
@@ -17,6 +18,7 @@ import { formatCurrency } from "@/utils/formatting";
 const SellerDashboard: React.FC = () => {
   const { currentUser } = useAuth();
   const { creditBalance } = useWallet();
+  const { subscribersCount, fetchSubscribersCount } = useSubscriptions();
   const { 
     isLoading, 
     totalSales,
@@ -26,9 +28,21 @@ const SellerDashboard: React.FC = () => {
     monthlyGrowth,
     profileComplete,
     performanceData,
-    recentSales,
-    subscribersCount
+    recentSales
   } = useSellerDashboard(currentUser);
+  
+  // Ensure we fetch subscribers count when the dashboard loads
+  useEffect(() => {
+    if (currentUser?.id) {
+      console.log("Dashboard component - Fetching subscribers count on load");
+      fetchSubscribersCount();
+    }
+  }, [currentUser, fetchSubscribersCount]);
+  
+  // Log whenever the subscribers count changes (for debugging)
+  useEffect(() => {
+    console.log("Dashboard component - Current subscribers count:", subscribersCount);
+  }, [subscribersCount]);
 
   return (
     <Layout requireAuth={true} allowedRoles={["seller", "admin"]}>
