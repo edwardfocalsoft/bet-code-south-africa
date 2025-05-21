@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import {
   DropdownMenu,
@@ -85,8 +84,6 @@ const NotificationDropdown: React.FC = () => {
             // Determine the link based on notification type
             let linkTo = "#";
             if (notification.type === "ticket" && notification.relatedId) {
-              linkTo = `/tickets/${notification.relatedId}`;
-            } else if (notification.type === "new_ticket" && notification.relatedId) {
               linkTo = `/tickets/${notification.relatedId}`;
             } else if (notification.type === "subscription" && notification.relatedId) {
               linkTo = `/sellers/${notification.relatedId}`;

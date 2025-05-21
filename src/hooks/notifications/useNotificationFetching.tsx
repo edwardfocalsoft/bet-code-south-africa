@@ -1,70 +1,67 @@
 
-import { useState, useCallback } from "react";
-import { useAuth } from "@/contexts/auth";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth";
 import { Notification } from "@/types";
-import { useEffect } from "react";
 
 export function useNotificationFetching() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState<number>(0);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
   const { currentUser } = useAuth();
 
-  // Function to fetch notifications
   const fetchNotifications = useCallback(async () => {
     if (!currentUser) {
+      setNotifications([]);
+      setUnreadCount(0);
       setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
-      console.log(`[notifications] Fetching notifications for user: ${currentUser.id}`);
+      setError(null);
 
-      // Get notifications from Supabase
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", currentUser.id)
-        .order("created_at", { ascending: false })
-        .limit(50); // Limit to most recent 50
+      const { data, error: fetchError } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false }) as {
+          data: any[];
+          error: any;
+        };
 
-      if (error) throw error;
+      if (fetchError) throw fetchError;
 
-      // Count unread notifications
-      const unreadNotifications = data.filter(n => !n.is_read).length;
-      setUnreadCount(unreadNotifications);
-      
-      // Map to our notification type - with type assertion to handle the extended notification types
-      const mappedNotifications: Notification[] = data.map((notification) => ({
+      const mappedNotifications = data.map((notification: any) => ({
         id: notification.id,
         userId: notification.user_id,
         title: notification.title,
         message: notification.message,
         isRead: notification.is_read,
         createdAt: new Date(notification.created_at),
-        type: notification.type as Notification["type"],
-        relatedId: notification.related_id || undefined
+        type: notification.type,
+        relatedId: notification.related_id,
       }));
 
       setNotifications(mappedNotifications);
-      console.log(`[notifications] Fetched ${mappedNotifications.length} notifications, ${unreadNotifications} unread`);
-    } catch (err: any) {
-      console.error("[notifications] Error fetching notifications:", err);
-      setError(err.message);
+      const unread = mappedNotifications.filter(n => !n.isRead).length;
+      setUnreadCount(unread);
+    } catch (error: any) {
+      console.error("Error fetching notifications:", error);
+      setError(error.message || "Failed to fetch notifications");
+      toast({
+        title: "Error",
+        description: "Failed to load notifications. Please try again later.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
-  }, [currentUser]);
-
-  // Initial fetch when component mounts
-  useEffect(() => {
-    if (currentUser) {
-      fetchNotifications();
-    }
-  }, [currentUser, fetchNotifications]);
+  }, [currentUser, toast]);
 
   return {
     notifications,

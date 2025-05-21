@@ -12,14 +12,12 @@ import SellerProfileHeader from "@/components/sellers/profile/SellerProfileHeade
 import SellerTicketsTab from "@/components/sellers/profile/SellerTicketsTab";
 import SellerReviewsTab from "@/components/sellers/profile/SellerReviewsTab";
 import SellerStatsTab from "@/components/sellers/profile/SellerStatsTab";
-import useSellerStats from "@/hooks/sellers/useSellerStats";
 
 const SellerPublicProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState("tickets");
   const { currentUser } = useAuth();
-  const { loading: profileLoading, seller, reviews } = useSellerProfile(id);
-  const { stats, loading: statsLoading } = useSellerStats(id);
+  const { loading, seller, reviews, stats } = useSellerProfile(id);
   
   // Get seller tickets using the useTickets hook
   const { tickets: sellerTickets, loading: ticketsLoading } = useTickets({
@@ -35,8 +33,6 @@ const SellerPublicProfile: React.FC = () => {
   if (currentUser?.id === id && currentUser?.role === 'seller') {
     return <Navigate to="/seller/dashboard" replace />;
   }
-
-  const loading = profileLoading || statsLoading;
 
   if (loading) {
     return (
@@ -59,35 +55,13 @@ const SellerPublicProfile: React.FC = () => {
       </Layout>
     );
   }
-
-  // Convert the stats from SellerStatsData to the expected format for components
-  const sellerStatsForDisplay = stats ? {
-    winRate: stats.winRate,
-    ticketsSold: stats.ticketsSold,
-    followersCount: stats.followersCount,
-    followers: stats.followers || stats.followersCount, // Use either one, ensuring a value is provided
-    satisfaction: stats.satisfaction,
-    averageRating: stats.averageRating,
-    totalRatings: stats.totalRatings
-  } : {
-    winRate: 0,
-    ticketsSold: 0,
-    followersCount: 0,
-    followers: 0,
-    satisfaction: 0,
-    averageRating: 0,
-    totalRatings: 0
-  };
   
   return (
     <Layout>
       <div className="container mx-auto py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <SellerProfileHeader 
-              seller={seller} 
-              stats={sellerStatsForDisplay} 
-            />
+            <SellerProfileHeader seller={seller} stats={stats} />
           </div>
           
           <div className="md:col-span-2">
@@ -111,7 +85,7 @@ const SellerPublicProfile: React.FC = () => {
               </TabsContent>
               
               <TabsContent value="stats">
-                <SellerStatsTab stats={sellerStatsForDisplay} />
+                <SellerStatsTab stats={stats} />
               </TabsContent>
             </Tabs>
           </div>

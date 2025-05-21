@@ -14,7 +14,7 @@ export const createNotification = async (
   userId: string, 
   title: string, 
   message: string, 
-  type: "subscription" | "ticket" | "system" | "free_ticket" | "case" | "new_ticket",
+  type: "subscription" | "ticket" | "system" | "free_ticket" | "case",
   relatedId?: string
 ): Promise<any | null> => {
   try {
@@ -61,113 +61,6 @@ export const createNotification = async (
   } catch (error) {
     console.error('[notification] Exception when creating notification:', error);
     return null;
-  }
-};
-
-/**
- * Creates notifications for all subscribers when a seller posts a new ticket
- * @param sellerId The seller ID
- * @param ticketId The new ticket ID
- * @param ticketTitle The ticket title
- * @returns Number of notifications created
- */
-export const notifySubscribersAboutNewTicket = async (
-  sellerId: string,
-  ticketId: string,
-  ticketTitle: string,
-  sellerName: string
-): Promise<number> => {
-  try {
-    // Fetch all subscribers for this seller
-    const { data: subscribers, error: subscribersError } = await supabase
-      .from('subscriptions')
-      .select('buyer_id')
-      .eq('seller_id', sellerId);
-    
-    if (subscribersError) {
-      console.error('[notification] Error fetching subscribers:', subscribersError);
-      return 0;
-    }
-    
-    if (!subscribers || subscribers.length === 0) {
-      console.log(`[notification] No subscribers found for seller ${sellerId}`);
-      return 0;
-    }
-    
-    console.log(`[notification] Found ${subscribers.length} subscribers to notify about new ticket`);
-    
-    // Create a notification for each subscriber
-    const notificationPromises = subscribers.map(sub => 
-      createNotification(
-        sub.buyer_id,
-        `New Ticket from ${sellerName}`,
-        `${sellerName} just posted a new ticket: ${ticketTitle}`,
-        'new_ticket',
-        ticketId
-      )
-    );
-    
-    const results = await Promise.allSettled(notificationPromises);
-    const successCount = results.filter(r => r.status === 'fulfilled').length;
-    
-    console.log(`[notification] Successfully notified ${successCount}/${subscribers.length} subscribers`);
-    return successCount;
-  } catch (error) {
-    console.error('[notification] Error notifying subscribers:', error);
-    return 0;
-  }
-};
-
-/**
- * Notifies all admins about a new support case
- * @param caseId The case ID
- * @param caseTitle The case title
- * @param userName The user who created the case
- * @returns Number of notifications created
- */
-export const notifyAdminsAboutNewCase = async (
-  caseId: string,
-  caseTitle: string,
-  userName: string
-): Promise<number> => {
-  try {
-    // Fetch all admins
-    const { data: admins, error: adminsError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('role', 'admin');
-    
-    if (adminsError) {
-      console.error('[notification] Error fetching admins:', adminsError);
-      return 0;
-    }
-    
-    if (!admins || admins.length === 0) {
-      console.log('[notification] No admins found to notify about new case');
-      return 0;
-    }
-    
-    console.log(`[notification] Found ${admins.length} admins to notify about new case`);
-    
-    // Create a notification for each admin
-    const notificationPromises = admins.map(admin => 
-      createNotification(
-        admin.id,
-        'New Support Case',
-        `${userName} created a new support case: ${caseTitle}`,
-        'case',
-        caseId
-      )
-    );
-    
-    const results = await Promise.allSettled(notificationPromises);
-    const successCount = results.filter(r => r.status === 'fulfilled').length;
-    
-    console.log(`[notification] Successfully notified ${successCount}/${admins.length} admins about new case`);
-    return successCount;
-  } catch (error) {
-    console.error('[notification] Error notifying admins about new case:', error);
-    return 0;
   }
 };
 

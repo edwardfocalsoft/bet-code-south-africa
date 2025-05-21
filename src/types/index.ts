@@ -149,6 +149,6 @@ export interface Notification {
   message: string;
   isRead: boolean;
   createdAt: Date;
-  type: "subscription" | "ticket" | "system" | "free_ticket" | "case" | "new_ticket";
+  type: "subscription" | "ticket" | "system" | "free_ticket" | "case";
   relatedId?: string;
 }

@@ -8,11 +8,10 @@ import { formatDistanceToNow } from "date-fns";
 interface SellerStats {
   winRate: number;
   ticketsSold: number;
-  followersCount: number;
+  followers: number;
   satisfaction: number;
   averageRating: number;
   totalRatings: number;
-  followers: number;  // Ensure this property is included
 }
 
 interface SellerProfileHeaderProps {
@@ -73,7 +72,7 @@ const SellerProfileHeader: React.FC<SellerProfileHeaderProps> = ({
             <p className="text-xs text-muted-foreground">Tickets Sold</p>
           </div>
           <div className="bg-betting-light-gray/20 rounded-md p-3">
-            <p className="text-lg font-bold">{stats.followers || stats.followersCount || 0}</p>
+            <p className="text-lg font-bold">{stats.followers}</p>
             <p className="text-xs text-muted-foreground">Subscribers</p>
           </div>
           <div className="bg-betting-light-gray/20 rounded-md p-3">

@@ -13,7 +13,6 @@ import SalesTipsCard from "@/components/seller/dashboard/SalesTipsCard";
 import ProfileIncompleteAlert from "@/components/seller/dashboard/ProfileIncompleteAlert";
 import RecentSalesCard from "@/components/seller/dashboard/RecentSalesCard";
 import { formatCurrency } from "@/utils/formatting";
-import useSellerStats from "@/hooks/sellers/useSellerStats";
 
 const SellerDashboard: React.FC = () => {
   const { currentUser } = useAuth();
@@ -28,10 +27,8 @@ const SellerDashboard: React.FC = () => {
     profileComplete,
     performanceData,
     recentSales,
+    subscribersCount
   } = useSellerDashboard(currentUser);
-  
-  const { stats, loading: statsLoading } = useSellerStats(currentUser?.id);
-  const subscribersCount = stats?.followersCount || 0;
 
   return (
     <Layout requireAuth={true} allowedRoles={["seller", "admin"]}>
@@ -85,7 +82,7 @@ const SellerDashboard: React.FC = () => {
             value={subscribersCount}
             icon={Wallet}
             subtitle="People following you"
-            loading={isLoading || statsLoading}
+            loading={isLoading}
           />
         </div>
         
