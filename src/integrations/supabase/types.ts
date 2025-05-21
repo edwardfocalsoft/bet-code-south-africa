@@ -603,6 +603,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      process_tip: {
+        Args: { p_sender_id: string; p_receiver_id: string; p_amount: number }
+        Returns: boolean
+      }
       purchase_ticket: {
         Args: { p_ticket_id: string; p_buyer_id: string }
         Returns: string

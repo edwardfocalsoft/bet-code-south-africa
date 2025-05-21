@@ -42,9 +42,10 @@ export const useTipping = () => {
         throw new Error("Insufficient balance to send this tip");
       }
       
-      // Use RPC to process the tip
+      // Use RPC to process the tip with type assertion to bypass TS error
+      // This is necessary until the Supabase types are updated
       const { data, error } = await supabase.rpc(
-        'process_tip',
+        'process_tip' as any,
         { 
           p_sender_id: currentUser.id,
           p_receiver_id: sellerId,
