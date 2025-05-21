@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -135,6 +136,9 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
         throw new Error("Invalid ticket data");
       }
 
+      // Generate a placeholder ticket code if none provided
+      const ticketCode = ticketData.ticketCode || `TICKET-${Date.now()}`;
+
       // Create the ticket in Supabase
       const { data, error } = await supabase
         .from('tickets')
@@ -149,6 +153,7 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
           is_hidden: ticketData.isHidden,
           event_results: ticketData.eventResults,
           seller_id: ticketData.sellerId,
+          ticket_code: ticketCode
         })
         .select()
         .single();
@@ -170,8 +175,11 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
         }
       }
 
-      // Update the tickets state with the newly created ticket
-      setTickets(prevTickets => [...prevTickets, data]);
+      // Map the data to our BettingTicket interface before adding it to state
+      if (data) {
+        const mappedTicket = ticketMapper.mapDatabaseTickets([data])[0];
+        setTickets(prevTickets => [...prevTickets, mappedTicket]);
+      }
     } catch (error) {
       console.error("Error creating ticket:", error);
       setError(error.message || "Failed to create ticket");
