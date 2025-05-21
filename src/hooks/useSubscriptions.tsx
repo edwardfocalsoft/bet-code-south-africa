@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
 import { useToast } from "@/hooks/use-toast";
 import { toast } from "sonner";
+import { createNotification } from "@/utils/notificationUtils";
 
 export const useSubscriptions = () => {
   const { currentUser } = useAuth();
@@ -28,7 +29,7 @@ export const useSubscriptions = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from("subscriptions")
-        .select("*")
+        .select("*, profiles!subscriptions_seller_id_fkey(username)") // Get seller username as well
         .eq("buyer_id", currentUser.id);
         
       if (error) throw error;
@@ -89,17 +90,44 @@ export const useSubscriptions = () => {
         return true;
       }
       
+      // Get the seller's username for the notification
+      const { data: sellerData, error: sellerError } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", sellerId)
+        .single();
+        
+      if (sellerError) throw sellerError;
+      
+      const sellerUsername = sellerData?.username || 'Seller';
+      
       // Create new subscription
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("subscriptions")
         .insert({
           buyer_id: currentUser.id,
           seller_id: sellerId
-        });
+        })
+        .select()
+        .single();
       
       if (error) throw error;
       
       toast.success("You are now subscribed to this seller");
+      
+      // Notify the seller that they have a new subscriber
+      try {
+        await createNotification(
+          sellerId,
+          "New Subscriber",
+          `${currentUser.username || 'A user'} has subscribed to your profile`,
+          "subscription",
+          currentUser.id
+        );
+      } catch (notifyError) {
+        console.error("Failed to notify seller about new subscription:", notifyError);
+        // Continue even if notification fails
+      }
       
       await fetchSubscriptions();
       return true;
@@ -117,6 +145,18 @@ export const useSubscriptions = () => {
     
     try {
       setLoading(true);
+      
+      // Get subscription details before deleting
+      const { data: subscription, error: fetchError } = await supabase
+        .from("subscriptions")
+        .select("seller_id, profiles!subscriptions_seller_id_fkey(username)")
+        .eq("id", subscriptionId)
+        .eq("buyer_id", currentUser.id)
+        .single();
+      
+      if (fetchError) throw fetchError;
+      
+      // Delete the subscription
       const { error } = await supabase
         .from("subscriptions")
         .delete()
@@ -126,6 +166,20 @@ export const useSubscriptions = () => {
       if (error) throw error;
       
       toast.success("You have unsubscribed from this seller");
+      
+      // Notify the seller that a user has unsubscribed
+      try {
+        await createNotification(
+          subscription.seller_id,
+          "Subscriber Update",
+          `${currentUser.username || 'A user'} has unsubscribed from your profile`,
+          "subscription",
+          currentUser.id
+        );
+      } catch (notifyError) {
+        console.error("Failed to notify seller about unsubscription:", notifyError);
+        // Continue even if notification fails
+      }
       
       await fetchSubscriptions();
       return true;

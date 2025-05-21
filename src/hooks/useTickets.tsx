@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -127,6 +126,65 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
     fetchTickets(newFilters);
   }, [fetchTickets]);
 
+  const createTicket = async (ticketData: any) => {
+    try {
+      setLoading(true);
+
+      // Validate ticket data
+      if (!ticketData.title || !ticketData.description || !ticketData.price || !ticketData.bettingSite) {
+        throw new Error("Invalid ticket data");
+      }
+
+      // Create the ticket in Supabase
+      const { data, error } = await supabase
+        .from('tickets')
+        .insert({
+          title: ticketData.title,
+          description: ticketData.description,
+          price: ticketData.price,
+          is_free: ticketData.isFree,
+          betting_site: ticketData.bettingSite,
+          kickoff_time: ticketData.kickoffTime,
+          odds: ticketData.odds,
+          is_hidden: ticketData.isHidden,
+          event_results: ticketData.eventResults,
+          seller_id: ticketData.sellerId,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Notify subscribers about the new ticket
+      if (data) {
+        try {
+          const { notifySubscribersOfNewTicket } = await import('@/utils/notificationUtils');
+          await notifySubscribersOfNewTicket(
+            currentUser.id,
+            data.id,
+            data.title
+          );
+        } catch (notifyError) {
+          console.error("Failed to notify subscribers:", notifyError);
+          // Continue with ticket creation even if notification fails
+        }
+      }
+
+      // Update the tickets state with the newly created ticket
+      setTickets(prevTickets => [...prevTickets, data]);
+    } catch (error) {
+      console.error("Error creating ticket:", error);
+      setError(error.message || "Failed to create ticket");
+      toast({
+        title: "Error",
+        description: "Failed to create ticket. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return { 
     tickets, 
     loading, 
@@ -134,6 +192,7 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
     fetchTickets,
     filters,
     updateFilters,
+    createTicket,
     ...ticketActions // Include ticket actions from the new hook
   };
 }

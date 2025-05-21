@@ -4,18 +4,22 @@ import { Button } from "@/components/ui/button";
 import { useSubscriptions } from "@/hooks/useSubscriptions";
 import { useAuth } from "@/contexts/auth";
 import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface SubscribeButtonProps {
   sellerId: string;
   variant?: "default" | "outline" | "secondary";
+  sellerUsername?: string; // Added optional seller username
 }
 
 const SubscribeButton: React.FC<SubscribeButtonProps> = ({ 
   sellerId,
-  variant = "default" 
+  variant = "default",
+  sellerUsername
 }) => {
   const { isSubscribed, subscribeToSeller, unsubscribeFromSeller, getSubscriptionId } = useSubscriptions();
   const { currentUser } = useAuth();
+  const { toast } = useToast();
   const [loading, setLoading] = React.useState(false);
   
   const subscribed = isSubscribed(sellerId);
@@ -23,14 +27,33 @@ const SubscribeButton: React.FC<SubscribeButtonProps> = ({
   const isSelfProfile = currentUser?.id === sellerId;
   
   const handleSubscribe = async () => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      toast({
+        title: "Authentication Required",
+        description: "You must be logged in to subscribe to sellers",
+        variant: "destructive"
+      });
+      return;
+    }
     
     setLoading(true);
     
     if (subscribed && subscriptionId) {
-      await unsubscribeFromSeller(subscriptionId);
+      const success = await unsubscribeFromSeller(subscriptionId);
+      if (success) {
+        toast({
+          title: "Unsubscribed",
+          description: `You are no longer subscribed to ${sellerUsername || 'this seller'}.`
+        });
+      }
     } else {
-      await subscribeToSeller(sellerId);
+      const success = await subscribeToSeller(sellerId);
+      if (success) {
+        toast({
+          title: "Subscribed",
+          description: `You are now subscribed to ${sellerUsername || 'this seller'}. You'll be notified when they publish new tickets.`
+        });
+      }
     }
     
     setLoading(false);
