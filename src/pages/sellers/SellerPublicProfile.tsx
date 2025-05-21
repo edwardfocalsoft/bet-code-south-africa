@@ -12,12 +12,14 @@ import SellerProfileHeader from "@/components/sellers/profile/SellerProfileHeade
 import SellerTicketsTab from "@/components/sellers/profile/SellerTicketsTab";
 import SellerReviewsTab from "@/components/sellers/profile/SellerReviewsTab";
 import SellerStatsTab from "@/components/sellers/profile/SellerStatsTab";
+import useSellerStats from "@/hooks/sellers/useSellerStats";
 
 const SellerPublicProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState("tickets");
   const { currentUser } = useAuth();
-  const { loading, seller, reviews, stats } = useSellerProfile(id);
+  const { loading: profileLoading, seller, reviews } = useSellerProfile(id);
+  const { stats, loading: statsLoading } = useSellerStats(id);
   
   // Get seller tickets using the useTickets hook
   const { tickets: sellerTickets, loading: ticketsLoading } = useTickets({
@@ -33,6 +35,8 @@ const SellerPublicProfile: React.FC = () => {
   if (currentUser?.id === id && currentUser?.role === 'seller') {
     return <Navigate to="/seller/dashboard" replace />;
   }
+
+  const loading = profileLoading || statsLoading;
 
   if (loading) {
     return (
@@ -61,7 +65,17 @@ const SellerPublicProfile: React.FC = () => {
       <div className="container mx-auto py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <SellerProfileHeader seller={seller} stats={stats} />
+            <SellerProfileHeader 
+              seller={seller} 
+              stats={stats || {
+                winRate: 0,
+                ticketsSold: 0,
+                followersCount: 0,
+                satisfaction: 0,
+                averageRating: 0,
+                totalRatings: 0
+              }} 
+            />
           </div>
           
           <div className="md:col-span-2">
@@ -85,7 +99,14 @@ const SellerPublicProfile: React.FC = () => {
               </TabsContent>
               
               <TabsContent value="stats">
-                <SellerStatsTab stats={stats} />
+                <SellerStatsTab stats={stats || {
+                  winRate: 0,
+                  ticketsSold: 0,
+                  followersCount: 0,
+                  satisfaction: 0,
+                  averageRating: 0,
+                  totalRatings: 0
+                }} />
               </TabsContent>
             </Tabs>
           </div>

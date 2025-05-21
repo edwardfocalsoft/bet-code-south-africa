@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
-import { createNotification } from "@/utils/notificationUtils";
+import { createNotification, notifyAdminsAboutNewCase } from "@/utils/notificationUtils";
 
 interface CreateCaseData {
   ticketId: string;
@@ -65,45 +65,13 @@ export const useCaseCreate = () => {
       toast.success("Case submitted successfully");
       queryClient.invalidateQueries({ queryKey: ['user-cases'] });
 
-      // Fetch all admins to notify them about the new case
-      try {
-        console.log("[case-create] Fetching admins for notifications");
-        const { data: admins, error: adminsError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('role', 'admin');
-
-        if (adminsError) {
-          console.error("[case-create] Error fetching admins:", adminsError);
-          throw new Error("Failed to fetch admins for notification");
-        }
-
-        if (admins && admins.length > 0) {
-          console.log(`[case-create] Found ${admins.length} admins to notify`);
-          // Create notification for each admin
-          for (const admin of admins) {
-            console.log(`[case-create] Creating notification for admin ${admin.id}`);
-            try {
-              const notifResult = await createNotification(
-                admin.id,
-                "New Support Case",
-                `A new case has been created: ${data.title}`,
-                "case",
-                newCase.id
-              );
-              console.log(`[case-create] Notification to admin ${admin.id} created:`, notifResult ? "Success" : "Failed");
-            } catch (adminNotifError) {
-              console.error(`[case-create] Error creating notification for admin ${admin.id}:`, adminNotifError);
-              // Continue with other admins even if one fails
-            }
-          }
-        } else {
-          console.warn("[case-create] No admins found to notify");
-        }
-      } catch (notifError) {
-        console.error("[case-create] Failed to notify admins:", notifError);
-        // Don't throw here - case is already created successfully
-      }
+      // Notify all admins about the new case
+      const userName = currentUser.username || 'A user';
+      await notifyAdminsAboutNewCase(
+        newCase.id,
+        data.title,
+        userName
+      );
 
       return newCase;
     } catch (error: any) {

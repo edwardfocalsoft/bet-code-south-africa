@@ -1,93 +1,146 @@
 
-import React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { format } from "date-fns";
-import { formatCurrency } from "@/utils/formatting";
-import { Badge } from "@/components/ui/badge";
-import { BettingSite } from "@/types";
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { useTicketForm } from "@/hooks/seller/useTicketForm";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/auth";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+import { notifySubscribersAboutNewTicket } from "@/utils/notificationUtils";
 
 interface TicketPreviewProps {
-  isOpen: boolean;
-  onClose: () => void;
-  ticketData: {
-    title: string;
-    description: string;
-    bettingSite: BettingSite;
-    price: number;
-    isFree: boolean;
-    odds: string;
-    date: Date;
-    time: string;
-    ticketCode: string;
-  };
+  onPrevious: () => void;
 }
 
-const TicketPreview: React.FC<TicketPreviewProps> = ({ isOpen, onClose, ticketData }) => {
-  // Generate the masked ticket code (first 3 characters visible, rest masked)
-  const maskedTicketCode = ticketData.ticketCode 
-    ? `${ticketData.ticketCode.substring(0, 3)}${'•'.repeat(Math.max(0, ticketData.ticketCode.length - 3))}`
-    : "";
+const TicketPreview: React.FC<TicketPreviewProps> = ({ onPrevious }) => {
+  const { 
+    ticketState: { 
+      title, description, price, odds, 
+      ticketCode, kickoffTime, bettingSite, isFree 
+    }, 
+    resetForm 
+  } = useTicketForm();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async () => {
+    if (!currentUser) {
+      toast.error("You must be logged in to create a ticket");
+      return;
+    }
+
+    setIsSubmitting(true);
     
-  // Format the kickoff date/time
-  const kickoffDate = new Date(ticketData.date);
-  const [hours, minutes] = ticketData.time.split(':').map(Number);
-  kickoffDate.setHours(hours, minutes);
+    try {
+      const { data: newTicket, error } = await supabase
+        .from("tickets")
+        .insert({
+          seller_id: currentUser.id,
+          title,
+          description,
+          price,
+          odds,
+          ticket_code: ticketCode,
+          kickoff_time: kickoffTime,
+          betting_site: bettingSite, 
+          is_free: isFree
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      toast.success("Ticket created successfully!");
+      
+      // Notify subscribers about the new ticket
+      if (newTicket) {
+        const sellerName = currentUser.username || "A seller";
+        notifySubscribersAboutNewTicket(
+          currentUser.id, 
+          newTicket.id, 
+          title,
+          sellerName
+        ).then(notifiedCount => {
+          console.log(`[ticket-create] Notified ${notifiedCount} subscribers about new ticket`);
+        });
+      }
+      
+      resetForm();
+      navigate("/seller/tickets");
+    } catch (error: any) {
+      console.error("Error creating ticket:", error);
+      toast.error(error.message || "Failed to create ticket");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-betting-black text-white">
-        <DialogHeader>
-          <DialogTitle className="text-xl">Ticket Preview</DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-4 mt-4">
-          <div className="space-y-1">
-            <h3 className="text-lg font-medium">{ticketData.title}</h3>
-            <p className="text-sm text-gray-400">{ticketData.description}</p>
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold">Preview Your Ticket</h2>
+      <p className="text-muted-foreground">
+        Review your ticket before publishing it to the marketplace.
+      </p>
+
+      <Card className="betting-card">
+        <CardContent className="p-6 space-y-4">
+          <div>
+            <h3 className="text-xl font-bold">{title}</h3>
+            <div className="flex flex-wrap gap-2 items-center mt-2">
+              <div className="bg-betting-light-gray/30 px-2 py-1 rounded text-sm">{bettingSite}</div>
+              {odds && <div className="bg-betting-green/10 text-betting-green px-2 py-1 rounded text-sm">Odds: {odds}</div>}
+              <div className="bg-betting-light-gray/30 px-2 py-1 rounded text-sm">
+                {new Date(kickoffTime).toLocaleString()}
+              </div>
+            </div>
           </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-400">Betting Site:</span>
-            <Badge variant="outline" className="text-betting-green border-betting-green">
-              {ticketData.bettingSite}
-            </Badge>
+
+          <div className="mt-4">
+            <h4 className="font-medium mb-2">Description</h4>
+            <div className="bg-betting-light-gray/20 p-4 rounded whitespace-pre-wrap">
+              {description}
+            </div>
           </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-400">Price:</span>
-            <span className="font-bold">
-              {ticketData.isFree 
-                ? "Free" 
-                : formatCurrency(ticketData.price)}
-            </span>
+
+          <div className="mt-4">
+            <h4 className="font-medium mb-2">Ticket Code</h4>
+            <div className="bg-betting-light-gray/20 p-4 rounded font-mono">
+              {ticketCode}
+            </div>
           </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-400">Odds:</span>
-            <span className="font-bold">{ticketData.odds}</span>
+
+          <div className="mt-4">
+            <h4 className="font-medium mb-2">Price</h4>
+            <div className="bg-betting-light-gray/20 p-4 rounded">
+              {isFree ? "Free Ticket" : `R${price}`}
+            </div>
           </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-400">Ticket Code:</span>
-            <span className="font-mono bg-betting-dark-gray px-2 py-1 rounded">
-              {maskedTicketCode}
-            </span>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-400">Kick-off:</span>
-            <span>{format(kickoffDate, "PPP 'at' p")}</span>
-          </div>
-          
-          <div className="mt-4 pt-4 border-t border-betting-dark-gray">
-            <p className="text-xs text-muted-foreground">
-              This is a preview of how your ticket will appear. Ticket code will be partially 
-              masked to non-buyers.
-            </p>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-between pt-4">
+        <Button variant="outline" onClick={onPrevious} disabled={isSubmitting}>
+          Previous
+        </Button>
+        <Button 
+          onClick={handleSubmit} 
+          className="bg-betting-green hover:bg-betting-green-dark"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Publishing...
+            </>
+          ) : (
+            "Publish Ticket"
+          )}
+        </Button>
+      </div>
+    </div>
   );
 };
 

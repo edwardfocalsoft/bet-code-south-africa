@@ -8,6 +8,7 @@ export interface SellerStatsData {
   followersCount: number; 
   averageRating: number;
   totalRatings: number;
+  satisfaction?: number;
 }
 
 export const useSellerStats = (sellerId: string | undefined) => {
@@ -84,7 +85,8 @@ export const useSellerStats = (sellerId: string | undefined) => {
           ticketsSold: totalSales || 0,
           followersCount: followersCount || 0,
           averageRating,
-          totalRatings
+          totalRatings,
+          satisfaction: 95 // Placeholder for now
         });
       } catch (error: any) {
         console.error("Error fetching seller stats:", error);
@@ -96,7 +98,8 @@ export const useSellerStats = (sellerId: string | undefined) => {
           ticketsSold: 0,
           followersCount: 0,
           averageRating: 0,
-          totalRatings: 0
+          totalRatings: 0,
+          satisfaction: 0
         });
       } finally {
         setLoading(false);
