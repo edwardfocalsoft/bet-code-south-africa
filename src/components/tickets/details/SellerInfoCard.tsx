@@ -64,25 +64,46 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
         console.log("Received seller stats:", statsData);
         
         if (statsData) {
-          // Type assert the statsData as PublicSellerStats to work with it safely
-          const typedStats = statsData as PublicSellerStats;
-          
-          // Get seller profile for member since date
-          const { data: sellerProfile } = await supabase
-            .from("profiles")
-            .select("created_at")
-            .eq("id", ticket.seller_id)
-            .single();
-          
-          setSellerStats({
-            winRate: typedStats.win_rate || 0,
-            ticketsSold: typedStats.sales_count || 0,
-            memberSince: sellerProfile?.created_at 
-              ? safeFormat(sellerProfile.created_at, 'MMMM yyyy', 'Unknown')
-              : 'Unknown',
-            ratingScore: typedStats.average_rating || 0,
-            totalRatings: typedStats.total_ratings || 0
-          });
+          // Check if the stats data has the expected structure before using it
+          const isValidStatsObject = typeof statsData === 'object' && 
+            statsData !== null && 
+            !Array.isArray(statsData) &&
+            'win_rate' in statsData &&
+            'sales_count' in statsData &&
+            'average_rating' in statsData &&
+            'total_ratings' in statsData;
+            
+          if (isValidStatsObject) {
+            // Now it's safe to type assert
+            const typedStats = statsData as unknown as PublicSellerStats;
+            
+            // Get seller profile for member since date
+            const { data: sellerProfile } = await supabase
+              .from("profiles")
+              .select("created_at")
+              .eq("id", ticket.seller_id)
+              .single();
+            
+            setSellerStats({
+              winRate: typedStats.win_rate || 0,
+              ticketsSold: typedStats.sales_count || 0,
+              memberSince: sellerProfile?.created_at 
+                ? safeFormat(sellerProfile.created_at, 'MMMM yyyy', 'Unknown')
+                : 'Unknown',
+              ratingScore: typedStats.average_rating || 0,
+              totalRatings: typedStats.total_ratings || 0
+            });
+          } else {
+            console.error("Invalid stats data format:", statsData);
+            // Set default values if the format is unexpected
+            setSellerStats({
+              winRate: 0,
+              ticketsSold: 0,
+              memberSince: 'Unknown',
+              ratingScore: 0,
+              totalRatings: 0
+            });
+          }
         }
       } catch (err) {
         console.error("Error fetching seller stats:", err);
