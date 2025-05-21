@@ -1,11 +1,11 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Star } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { format, isValid } from "date-fns";
+import { useSellerStats } from "@/hooks/sellers/useSellerStats";
 
 interface SellerInfoCardProps {
   seller: any;
@@ -13,14 +13,9 @@ interface SellerInfoCardProps {
 }
 
 const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
-  const [sellerStats, setSellerStats] = useState({
-    winRate: 0,
-    ticketsSold: 0,
-    memberSince: '',
-    ratingScore: 0,
-    totalRatings: 0
-  });
-
+  // Using the dedicated hook for seller stats that works regardless of auth state
+  const { stats, loading } = useSellerStats(ticket?.seller_id);
+  
   // Helper function to safely format dates
   const safeFormat = (date: string | Date | null | undefined, formatStr: string, fallback: string = 'N/A') => {
     if (!date) return fallback;
@@ -36,63 +31,10 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
     }
   };
 
-  // Fetch seller stats
-  useEffect(() => {
-    const fetchSellerStats = async () => {
-      if (!ticket?.seller_id) return;
-      
-      try {
-        // Get win rate
-        const { count: totalCount } = await supabase
-          .from("purchases")
-          .select("*", { count: 'exact', head: true })
-          .eq("seller_id", ticket.seller_id);
-          
-        const { count: winCount } = await supabase
-          .from("purchases")
-          .select("*", { count: 'exact', head: true })
-          .eq("seller_id", ticket.seller_id)
-          .eq("is_winner", true);
-          
-        // Get seller profile
-        const { data: sellerProfile } = await supabase
-          .from("profiles")
-          .select("created_at")
-          .eq("id", ticket.seller_id)
-          .single();
-          
-        // Get ratings data
-        const { data: ratingsData } = await supabase
-          .from("ratings")
-          .select("score")
-          .eq("seller_id", ticket.seller_id);
-          
-        // Calculate rating score
-        let ratingScore = 0;
-        let totalRatings = 0;
-        
-        if (ratingsData && ratingsData.length > 0) {
-          totalRatings = ratingsData.length;
-          const sumRatings = ratingsData.reduce((sum, item) => sum + item.score, 0);
-          ratingScore = parseFloat((sumRatings / totalRatings).toFixed(1));
-        }
-          
-        setSellerStats({
-          winRate: totalCount && winCount !== null ? Math.round((winCount / totalCount) * 100) : 0,
-          ticketsSold: totalCount || 0,
-          memberSince: sellerProfile?.created_at 
-            ? safeFormat(sellerProfile.created_at, 'MMMM yyyy')
-            : 'Unknown',
-          ratingScore: ratingScore,
-          totalRatings: totalRatings
-        });
-      } catch (err) {
-        console.error("Error fetching seller stats:", err);
-      }
-    };
-    
-    fetchSellerStats();
-  }, [ticket?.seller_id]);
+  // Calculate member since date
+  const memberSince = ticket.profiles?.created_at
+    ? safeFormat(ticket.profiles.created_at, 'MMMM yyyy')
+    : 'Unknown';
 
   return (
     <Card className="betting-card mb-6">
@@ -115,8 +57,8 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
             <div className="flex items-center text-sm">
               <Star className="h-4 w-4 text-yellow-500 mr-1" />
               <span>
-                {sellerStats.ratingScore > 0 
-                  ? `${sellerStats.ratingScore} Rating (${sellerStats.totalRatings} reviews)` 
+                {stats?.averageRating > 0 
+                  ? `${stats.averageRating} Rating (${stats.totalRatings} reviews)` 
                   : "No ratings yet"}
               </span>
             </div>
@@ -126,17 +68,17 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div>
             <p className="text-muted-foreground">Win Rate</p>
-            <p className="font-medium">{sellerStats.winRate}%</p>
+            <p className="font-medium">{loading ? '...' : `${stats?.winRate || 0}%`}</p>
           </div>
           
           <div>
             <p className="text-muted-foreground">Tickets Sold</p>
-            <p className="font-medium">{sellerStats.ticketsSold}</p>
+            <p className="font-medium">{loading ? '...' : stats?.ticketsSold || 0}</p>
           </div>
           
           <div>
             <p className="text-muted-foreground">Member Since</p>
-            <p className="font-medium">{sellerStats.memberSince}</p>
+            <p className="font-medium">{memberSince}</p>
           </div>
         </div>
         
