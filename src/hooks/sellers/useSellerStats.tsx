@@ -8,7 +8,8 @@ export interface SellerStatsData {
   followersCount: number; 
   averageRating: number;
   totalRatings: number;
-  satisfaction?: number;
+  satisfaction: number; // Making it non-optional to match SellerStats
+  followers: number;    // Adding this to match SellerStats
 }
 
 export const useSellerStats = (sellerId: string | undefined) => {
@@ -84,9 +85,10 @@ export const useSellerStats = (sellerId: string | undefined) => {
           winRate,
           ticketsSold: totalSales || 0,
           followersCount: followersCount || 0,
+          followers: followersCount || 0, // Add this to match SellerStats
           averageRating,
           totalRatings,
-          satisfaction: 95 // Placeholder for now
+          satisfaction: 95 // Ensure this is always provided
         });
       } catch (error: any) {
         console.error("Error fetching seller stats:", error);
@@ -97,6 +99,7 @@ export const useSellerStats = (sellerId: string | undefined) => {
           winRate: 0,
           ticketsSold: 0,
           followersCount: 0,
+          followers: 0,      // Add this to match SellerStats
           averageRating: 0,
           totalRatings: 0,
           satisfaction: 0

@@ -87,6 +87,11 @@ const CreateTicketForm: React.FC = () => {
     }
   };
 
+  // Render TicketPreview in step 3 instead of as a modal
+  if (step === 3) {
+    return <TicketPreview onPrevious={handlePrevStep} />;
+  }
+
   return (
     <>
       <div className="mb-8 bg-betting-dark-gray p-4 rounded-lg">
@@ -108,18 +113,12 @@ const CreateTicketForm: React.FC = () => {
           setTicketData={setTicketData}
           errors={errors}
           onPrev={handlePrevStep}
-          onSubmit={handleNextStep}
+          onSubmit={() => setStep(3)}
           isSubmitting={isSubmitting || validatingStep}
-          showPreview={showTicketPreview}
+          showPreview={() => setStep(3)}
           isCheckingTicketCode={isCheckingTicketCode}
         />
       )}
-      
-      <TicketPreview 
-        isOpen={previewOpen}
-        onClose={() => setPreviewOpen(false)}
-        ticketData={ticketData}
-      />
     </>
   );
 };

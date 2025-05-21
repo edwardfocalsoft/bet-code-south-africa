@@ -59,6 +59,25 @@ const SellerPublicProfile: React.FC = () => {
       </Layout>
     );
   }
+
+  // Convert the stats from SellerStatsData to the expected format for components
+  const sellerStatsForDisplay = stats ? {
+    winRate: stats.winRate,
+    ticketsSold: stats.ticketsSold,
+    followersCount: stats.followersCount,
+    followers: stats.followers || stats.followersCount, // Use either one, ensuring a value is provided
+    satisfaction: stats.satisfaction,
+    averageRating: stats.averageRating,
+    totalRatings: stats.totalRatings
+  } : {
+    winRate: 0,
+    ticketsSold: 0,
+    followersCount: 0,
+    followers: 0,
+    satisfaction: 0,
+    averageRating: 0,
+    totalRatings: 0
+  };
   
   return (
     <Layout>
@@ -67,14 +86,7 @@ const SellerPublicProfile: React.FC = () => {
           <div>
             <SellerProfileHeader 
               seller={seller} 
-              stats={stats || {
-                winRate: 0,
-                ticketsSold: 0,
-                followersCount: 0,
-                satisfaction: 0,
-                averageRating: 0,
-                totalRatings: 0
-              }} 
+              stats={sellerStatsForDisplay} 
             />
           </div>
           
@@ -99,14 +111,7 @@ const SellerPublicProfile: React.FC = () => {
               </TabsContent>
               
               <TabsContent value="stats">
-                <SellerStatsTab stats={stats || {
-                  winRate: 0,
-                  ticketsSold: 0,
-                  followersCount: 0,
-                  satisfaction: 0,
-                  averageRating: 0,
-                  totalRatings: 0
-                }} />
+                <SellerStatsTab stats={sellerStatsForDisplay} />
               </TabsContent>
             </Tabs>
           </div>

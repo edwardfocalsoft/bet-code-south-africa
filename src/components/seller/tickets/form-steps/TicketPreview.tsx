@@ -16,15 +16,30 @@ interface TicketPreviewProps {
 
 const TicketPreview: React.FC<TicketPreviewProps> = ({ onPrevious }) => {
   const { 
-    ticketState: { 
-      title, description, price, odds, 
-      ticketCode, kickoffTime, bettingSite, isFree 
-    }, 
-    resetForm 
+    ticketData, 
+    setTicketData,
+    setStep 
   } = useTicketForm();
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+
+  // Reset form by setting step back to 1
+  const resetForm = () => {
+    setTicketData({
+      title: "",
+      description: "",
+      bettingSite: "Betway",
+      price: 0,
+      odds: "",
+      ticketCode: "",
+      isFree: false,
+      date: "",
+      time: ""
+    });
+    setStep(1);
+  };
 
   const handleSubmit = async () => {
     if (!currentUser) {
@@ -35,18 +50,23 @@ const TicketPreview: React.FC<TicketPreviewProps> = ({ onPrevious }) => {
     setIsSubmitting(true);
     
     try {
+      // Create a Date object with the selected date and time
+      const kickoffTime = new Date(ticketData.date);
+      const [hours, minutes] = ticketData.time.split(':').map(Number);
+      kickoffTime.setHours(hours, minutes);
+      
       const { data: newTicket, error } = await supabase
         .from("tickets")
         .insert({
           seller_id: currentUser.id,
-          title,
-          description,
-          price,
-          odds,
-          ticket_code: ticketCode,
-          kickoff_time: kickoffTime,
-          betting_site: bettingSite, 
-          is_free: isFree
+          title: ticketData.title,
+          description: ticketData.description,
+          price: ticketData.isFree ? 0 : ticketData.price,
+          odds: parseFloat(ticketData.odds),
+          ticket_code: ticketData.ticketCode,
+          kickoff_time: kickoffTime.toISOString(),
+          betting_site: ticketData.bettingSite, 
+          is_free: ticketData.isFree
         })
         .select()
         .single();
@@ -61,7 +81,7 @@ const TicketPreview: React.FC<TicketPreviewProps> = ({ onPrevious }) => {
         notifySubscribersAboutNewTicket(
           currentUser.id, 
           newTicket.id, 
-          title,
+          ticketData.title,
           sellerName
         ).then(notifiedCount => {
           console.log(`[ticket-create] Notified ${notifiedCount} subscribers about new ticket`);
@@ -88,12 +108,12 @@ const TicketPreview: React.FC<TicketPreviewProps> = ({ onPrevious }) => {
       <Card className="betting-card">
         <CardContent className="p-6 space-y-4">
           <div>
-            <h3 className="text-xl font-bold">{title}</h3>
+            <h3 className="text-xl font-bold">{ticketData.title}</h3>
             <div className="flex flex-wrap gap-2 items-center mt-2">
-              <div className="bg-betting-light-gray/30 px-2 py-1 rounded text-sm">{bettingSite}</div>
-              {odds && <div className="bg-betting-green/10 text-betting-green px-2 py-1 rounded text-sm">Odds: {odds}</div>}
+              <div className="bg-betting-light-gray/30 px-2 py-1 rounded text-sm">{ticketData.bettingSite}</div>
+              {ticketData.odds && <div className="bg-betting-green/10 text-betting-green px-2 py-1 rounded text-sm">Odds: {ticketData.odds}</div>}
               <div className="bg-betting-light-gray/30 px-2 py-1 rounded text-sm">
-                {new Date(kickoffTime).toLocaleString()}
+                {ticketData.date && ticketData.time ? `${ticketData.date} ${ticketData.time}` : "No kickoff time set"}
               </div>
             </div>
           </div>
@@ -101,21 +121,21 @@ const TicketPreview: React.FC<TicketPreviewProps> = ({ onPrevious }) => {
           <div className="mt-4">
             <h4 className="font-medium mb-2">Description</h4>
             <div className="bg-betting-light-gray/20 p-4 rounded whitespace-pre-wrap">
-              {description}
+              {ticketData.description}
             </div>
           </div>
 
           <div className="mt-4">
             <h4 className="font-medium mb-2">Ticket Code</h4>
             <div className="bg-betting-light-gray/20 p-4 rounded font-mono">
-              {ticketCode}
+              {ticketData.ticketCode}
             </div>
           </div>
 
           <div className="mt-4">
             <h4 className="font-medium mb-2">Price</h4>
             <div className="bg-betting-light-gray/20 p-4 rounded">
-              {isFree ? "Free Ticket" : `R${price}`}
+              {ticketData.isFree ? "Free Ticket" : `R${ticketData.price}`}
             </div>
           </div>
         </CardContent>

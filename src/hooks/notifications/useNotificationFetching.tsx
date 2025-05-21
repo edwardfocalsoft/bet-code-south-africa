@@ -37,7 +37,7 @@ export function useNotificationFetching() {
       const unreadNotifications = data.filter(n => !n.is_read).length;
       setUnreadCount(unreadNotifications);
       
-      // Map to our notification type
+      // Map to our notification type - with type assertion to handle the extended notification types
       const mappedNotifications: Notification[] = data.map((notification) => ({
         id: notification.id,
         userId: notification.user_id,
@@ -45,7 +45,7 @@ export function useNotificationFetching() {
         message: notification.message,
         isRead: notification.is_read,
         createdAt: new Date(notification.created_at),
-        type: notification.type,
+        type: notification.type as Notification["type"],
         relatedId: notification.related_id || undefined
       }));
 
