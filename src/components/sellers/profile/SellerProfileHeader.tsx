@@ -4,7 +4,6 @@ import { User, Star, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import SubscribeButton from "@/components/sellers/SubscribeButton";
 import { formatDistanceToNow } from "date-fns";
-import { useSellerStats } from "@/hooks/sellers/useSellerStats";
 
 interface SellerStats {
   winRate: number;
@@ -17,26 +16,13 @@ interface SellerStats {
 
 interface SellerProfileHeaderProps {
   seller: any;
-  stats: SellerStats | null;
+  stats: SellerStats;
 }
 
 const SellerProfileHeader: React.FC<SellerProfileHeaderProps> = ({ 
   seller, 
-  stats: providedStats 
+  stats 
 }) => {
-  // Use the dedicated seller stats hook if we need to
-  const { stats: fetchedStats, loading } = useSellerStats(seller?.id);
-
-  // Merge provided stats with fetched stats, preferring provided stats when available
-  const mergedStats = {
-    winRate: providedStats?.winRate ?? fetchedStats?.winRate ?? 0,
-    ticketsSold: providedStats?.ticketsSold ?? fetchedStats?.ticketsSold ?? 0,
-    followers: providedStats?.followers ?? fetchedStats?.followersCount ?? 0,
-    satisfaction: providedStats?.satisfaction ?? (fetchedStats?.averageRating ? Math.min(fetchedStats.averageRating * 20, 100) : 0),
-    averageRating: providedStats?.averageRating ?? fetchedStats?.averageRating ?? 0,
-    totalRatings: providedStats?.totalRatings ?? fetchedStats?.totalRatings ?? 0
-  };
-
   return (
     <Card className="betting-card sticky top-20">
       <CardHeader className="border-b border-betting-light-gray pb-4">
@@ -58,8 +44,8 @@ const SellerProfileHeader: React.FC<SellerProfileHeaderProps> = ({
           <div className="flex items-center text-sm text-muted-foreground">
             <Star className="h-4 w-4 text-yellow-500 mr-1" fill="#eab308" />
             <span>
-              {mergedStats.averageRating > 0 
-                ? `${mergedStats.averageRating.toFixed(1)} Rating (${mergedStats.totalRatings} reviews)` 
+              {stats.averageRating > 0 
+                ? `${stats.averageRating.toFixed(1)} Rating (${stats.totalRatings} reviews)` 
                 : "No ratings yet"}
             </span>
           </div>
@@ -78,19 +64,19 @@ const SellerProfileHeader: React.FC<SellerProfileHeaderProps> = ({
       <CardContent className="pt-6">
         <div className="grid grid-cols-2 gap-4 text-center mb-6">
           <div className="bg-betting-light-gray/20 rounded-md p-3">
-            <p className="text-lg font-bold">{mergedStats.winRate}%</p>
+            <p className="text-lg font-bold">{stats.winRate}%</p>
             <p className="text-xs text-muted-foreground">Win Rate</p>
           </div>
           <div className="bg-betting-light-gray/20 rounded-md p-3">
-            <p className="text-lg font-bold">{mergedStats.ticketsSold}</p>
+            <p className="text-lg font-bold">{stats.ticketsSold}</p>
             <p className="text-xs text-muted-foreground">Tickets Sold</p>
           </div>
           <div className="bg-betting-light-gray/20 rounded-md p-3">
-            <p className="text-lg font-bold">{mergedStats.followers}</p>
+            <p className="text-lg font-bold">{stats.followers}</p>
             <p className="text-xs text-muted-foreground">Subscribers</p>
           </div>
           <div className="bg-betting-light-gray/20 rounded-md p-3">
-            <p className="text-lg font-bold">{mergedStats.satisfaction}%</p>
+            <p className="text-lg font-bold">{stats.satisfaction}%</p>
             <p className="text-xs text-muted-foreground">Satisfaction</p>
           </div>
         </div>

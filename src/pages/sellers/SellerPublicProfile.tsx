@@ -8,7 +8,6 @@ import { useTickets } from "@/hooks/useTickets";
 import { LoadingState } from "@/components/purchases/LoadingState";
 import { useAuth } from "@/contexts/auth";
 import { useSellerProfile } from "@/hooks/sellers/useSellerProfile";
-import { useSellerStats } from "@/hooks/sellers/useSellerStats";
 import SellerProfileHeader from "@/components/sellers/profile/SellerProfileHeader";
 import SellerTicketsTab from "@/components/sellers/profile/SellerTicketsTab";
 import SellerReviewsTab from "@/components/sellers/profile/SellerReviewsTab";
@@ -18,10 +17,7 @@ const SellerPublicProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState("tickets");
   const { currentUser } = useAuth();
-  const { loading: profileLoading, seller, reviews } = useSellerProfile(id);
-  
-  // Add direct stats fetching for accurate subscriber count
-  const { stats: directStats, loading: statsLoading } = useSellerStats(id);
+  const { loading, seller, reviews, stats } = useSellerProfile(id);
   
   // Get seller tickets using the useTickets hook
   const { tickets: sellerTickets, loading: ticketsLoading } = useTickets({
@@ -32,9 +28,6 @@ const SellerPublicProfile: React.FC = () => {
 
   // Filter tickets to only show those from this seller
   const filteredTickets = sellerTickets.filter(ticket => ticket.sellerId === id);
-  
-  // Determine overall loading state
-  const loading = profileLoading || statsLoading;
   
   // Redirect seller to their own seller dashboard if they try to view their own profile
   if (currentUser?.id === id && currentUser?.role === 'seller') {
@@ -63,22 +56,12 @@ const SellerPublicProfile: React.FC = () => {
     );
   }
   
-  // If we have direct stats, use them (this should be more accurate)
-  const enrichedStats = directStats ? {
-    winRate: directStats.winRate,
-    ticketsSold: directStats.ticketsSold,
-    followers: directStats.followersCount,
-    averageRating: directStats.averageRating,
-    totalRatings: directStats.totalRatings,
-    satisfaction: directStats.averageRating ? Math.min(directStats.averageRating * 20, 100) : 0
-  } : null;
-  
   return (
     <Layout>
       <div className="container mx-auto py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <SellerProfileHeader seller={seller} stats={enrichedStats} />
+            <SellerProfileHeader seller={seller} stats={stats} />
           </div>
           
           <div className="md:col-span-2">
@@ -102,7 +85,7 @@ const SellerPublicProfile: React.FC = () => {
               </TabsContent>
               
               <TabsContent value="stats">
-                <SellerStatsTab stats={enrichedStats} />
+                <SellerStatsTab stats={stats} />
               </TabsContent>
             </Tabs>
           </div>
