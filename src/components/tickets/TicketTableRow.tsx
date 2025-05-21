@@ -12,9 +12,10 @@ import { useAuth } from "@/contexts/auth";
 
 interface TicketTableRowProps {
   ticket: BettingTicket;
+  hideSeller?: boolean;
 }
 
-const TicketTableRow: React.FC<TicketTableRowProps> = ({ ticket }) => {
+const TicketTableRow: React.FC<TicketTableRowProps> = ({ ticket, hideSeller = false }) => {
   const [isPurchased, setIsPurchased] = useState(false);
   const { currentUser } = useAuth();
   
@@ -57,16 +58,21 @@ const TicketTableRow: React.FC<TicketTableRowProps> = ({ ticket }) => {
           </Badge>
         )}
       </TableCell>
-      <TableCell>
-        <Link to={`/sellers/${ticket.sellerId}`} className="hover:text-betting-green">
-          {ticket.sellerUsername}
-        </Link>
-      </TableCell>
+      
+      {!hideSeller && (
+        <TableCell>
+          <Link to={`/sellers/${ticket.sellerId}`} className="hover:text-betting-green">
+            {ticket.sellerUsername}
+          </Link>
+        </TableCell>
+      )}
+      
       <TableCell>
         <span className="inline-flex items-center gap-1">
           {ticket.bettingSite}
         </span>
       </TableCell>
+      
       <TableCell className="text-right">
         {ticket.isFree ? (
           <span className="text-green-400">Free</span>
@@ -74,12 +80,14 @@ const TicketTableRow: React.FC<TicketTableRowProps> = ({ ticket }) => {
           <span>R {ticket.price.toFixed(2)}</span>
         )}
       </TableCell>
+      
       <TableCell>
         <span className="inline-flex items-center gap-1 text-xs">
           <Clock className="h-3 w-3 text-betting-green" />
           {formatDistanceToNow(new Date(ticket.kickoffTime), { addSuffix: true })}
         </span>
       </TableCell>
+      
       <TableCell className="text-right">
         <Link to={`/tickets/${ticket.id}`}>
           <Button 

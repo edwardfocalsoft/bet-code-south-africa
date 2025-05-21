@@ -30,6 +30,7 @@ const SellerTicketsTab: React.FC<SellerTicketsTabProps> = ({
         <TicketsTable 
           tickets={tickets} 
           emptyMessage={`No active tickets available from ${sellerName}.`}
+          hideSeller={true}
         />
       )}
     </div>

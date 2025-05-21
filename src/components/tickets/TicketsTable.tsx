@@ -8,11 +8,13 @@ import TicketTableEmpty from "./TicketTableEmpty";
 interface TicketsTableProps {
   tickets: BettingTicket[];
   emptyMessage?: string;
+  hideSeller?: boolean;
 }
 
 const TicketsTable: React.FC<TicketsTableProps> = ({ 
   tickets, 
-  emptyMessage = "No tickets available." 
+  emptyMessage = "No tickets available.",
+  hideSeller = false
 }) => {
   if (!tickets || tickets.length === 0) {
     return <TicketTableEmpty message={emptyMessage} />;
@@ -24,7 +26,7 @@ const TicketsTable: React.FC<TicketsTableProps> = ({
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             <TableHead>Title</TableHead>
-            <TableHead>Seller</TableHead>
+            {!hideSeller && <TableHead>Seller</TableHead>}
             <TableHead>Betting Site</TableHead>
             <TableHead className="text-right">Price</TableHead>
             <TableHead>Kickoff</TableHead>
@@ -33,7 +35,11 @@ const TicketsTable: React.FC<TicketsTableProps> = ({
         </TableHeader>
         <TableBody>
           {tickets.map((ticket) => (
-            <TicketTableRow key={ticket.id} ticket={ticket} />
+            <TicketTableRow 
+              key={ticket.id} 
+              ticket={ticket} 
+              hideSeller={hideSeller}
+            />
           ))}
         </TableBody>
       </Table>
