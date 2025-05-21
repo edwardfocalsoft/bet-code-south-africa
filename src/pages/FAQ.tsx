@@ -9,7 +9,7 @@ import {
   AccordionItem,
   AccordionTrigger
 } from "@/components/ui/accordion";
-import { Help } from "lucide-react";
+import { CircleHelp } from "lucide-react";
 
 const FAQ: React.FC = () => {
   const faqs = [
@@ -61,7 +61,7 @@ const FAQ: React.FC = () => {
         <Card className="bg-betting-dark-gray border-betting-light-gray">
           <CardHeader className="text-center pb-8">
             <CardTitle className="text-3xl flex justify-center items-center gap-2">
-              <Help className="h-6 w-6 text-betting-green" />
+              <CircleHelp className="h-6 w-6 text-betting-green" />
               Frequently Asked Questions
             </CardTitle>
             <CardDescription className="text-lg">
@@ -110,3 +110,4 @@ const FAQ: React.FC = () => {
 import { Button } from "@/components/ui/button";
 
 export default FAQ;
+
