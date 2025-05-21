@@ -50,14 +50,14 @@ export const useSellerStats = (sellerId: string | undefined) => {
           ? Math.round((winCount / totalSales) * 100) 
           : 0;
         
-        // Get followers count
+        // Get followers count - Direct query against subscriptions table
         const { count: followersCount, error: followersError } = await supabase
           .from("subscriptions")
           .select("*", { count: 'exact', head: true })
           .eq("seller_id", sellerId);
           
         if (followersError) throw followersError;
-        console.log(`Followers: ${followersCount}`);
+        console.log(`Followers count from direct query: ${followersCount}`);
         
         // Get average rating from ratings
         const { data: ratings, error: ratingsError } = await supabase

@@ -7,6 +7,7 @@ import { PlusCircle, Ticket, CreditCard, Award, Wallet } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 import { useWallet } from "@/hooks/useWallet";
 import { useSellerDashboard } from "@/hooks/useSellerDashboard";
+import { useSellerStats } from "@/hooks/sellers/useSellerStats";
 import StatCard from "@/components/seller/dashboard/StatCard";
 import PerformanceChart from "@/components/seller/dashboard/PerformanceChart";
 import SalesTipsCard from "@/components/seller/dashboard/SalesTipsCard";
@@ -18,17 +19,29 @@ const SellerDashboard: React.FC = () => {
   const { currentUser } = useAuth();
   const { creditBalance } = useWallet();
   const { 
-    isLoading, 
+    isLoading: dashboardLoading, 
     totalSales,
     totalRevenue, 
-    ticketsSold, 
-    winRate, 
+    ticketsSold: dashboardTicketsSold, 
+    winRate: dashboardWinRate, 
     monthlyGrowth,
     profileComplete,
     performanceData,
     recentSales,
-    subscribersCount
   } = useSellerDashboard(currentUser);
+  
+  // Use the dedicated hook for seller stats to get accurate subscriber count
+  const { stats, loading: statsLoading } = useSellerStats(currentUser?.id);
+  
+  // Combine loading states
+  const isLoading = dashboardLoading || statsLoading;
+  
+  // Get subscriber count from stats hook
+  const subscribersCount = stats?.followersCount || 0;
+  
+  // Use win rate and tickets sold from either source, prioritizing the stats hook
+  const winRate = stats?.winRate || dashboardWinRate;
+  const ticketsSold = stats?.ticketsSold || dashboardTicketsSold;
 
   return (
     <Layout requireAuth={true} allowedRoles={["seller", "admin"]}>

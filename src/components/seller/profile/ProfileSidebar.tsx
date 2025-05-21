@@ -3,8 +3,7 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, BadgeCheck, Mail } from "lucide-react";
-import { useSellerDashboard } from "@/hooks/useSellerDashboard";
-import { ProfileData } from "@/types";
+import { useSellerStats } from "@/hooks/sellers/useSellerStats";
 
 interface ProfileSidebarProps {
   currentUser: any;
@@ -26,7 +25,14 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
   isUploading,
   isSaving
 }) => {
-  const { winRate, averageRating, ticketsSold, subscribersCount } = useSellerDashboard(currentUser);
+  // Use the dedicated seller stats hook for accurate data
+  const { stats, loading } = useSellerStats(currentUser?.id);
+  
+  // Extract values from stats with fallbacks
+  const winRate = stats?.winRate || 0;
+  const averageRating = stats?.averageRating || 0;
+  const ticketsSold = stats?.ticketsSold || 0;
+  const subscribersCount = stats?.followersCount || 0;
 
   return (
     <Card className="betting-card h-full">
