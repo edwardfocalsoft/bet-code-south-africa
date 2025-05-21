@@ -35,7 +35,8 @@ const TicketPreview: React.FC<TicketPreviewProps> = ({ onPrevious }) => {
       odds: "",
       ticketCode: "",
       isFree: false,
-      date: "",
+      // Fix the type here - using new Date() instead of empty string
+      date: new Date(),
       time: ""
     });
     setStep(1);
@@ -113,7 +114,7 @@ const TicketPreview: React.FC<TicketPreviewProps> = ({ onPrevious }) => {
               <div className="bg-betting-light-gray/30 px-2 py-1 rounded text-sm">{ticketData.bettingSite}</div>
               {ticketData.odds && <div className="bg-betting-green/10 text-betting-green px-2 py-1 rounded text-sm">Odds: {ticketData.odds}</div>}
               <div className="bg-betting-light-gray/30 px-2 py-1 rounded text-sm">
-                {ticketData.date && ticketData.time ? `${ticketData.date} ${ticketData.time}` : "No kickoff time set"}
+                {ticketData.date && ticketData.time ? `${ticketData.date.toLocaleDateString()} ${ticketData.time}` : "No kickoff time set"}
               </div>
             </div>
           </div>
