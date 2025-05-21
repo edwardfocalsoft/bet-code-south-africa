@@ -11,7 +11,7 @@ import SellerDashboard from './pages/seller/Dashboard';
 import SellerProfile from './pages/seller/Profile';
 import CreateTicket from './pages/seller/CreateTicket';
 import SellerTickets from './pages/seller/Tickets';
-import EditTicket from './pages/seller/EditTicket';  // Import the new EditTicket component
+import EditTicket from './pages/seller/EditTicket';
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminBuyers from './pages/admin/Buyers';
 import AdminSellers from './pages/admin/Sellers';
@@ -29,7 +29,7 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register'; 
 import RegisterConfirmation from './pages/auth/RegisterConfirmation';
 import ProfileSetup from './pages/auth/ProfileSetup'; 
-import ForgotPassword from './pages/auth/ForgotPassword'; // Import the ForgotPassword component
+import ForgotPassword from './pages/auth/ForgotPassword';
 import SellerPublicProfile from './pages/sellers/SellerPublicProfile';
 import SellersLeaderboard from './pages/sellers/SellersLeaderboard';
 import Users from './pages/admin/Buyers';
@@ -38,6 +38,12 @@ import SellerWithdrawals from './pages/seller/Withdrawals';
 import AdminWithdrawals from './pages/admin/Withdrawals';
 import UserCasesPage from './pages/user/Cases';
 import CaseDetailsPage from './pages/user/CaseDetails';
+
+// Import the new pages
+import Contact from './pages/Contact';
+import FAQ from './pages/FAQ';
+import Terms from './pages/Terms';
+import Privacy from './pages/Privacy';
 
 const App: React.FC = () => {
   return (
@@ -50,11 +56,17 @@ const App: React.FC = () => {
           <Route path="/auth/register" element={<Register />} />
           <Route path="/auth/register/confirmation" element={<RegisterConfirmation />} />
           <Route path="/auth/profile-setup" element={<ProfileSetup />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} /> {/* Added forgot password route */}
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/tickets" element={<AllTickets />} />
           <Route path="/tickets/:id" element={<TicketDetails />} />
           <Route path="/sellers/:id" element={<SellerPublicProfile />} />
           <Route path="/sellers/leaderboard" element={<SellersLeaderboard />} />
+          
+          {/* New Static Pages */}
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/faq" element={<FAQ />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
 
           {/* User Routes */}
           <Route path="/user/settings" element={<UserSettings />} />
@@ -73,7 +85,7 @@ const App: React.FC = () => {
           <Route path="/seller/profile" element={<SellerProfile />} />
           <Route path="/seller/tickets/create" element={<CreateTicket />} />
           <Route path="/seller/tickets" element={<SellerTickets />} />
-          <Route path="/seller/tickets/edit/:id" element={<EditTicket />} /> {/* Added seller ticket edit route */}
+          <Route path="/seller/tickets/edit/:id" element={<EditTicket />} />
           <Route path="/seller/withdrawals" element={<SellerWithdrawals />} />
 
           {/* Admin Routes */}
