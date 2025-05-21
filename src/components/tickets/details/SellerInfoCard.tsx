@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, isValid } from "date-fns";
+import { getPublicSellerStats } from "@/utils/sqlFunctions";
 
 interface SellerInfoCardProps {
   seller: any;
@@ -20,6 +21,7 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
     ratingScore: 0,
     totalRatings: 0
   });
+  const [loading, setLoading] = useState(true);
 
   // Helper function to safely format dates
   const safeFormat = (date: string | Date | null | undefined, formatStr: string, fallback: string = 'N/A') => {
@@ -39,55 +41,41 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
   // Fetch seller stats
   useEffect(() => {
     const fetchSellerStats = async () => {
-      if (!ticket?.seller_id) return;
+      if (!ticket?.seller_id) {
+        setLoading(false);
+        return;
+      }
+      
+      setLoading(true);
       
       try {
-        // Get win rate
-        const { count: totalCount } = await supabase
-          .from("purchases")
-          .select("*", { count: 'exact', head: true })
-          .eq("seller_id", ticket.seller_id);
-          
-        const { count: winCount } = await supabase
-          .from("purchases")
-          .select("*", { count: 'exact', head: true })
-          .eq("seller_id", ticket.seller_id)
-          .eq("is_winner", true);
-          
-        // Get seller profile
-        const { data: sellerProfile } = await supabase
-          .from("profiles")
-          .select("created_at")
-          .eq("id", ticket.seller_id)
-          .single();
-          
-        // Get ratings data
-        const { data: ratingsData } = await supabase
-          .from("ratings")
-          .select("score")
-          .eq("seller_id", ticket.seller_id);
-          
-        // Calculate rating score
-        let ratingScore = 0;
-        let totalRatings = 0;
+        console.log(`Fetching public stats for seller: ${ticket.seller_id}`);
+        const statsData = await getPublicSellerStats(ticket.seller_id);
         
-        if (ratingsData && ratingsData.length > 0) {
-          totalRatings = ratingsData.length;
-          const sumRatings = ratingsData.reduce((sum, item) => sum + item.score, 0);
-          ratingScore = parseFloat((sumRatings / totalRatings).toFixed(1));
-        }
+        console.log("Received seller stats:", statsData);
+        
+        if (statsData) {
+          // Get seller profile for member since date
+          const { data: sellerProfile } = await supabase
+            .from("profiles")
+            .select("created_at")
+            .eq("id", ticket.seller_id)
+            .single();
           
-        setSellerStats({
-          winRate: totalCount && winCount !== null ? Math.round((winCount / totalCount) * 100) : 0,
-          ticketsSold: totalCount || 0,
-          memberSince: sellerProfile?.created_at 
-            ? safeFormat(sellerProfile.created_at, 'MMMM yyyy')
-            : 'Unknown',
-          ratingScore: ratingScore,
-          totalRatings: totalRatings
-        });
+          setSellerStats({
+            winRate: statsData.win_rate || 0,
+            ticketsSold: statsData.sales_count || 0,
+            memberSince: sellerProfile?.created_at 
+              ? safeFormat(sellerProfile.created_at, 'MMMM yyyy', 'Unknown')
+              : 'Unknown',
+            ratingScore: statsData.average_rating || 0,
+            totalRatings: statsData.total_ratings || 0
+          });
+        }
       } catch (err) {
         console.error("Error fetching seller stats:", err);
+      } finally {
+        setLoading(false);
       }
     };
     
