@@ -10,18 +10,19 @@ export type BettingSite =
 
 export interface User {
   id: string;
-  email: string;
-  role: UserRole;
+  email?: string;
+  role: "buyer" | "seller" | "admin";
   username?: string;
-  createdAt: Date;
+  createdAt?: Date;
   approved?: boolean;
   suspended?: boolean;
   loyaltyPoints?: number;
   bankDetails?: BankDetails;
   avatar_url?: string;
-  purchasesCount?: number; 
-  lastActive?: Date;
-  creditBalance?: number;
+  credit_balance?: number;
+  sales_count?: number;
+  average_rating?: number;
+  ranking?: number;
 }
 
 export interface BankDetails {

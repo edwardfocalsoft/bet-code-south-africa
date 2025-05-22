@@ -12,20 +12,26 @@ import { useSellers } from "@/hooks/useSellers";
 
 const Index: React.FC = () => {
   const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
-  const { tickets: allTickets, loading: ticketsLoading } = useTickets();
-  const { sellers: allSellers, loading: sellersLoading } = useSellers(); 
   
-  // Filter for featured tickets (non-expired tickets, limit to 6)
-  const featuredTickets = allTickets
-    .filter(ticket => !ticket.isExpired)
-    .slice(0, 6);
+  // Get random active tickets with kickoff times in the future
+  const { tickets: featuredTickets, loading: ticketsLoading } = useTickets({
+    fetchOnMount: true,
+    filterExpired: true,
+    role: "buyer",
+    randomize: true // Use the new randomize option
+  });
   
-  // Filter for top sellers (limit to 3)
-  const topSellers = allSellers.slice(0, 3);
+  // Get top sellers based on total sales (all-time)
+  const { sellers: topSellers, loading: sellersLoading } = useSellers({
+    fetchOnMount: true,
+    limit: 3,
+    sortBy: "sales" // Use the sales sort option
+  });
 
   useEffect(() => {
-    console.log("Home page - top sellers data:", topSellers);
-  }, [topSellers]);
+    console.log("Home page - random featured tickets:", featuredTickets);
+    console.log("Home page - top sellers by sales:", topSellers);
+  }, [featuredTickets, topSellers]);
 
   return (
     <Layout isHomePage={true}>

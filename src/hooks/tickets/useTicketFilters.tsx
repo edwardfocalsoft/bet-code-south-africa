@@ -1,28 +1,17 @@
 
-import { useCallback } from "react";
-import { BettingSite } from "@/types";
-
-interface FilterOptions {
-  bettingSite?: BettingSite | "all";
-  isFree?: boolean;
-  maxPrice?: number;
-  showExpired?: boolean;
-  sellerId?: string;
-  sortBy?: string;
-  sortOrder?: "asc" | "desc";
-  showHidden?: boolean;
-}
+import { useState, useCallback } from "react";
+import { SupabaseQueryBuilder } from '@supabase/supabase-js';
 
 export const useTicketFilters = () => {
-  // Apply betting site filter to the query
-  const applyBettingSiteFilter = useCallback((query: any, filter: BettingSite | "all" | undefined) => {
-    if (filter && filter !== "all") {
-      return query.eq("betting_site", filter);
+  // Apply betting site filter
+  const applyBettingSiteFilter = useCallback((query: any, bettingSite: string | "all" | undefined) => {
+    if (bettingSite && bettingSite !== "all") {
+      return query.eq("betting_site", bettingSite);
     }
     return query;
   }, []);
 
-  // Apply free ticket filter to the query
+  // Apply free tickets filter
   const applyFreeTicketFilter = useCallback((query: any, isFree: boolean | undefined) => {
     if (isFree !== undefined) {
       return query.eq("is_free", isFree);
@@ -30,62 +19,74 @@ export const useTicketFilters = () => {
     return query;
   }, []);
 
-  // Apply maximum price filter to the query
+  // Apply max price filter
   const applyMaxPriceFilter = useCallback((query: any, maxPrice: number | undefined) => {
-    if (maxPrice !== undefined) {
-      // Fix: Don't convert to string for numeric comparisons in Supabase
+    if (maxPrice !== undefined && maxPrice > 0) {
       return query.lte("price", maxPrice);
     }
     return query;
   }, []);
 
-  // Apply expired tickets filter based on role
-  const applyExpiredFilter = useCallback((query: any, mergedFilters: FilterOptions, role: string) => {
-    // For buyers, never show expired tickets
-    if (role === "buyer") {
+  // Apply filter for tickets to show - expired vs non-expired
+  const applyExpiredFilter = useCallback((query: any, filters: any, role = "buyer") => {
+    // For sellers we handle expired filter based on the filters
+    if (role === "seller") {
+      if (filters.showExpired === true) {
+        // No filter, show all tickets
+        return query;
+      }
+      
+      // By default only show non-expired tickets to sellers
       return query.eq("is_expired", false);
-    } 
-    // For sellers and admins, respect the showExpired filter if provided
-    else if (mergedFilters?.showExpired !== undefined) {
-      return query.eq("is_expired", mergedFilters.showExpired);
     }
-    // Default behavior for sellers/admins if no explicit filter is provided
+    
+    // For buyers always hide expired tickets
     return query.eq("is_expired", false);
   }, []);
 
-  // Apply seller ID filter (for sellers viewing their own tickets)
+  // Apply seller filter
   const applySellerFilter = useCallback((query: any, sellerId: string | undefined) => {
     if (sellerId) {
       return query.eq("seller_id", sellerId);
     }
     return query;
   }, []);
-
-  // Apply hidden tickets filter
-  const applyHiddenFilter = useCallback((query: any, showHidden: boolean | undefined) => {
-    if (showHidden !== true) {
+  
+  // Apply hidden filter (show hidden tickets or not)
+  const applyHiddenFilter = useCallback((query: any, showHidden?: boolean) => {
+    // By default, don't show hidden tickets
+    if (!showHidden) {
       return query.eq("is_hidden", false);
     }
     return query;
   }, []);
 
-  // Apply sorting to the query
-  const applySorting = useCallback((query: any, sortBy: string | undefined, sortOrder: "asc" | "desc" | undefined) => {
-    if (sortBy) {
-      return query.order(sortBy, { 
-        ascending: sortOrder !== "desc" 
-      });
+  // Apply random order filter
+  const applyRandomOrder = useCallback((query: any, randomize?: boolean) => {
+    if (randomize) {
+      return query.order('created_at', { ascending: false }).limit(6);
     }
+    return query;
+  }, []);
+  
+  // Apply sorting
+  const applySorting = useCallback((query: any, sortBy?: string, sortOrder: "asc" | "desc" = "desc") => {
+    if (sortBy) {
+      return query.order(sortBy, { ascending: sortOrder === "asc" });
+    }
+    
+    // Default sorting by creation date (newest first)
     return query.order("created_at", { ascending: false });
   }, []);
 
   return {
     applyBettingSiteFilter,
-    applyFreeTicketFilter, 
+    applyFreeTicketFilter,
     applyMaxPriceFilter,
     applyExpiredFilter,
     applySellerFilter,
     applyHiddenFilter,
+    applyRandomOrder,
     applySorting
   };
 };

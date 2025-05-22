@@ -38,7 +38,12 @@ const TopSellersSection: React.FC<TopSellersSectionProps> = ({
               sellers.map((seller, index) => (
                 <SellerCard 
                   key={seller.id} 
-                  seller={{...seller, ranking: index + 1}} 
+                  seller={{
+                    ...seller,
+                    ranking: seller.ranking || index + 1,
+                    // Make sure any required fields are present
+                    sales_count: seller.sales_count || 0
+                  }} 
                 />
               ))
             ) : (
