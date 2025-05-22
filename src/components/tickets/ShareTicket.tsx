@@ -37,7 +37,7 @@ const ShareTicket: React.FC<ShareTicketProps> = ({
   const ticketUrl = `${window.location.origin}/tickets/${ticketId}`;
   
   // Share content
-  const shareContent = `Check out this betting ticket on BetCode ZA: ${ticketTitle} - ${ticketUrl}`;
+  const shareContent = `Check out this betting ticket on BetCode South Africa: ${ticketTitle} - ${ticketUrl}`;
   
   // Copy link to clipboard
   const copyToClipboard = () => {
