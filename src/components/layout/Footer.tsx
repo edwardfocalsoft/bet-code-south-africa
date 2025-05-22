@@ -33,7 +33,7 @@ const Footer: React.FC = () => {
           </div>
         </div>
         
-        <div className="mt-6 pt-4 border-t border-betting-light-gray text-center text-xs text-muted-foreground">
+        <div className="mt-6 pt-4 border-t border-betting-light-gray text-center text-sm text-muted-foreground">
           <p>© {new Date().getFullYear()} BetCode South Africa. All Rights Reserved.</p>
         </div>
       </div>
