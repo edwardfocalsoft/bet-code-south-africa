@@ -33,7 +33,7 @@ const ShareTicket: React.FC<ShareTicketProps> = ({
 }) => {
   const [isCopied, setIsCopied] = useState(false);
   
-  // Generate the share URL with the ticket ID
+  // Generate the share URL with the ticket ID - ensuring the ticketId is properly used
   const ticketUrl = `${window.location.origin}/tickets/${ticketId}`;
   
   // Share content

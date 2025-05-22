@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import RateTicketDialog from "../RateTicketDialog";
@@ -83,6 +82,7 @@ const TicketContent: React.FC<TicketContentProps> = ({
               isPastKickoff={isPastKickoff}
               isFree={ticket.is_free}
               isSeller={isSeller}
+              ticketId={ticket.id} // Pass the ticket ID here
             />
             
             <TicketMetadata 

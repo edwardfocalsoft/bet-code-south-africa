@@ -9,6 +9,7 @@ interface TicketHeaderProps {
   isPastKickoff: boolean;
   isFree: boolean;
   isSeller: boolean;
+  ticketId: string; // Added ticketId prop
 }
 
 const TicketHeader: React.FC<TicketHeaderProps> = ({
@@ -16,7 +17,8 @@ const TicketHeader: React.FC<TicketHeaderProps> = ({
   bettingSite,
   isPastKickoff,
   isFree,
-  isSeller
+  isSeller,
+  ticketId // Include ticketId in destructuring
 }) => {
   return (
     <>
@@ -24,14 +26,14 @@ const TicketHeader: React.FC<TicketHeaderProps> = ({
         <h1 className="text-2xl font-bold mb-1">{title}</h1>
         {!isSeller && (
           <ShareTicket 
-            ticketId=""  // This will be properly set by the parent
+            ticketId={ticketId}  // Pass the actual ticketId here
             ticketTitle={title}
           />
         )}
       </div>
       
       <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <Badge className="bg-betting-green hover:bg-betting-green-dark">
+        <Badge className="bg-betting-green hover:bg-betting-green">
           {bettingSite}
         </Badge>
         
