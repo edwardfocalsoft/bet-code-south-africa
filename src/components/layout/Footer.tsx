@@ -13,16 +13,16 @@ const Footer: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-6">
-            <Link to="/contact" className="text-muted-foreground hover:text-white transition-colors">
+            <Link to="/contact" className="text-sm text-muted-foreground hover:text-white transition-colors">
               Contact
             </Link>
-            <Link to="/faq" className="text-muted-foreground hover:text-white transition-colors">
+            <Link to="/faq" className="text-sm text-muted-foreground hover:text-white transition-colors">
               FAQs
             </Link>
-            <Link to="/terms" className="text-muted-foreground hover:text-white transition-colors">
+            <Link to="/terms" className="text-sm text-muted-foreground hover:text-white transition-colors">
               Terms
             </Link>
-            <Link to="/privacy" className="text-muted-foreground hover:text-white transition-colors">
+            <Link to="/privacy" className="text-sm text-muted-foreground hover:text-white transition-colors">
               Privacy
             </Link>
           </div>
@@ -34,7 +34,7 @@ const Footer: React.FC = () => {
         </div>
         
         <div className="mt-6 pt-4 border-t border-betting-light-gray text-center text-xs text-muted-foreground">
-          <p>© {new Date().getFullYear()} BetCode South Africa. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} BetCode South Africa. All Rights Reserved.</p>
         </div>
       </div>
     </footer>;
