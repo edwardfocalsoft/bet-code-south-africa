@@ -123,7 +123,7 @@ export const BuyersTable = ({
                 </TableCell>
                 <TableCell>{buyer.email}</TableCell>
                 <TableCell>{formatDate(buyer.createdAt)}</TableCell>
-                <TableCell>{buyer.purchasesCount || 0}</TableCell>
+                <TableCell>{buyer.purchasesCount || buyer.sales_count || 0}</TableCell>
                 <TableCell>{buyer.lastActive ? formatDate(buyer.lastActive) : formatDate(buyer.createdAt)}</TableCell>
                 <TableCell>
                   {buyer.suspended ? (

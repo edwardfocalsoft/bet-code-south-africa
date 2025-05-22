@@ -31,7 +31,7 @@ export const useBuyerData = () => {
   const [buyer, setBuyer] = useState<User | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-  const [purchases, setPurchases] = useState<AppPurchase[]>([]); // Changed to use the Application Purchase type
+  const [purchases, setPurchases] = useState<AppPurchase[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchBuyerData = async (buyerId: string) => {
@@ -60,6 +60,8 @@ export const useBuyerData = () => {
           suspended: buyerData.suspended || false,
           lastActive: buyerData.updated_at ? new Date(buyerData.updated_at) : new Date(buyerData.created_at),
           loyaltyPoints: buyerData.loyalty_points || 0,
+          credit_balance: buyerData.credit_balance || 0,
+          // Add these aliases for backward compatibility
           creditBalance: buyerData.credit_balance || 0,
         });
       }

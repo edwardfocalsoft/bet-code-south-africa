@@ -23,6 +23,9 @@ export interface User {
   sales_count?: number;
   average_rating?: number;
   ranking?: number;
+  lastActive?: Date;
+  purchasesCount?: number;
+  creditBalance?: number;
 }
 
 export interface BankDetails {

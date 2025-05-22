@@ -47,7 +47,7 @@ export const BuyerProfileModal = ({ isOpen, onClose, buyerId }: BuyerProfileModa
             <UserInfoHeader buyer={buyer} />
             
             <StatCards 
-              creditBalance={buyer.creditBalance || 0}
+              creditBalance={buyer.credit_balance || buyer.creditBalance || 0}
               loyaltyPoints={buyer.loyaltyPoints || 0}
               purchases={purchases}
               formatCurrency={formatCurrency}

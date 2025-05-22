@@ -13,7 +13,7 @@ const BuyerDashboard: React.FC = () => {
   const dashboardStats = [
     {
       title: "Available Credits",
-      value: currentUser?.creditBalance || 0,
+      value: currentUser?.credit_balance || currentUser?.creditBalance || 0,
       icon: <CreditCard className="h-8 w-8 text-betting-green" />,
       loading: false,
       subtitle: <p className="text-xs text-muted-foreground">Your current balance</p>

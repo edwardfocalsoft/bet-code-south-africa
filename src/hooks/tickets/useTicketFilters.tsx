@@ -1,6 +1,4 @@
-
 import { useState, useCallback } from "react";
-import { SupabaseQueryBuilder } from '@supabase/supabase-js';
 
 export const useTicketFilters = () => {
   // Apply betting site filter
