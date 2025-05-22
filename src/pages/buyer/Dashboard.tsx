@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/auth";
 import StatCard from "@/components/buyer/dashboard/StatCard";
 import RecentPurchasesCard from "@/components/buyer/dashboard/RecentPurchasesCard";
 import SupportCard from "@/components/buyer/dashboard/SupportCard";
+import { CreditCard, Ticket, Trophy } from "lucide-react";
 
 const BuyerDashboard: React.FC = () => {
   const { currentUser } = useAuth();
@@ -12,26 +13,29 @@ const BuyerDashboard: React.FC = () => {
   const dashboardStats = [
     {
       title: "Available Credits",
-      value: `R ${currentUser?.credit_balance?.toFixed(2) || '0.00'}`,
-      subtitle: "Your current balance",
-      trend: null
+      value: currentUser?.creditBalance || 0,
+      icon: <CreditCard className="h-8 w-8 text-betting-green" />,
+      loading: false,
+      subtitle: <p className="text-xs text-muted-foreground">Your current balance</p>
     },
     {
       title: "Tickets Purchased",
-      value: "0",
-      subtitle: "All time purchases",
-      trend: null
+      value: 0,
+      icon: <Ticket className="h-8 w-8 text-betting-green" />,
+      loading: false,
+      subtitle: <p className="text-xs text-muted-foreground">All time purchases</p>
     },
     {
       title: "Winning Tickets",
-      value: "0",
-      subtitle: "Success rate",
-      trend: null
+      value: 0,
+      icon: <Trophy className="h-8 w-8 text-betting-green" />,
+      loading: false,
+      subtitle: <p className="text-xs text-muted-foreground">Success rate</p>
     }
   ];
 
   return (
-    <Layout title="Dashboard" requireAuth={true} userRole="buyer">
+    <Layout requireAuth={true} userRole="buyer">
       <div className="container py-8">
         <h1 className="text-2xl font-bold mb-6">Welcome, {currentUser?.username || 'Buyer'}</h1>
         
@@ -42,8 +46,9 @@ const BuyerDashboard: React.FC = () => {
               key={index} 
               title={stat.title}
               value={stat.value}
+              icon={stat.icon}
+              loading={stat.loading}
               subtitle={stat.subtitle}
-              trend={stat.trend}
             />
           ))}
         </div>
