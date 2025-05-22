@@ -2,7 +2,6 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { Loader2, User } from "lucide-react";
@@ -58,7 +57,7 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
             <Button 
               variant="outline" 
               size="sm"
-              className="w-full flex items-center gap-1"
+              className="w-full flex items-center justify-center gap-1"
             >
               <User className="h-4 w-4" />
               View Profile

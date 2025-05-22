@@ -50,7 +50,7 @@ const RegisterConfirmation = () => {
           ) : (
             <div className="space-y-4">
               <p className="text-muted-foreground">
-                Thank you for registering! You can now log in to your account.
+                Thank you for registering!
               </p>
               <p className="text-muted-foreground">
                 We've sent a confirmation email to your address. Please check your inbox.

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
@@ -15,6 +15,8 @@ const ProfileSetup: React.FC = () => {
   const { currentUser, userRole } = useAuth();
   const [username, setUsername] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
+  const [isAvailable, setIsAvailable] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,6 +25,40 @@ const ProfileSetup: React.FC = () => {
       redirectToDashboard();
     }
   }, [currentUser]);
+  
+  const checkUsernameAvailability = async (username: string) => {
+    if (!username.trim()) return;
+    
+    setIsChecking(true);
+    setIsAvailable(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("username", username)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      setIsAvailable(!data);
+    } catch (error) {
+      console.error("Error checking username availability:", error);
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  // Add debounce to username check
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (username.trim()) {
+        checkUsernameAvailability(username);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [username]);
 
   const redirectToDashboard = () => {
     if (userRole === "admin") {
@@ -40,10 +76,15 @@ const ProfileSetup: React.FC = () => {
       toast.error("Please enter a username");
       return;
     }
+    
+    if (!isAvailable) {
+      toast.error("Username already taken. Please choose another one.");
+      return;
+    }
 
     setIsLoading(true);
     try {
-      // Check if username already exists
+      // Check again if username already exists (in case of race condition)
       const { data: existingUsers, error: checkError } = await supabase
         .from("profiles")
         .select("id")
@@ -112,19 +153,33 @@ const ProfileSetup: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
-                <Input
-                  id="username"
-                  placeholder="Choose a unique username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  disabled={isLoading}
-                  className="bg-betting-black border-betting-light-gray"
-                />
+                <div className="relative">
+                  <Input
+                    id="username"
+                    placeholder="Choose a unique username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    disabled={isLoading}
+                    className={`bg-betting-black border-betting-light-gray pr-10 ${
+                      !isAvailable && username ? "border-red-500" : ""
+                    }`}
+                  />
+                  {isChecking && (
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                {!isAvailable && username && (
+                  <p className="text-sm text-red-500 mt-1">
+                    This username is already taken
+                  </p>
+                )}
               </div>
               <Button 
                 type="submit" 
                 className="w-full bg-betting-green hover:bg-betting-green-dark"
-                disabled={isLoading}
+                disabled={isLoading || isChecking || !isAvailable || !username.trim()}
               >
                 {isLoading ? (
                   <>

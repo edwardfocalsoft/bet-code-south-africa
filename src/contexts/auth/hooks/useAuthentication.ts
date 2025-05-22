@@ -102,7 +102,7 @@ export const useAuthentication = (
               cleanupAuthState();
               
               // Redirect to a confirmation page
-              navigate('/auth/register/confirmation');
+              navigate('/auth/register/confirmation?role=seller');
               return null;
             }
             
@@ -113,8 +113,8 @@ export const useAuthentication = (
             toast.success("Logged in successfully.");
             
             // Check if user has a username set
-            if (!userProfile.username && userProfile.role !== 'admin') {
-              // Redirect to profile setup if not admin
+            if (!userProfile.username) {
+              // Redirect to profile setup if username is not set
               navigate('/auth/profile-setup');
               return userProfile;
             } else {

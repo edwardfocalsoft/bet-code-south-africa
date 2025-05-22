@@ -17,16 +17,13 @@ export const useRegistration = () => {
       // First cleanup any existing auth state
       cleanupAuthState();
       
-      // Skip email validation - rely on Supabase's built-in validation
-      
-      // Create account without any redirects to avoid auth state issues
+      // Create account with email confirmation enabled
       const { data, error } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
         options: {
-          // Avoid anything that might interfere with signup flow
-          emailRedirectTo: undefined,
-          data: { role }
+          data: { role },
+          emailRedirectTo: window.location.origin + "/auth/login"
         }
       });
 

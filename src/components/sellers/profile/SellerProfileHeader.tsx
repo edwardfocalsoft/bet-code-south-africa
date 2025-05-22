@@ -73,7 +73,7 @@ const SellerProfileHeader: React.FC<SellerProfileHeaderProps> = ({ seller, stats
         </div>
         
         {!isSelf && currentUser && (
-          <div className="mt-4 flex justify-center">
+          <div className="mt-4 flex justify-center border-t border-betting-light-gray/20 pt-4">
             <TipButton 
               sellerId={seller.id}
               sellerName={seller.username || "Seller"}
