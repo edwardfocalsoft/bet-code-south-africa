@@ -35,7 +35,7 @@ const BuyerDashboard: React.FC = () => {
   ];
 
   return (
-    <Layout requireAuth={true} userRole="buyer">
+    <Layout requireAuth={true} allowedRoles={["buyer"]}>
       <div className="container py-8">
         <h1 className="text-2xl font-bold mb-6">Welcome, {currentUser?.username || 'Buyer'}</h1>
         
