@@ -8,7 +8,17 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
 const UserWallet: React.FC = () => {
-  const { creditBalance, transactions, isLoading, topUpWallet, error } = useWallet();
+  const { 
+    creditBalance, 
+    transactions, 
+    currentTransactions,
+    isLoading, 
+    topUpWallet, 
+    error, 
+    currentPage, 
+    totalPages, 
+    setCurrentPage 
+  } = useWallet();
 
   return (
     <Layout requireAuth={true}>
@@ -35,7 +45,11 @@ const UserWallet: React.FC = () => {
           <div className="lg:col-span-2">
             <TransactionHistoryCard 
               transactions={transactions}
+              currentTransactions={currentTransactions}
               isLoading={isLoading}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
             />
           </div>
         </div>

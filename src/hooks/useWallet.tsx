@@ -23,7 +23,9 @@ export const useWallet = () => {
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const { processTopUp } = usePayFast();
+  const transactionsPerPage = 5;
 
   // Fetch both credit balance and transactions
   useEffect(() => {
@@ -127,6 +129,12 @@ export const useWallet = () => {
       transactionsSubscription.unsubscribe();
     };
   }, [currentUser]);
+
+  // Pagination logic
+  const indexOfLastTransaction = currentPage * transactionsPerPage;
+  const indexOfFirstTransaction = indexOfLastTransaction - transactionsPerPage;
+  const currentTransactions = transactions.slice(indexOfFirstTransaction, indexOfLastTransaction);
+  const totalPages = Math.ceil(transactions.length / transactionsPerPage);
 
   // Update wallet top-up function to track cancelled payments
   const topUpWallet = async (amount: number): Promise<boolean> => {
@@ -233,9 +241,13 @@ export const useWallet = () => {
   return { 
     creditBalance: creditBalance ?? 0, 
     transactions, 
+    currentTransactions,
     isLoading,
     error, 
     topUpWallet,
-    cancelTransaction 
+    cancelTransaction,
+    currentPage,
+    totalPages,
+    setCurrentPage
   };
 };

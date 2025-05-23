@@ -1,14 +1,18 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { format } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Pagination } from "@/components/ui/pagination";
 
 interface CaseRepliesProps {
   replies: any[];
 }
 
 const CaseReplies: React.FC<CaseRepliesProps> = ({ replies }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const repliesPerPage = 5;
+  
   if (!replies || replies.length === 0) {
     return (
       <div className="text-center py-6 bg-betting-dark-gray/20 rounded-md">
@@ -19,9 +23,15 @@ const CaseReplies: React.FC<CaseRepliesProps> = ({ replies }) => {
     );
   }
 
+  // Pagination logic
+  const indexOfLastReply = currentPage * repliesPerPage;
+  const indexOfFirstReply = indexOfLastReply - repliesPerPage;
+  const currentReplies = replies.slice(indexOfFirstReply, indexOfLastReply);
+  const totalPages = Math.ceil(replies.length / repliesPerPage);
+
   return (
     <div className="space-y-4">
-      {replies.map((reply: any) => (
+      {currentReplies.map((reply: any) => (
         <div
           key={reply.id}
           className="bg-betting-light-gray p-4 rounded-md"
@@ -58,6 +68,17 @@ const CaseReplies: React.FC<CaseRepliesProps> = ({ replies }) => {
           <p className="whitespace-pre-line">{reply.content}</p>
         </div>
       ))}
+      
+      {/* Pagination control */}
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-4">
+          <Pagination 
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </div>
+      )}
     </div>
   );
 };
