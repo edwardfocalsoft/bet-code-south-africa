@@ -1,6 +1,4 @@
 
-// Assuming this component exists in the given path, we'll update it
-// to use our new refund functionality
 import React from "react";
 import {
   Dialog,

@@ -1,47 +1,21 @@
 
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { useCases } from "@/hooks/useCases";
-import { useAuth } from "@/contexts/auth";
-
-// Import refactored components
 import CaseDetailsHeader from "@/components/cases/CaseDetailsHeader";
-import AdminCaseActions from "@/components/cases/AdminCaseActions";
-import RelatedTicketInfo from "@/components/cases/RelatedTicketInfo";
 import CaseReplies from "@/components/cases/CaseReplies";
-import ReplyForm from "@/components/cases/ReplyForm";
-import RefundDialog from "@/components/cases/RefundDialog";
 import CaseError from "@/components/cases/CaseError";
 import CaseNotFound from "@/components/cases/CaseNotFound";
 import LoadingState from "@/components/cases/LoadingState";
+import ReplyForm from "@/components/cases/ReplyForm";
+import RelatedTicketInfo from "@/components/cases/RelatedTicketInfo";
 import CaseClosedAlert from "@/components/cases/CaseClosedAlert";
+import AdminCaseActions from "@/components/cases/AdminCaseActions";
 import { useCaseDetailsView } from "@/hooks/cases/views/useCaseDetailsView";
+import RefundDialog from "@/components/cases/RefundDialog";
 
-// Helper function to get status color
-const getStatusColor = (status: string) => {
-  switch (status.toLowerCase()) {
-    case "open":
-      return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
-    case "in_progress":
-    case "in progress":
-      return "bg-blue-500/10 text-blue-500 border-blue-500/20";
-    case "resolved":
-      return "bg-green-500/10 text-green-500 border-green-500/20";
-    case "refunded":
-      return "bg-purple-500/10 text-purple-500 border-purple-500/20";
-    case "closed":
-      return "bg-gray-500/10 text-gray-400 border-gray-500/20";
-    default:
-      return "bg-gray-500/10 text-gray-400 border-gray-500/20";
-  }
-};
-
-const CaseDetailsPage: React.FC = () => {
-  const { id: caseId } = useParams();
-  const navigate = useNavigate();
+const CaseDetails = () => {
+  const { caseId } = useParams<{ caseId: string }>();
   const {
     caseDetails,
     loading,
@@ -54,112 +28,108 @@ const CaseDetailsPage: React.FC = () => {
     handleSubmitReply,
     handleStatusChange,
     handleRefund,
-    showRefundDialog,
-    isAdmin
+    isAdmin,
   } = useCaseDetailsView(caseId);
 
-  // Case status options
+  const [currentPage, setCurrentPage] = useState(1);
+  const repliesPerPage = 5;
+
+  // If still loading
+  if (loading) return <Layout requireAuth={true}><LoadingState /></Layout>;
+
+  // If there was an error
+  if (error) return <Layout requireAuth={true}><CaseError error={error} /></Layout>;
+
+  // If case was not found
+  if (!caseDetails) return <Layout requireAuth={true}><CaseNotFound /></Layout>;
+
+  // Calculate pagination for replies
+  const totalReplies = caseDetails?.replies?.length || 0;
+  const totalPages = Math.ceil(totalReplies / repliesPerPage);
+  const indexOfLastReply = currentPage * repliesPerPage;
+  const indexOfFirstReply = indexOfLastReply - repliesPerPage;
+  const currentReplies = caseDetails?.replies?.slice(indexOfFirstReply, indexOfLastReply) || [];
+  
+  // Status options for admin
   const caseStatusOptions = [
     { value: "open", label: "Open" },
     { value: "in_progress", label: "In Progress" },
     { value: "resolved", label: "Resolved" },
-    { value: "refunded", label: "Refunded" },
     { value: "closed", label: "Closed" },
   ];
 
-  if (loading && !caseDetails) {
-    return (
-      <Layout requireAuth={true}>
-        <div className="container mx-auto py-8 px-4">
-          <LoadingState />
-        </div>
-      </Layout>
-    );
-  }
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  };
 
-  if (error) {
-    return (
-      <Layout requireAuth={true}>
-        <div className="container mx-auto py-8 px-4">
-          <CaseError errorMessage={error} />
-        </div>
-      </Layout>
-    );
-  }
-
-  if (!caseDetails) {
-    return (
-      <Layout requireAuth={true}>
-        <div className="container mx-auto py-8 px-4">
-          <CaseNotFound />
-        </div>
-      </Layout>
-    );
-  }
+  // Boolean check for whether the case is closed or resolved
+  const isCaseClosed = 
+    caseDetails.status === "closed" || 
+    caseDetails.status === "resolved";
 
   return (
     <Layout requireAuth={true}>
-      <div className="container mx-auto py-8 px-4">
-        <Button
-          variant="outline"
-          className="mb-4"
-          onClick={() => navigate("/user/cases")}
-        >
-          Back to Cases
-        </Button>
+      <div className="container mx-auto py-8">
+        <CaseDetailsHeader 
+          caseNumber={caseDetails.case_number} 
+          title={caseDetails.title}
+          status={caseDetails.status}
+          createdAt={caseDetails.created_at}
+        />
 
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <CaseDetailsHeader 
-              caseDetails={caseDetails} 
-              getStatusColor={getStatusColor} 
-            />
+        <AdminCaseActions 
+          isAdmin={isAdmin}
+          caseDetails={caseDetails}
+          handleStatusChange={handleStatusChange}
+          canProcessRefund={canProcessRefund}
+          setRefundDialogOpen={setRefundDialogOpen}
+          caseStatusOptions={caseStatusOptions}
+        />
 
-            <div className="bg-betting-light-gray p-4 rounded-md mb-6 mt-4 whitespace-pre-line">
-              {caseDetails.description}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2">
+            <div className="bg-betting-dark-gray rounded-md p-6 mb-6">
+              <h3 className="text-lg font-bold mb-3">Description</h3>
+              <p className="whitespace-pre-line">{caseDetails.description}</p>
             </div>
 
-            <AdminCaseActions
-              isAdmin={isAdmin}
-              caseDetails={caseDetails}
-              handleStatusChange={handleStatusChange}
-              canProcessRefund={canProcessRefund}
-              setRefundDialogOpen={setRefundDialogOpen}
-              caseStatusOptions={caseStatusOptions}
+            {isCaseClosed && (
+              <CaseClosedAlert status={caseDetails.status} />
+            )}
+
+            <CaseReplies 
+              replies={currentReplies} 
+              totalReplies={totalReplies}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
             />
 
-            <RelatedTicketInfo 
-              ticketData={ticketData} 
-              purchaseData={purchaseData} 
-            />
+            {!isCaseClosed && (
+              <ReplyForm onSubmit={handleSubmitReply} />
+            )}
+          </div>
 
-            <div className="mt-8">
-              <h3 className="text-lg font-bold mb-4">Case Discussion</h3>
+          <div>
+            {(ticketData || purchaseData) && (
+              <RelatedTicketInfo 
+                ticketData={ticketData} 
+                purchaseData={purchaseData}
+              />
+            )}
+          </div>
+        </div>
 
-              <CaseReplies replies={caseDetails.replies || []} />
-
-              {caseDetails.status !== "closed" ? (
-                <ReplyForm 
-                  caseStatus={caseDetails.status}
-                  onSubmit={handleSubmitReply}
-                  isLoading={loading}
-                />
-              ) : (
-                <CaseClosedAlert />
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {canProcessRefund && (
-          <RefundDialog
+        {refundDialogOpen && purchaseData && (
+          <RefundDialog 
             open={refundDialogOpen}
             onOpenChange={setRefundDialogOpen}
-            handleRefund={handleRefund}
-            isLoading={loading}
-            purchaseData={purchaseData}
-            ticketData={ticketData}
-            caseNumber={caseDetails.case_number}
+            caseId={caseId || ''}
+            purchaseId={purchaseData.id}
+            buyerId={purchaseData.buyer_id}
+            sellerId={purchaseData.seller_id}
+            amount={purchaseData.price}
+            onRefundComplete={handleRefund}
           />
         )}
       </div>
@@ -167,4 +137,4 @@ const CaseDetailsPage: React.FC = () => {
   );
 };
 
-export default CaseDetailsPage;
+export default CaseDetails;

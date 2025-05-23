@@ -10,16 +10,68 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { AlertCircle, Save, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useState } from "react";
+import { toast } from "sonner";
 
 const PaymentSettings: React.FC = () => {
   const {
     settings,
-    isLoading,
-    isSaving,
-    error,
+    loading,
     updateSettings,
-    handleSubmit,
   } = usePaymentSettings();
+  
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    merchant_id: "",
+    merchant_key: "",
+    passphrase: "",
+    is_test_mode: true
+  });
+
+  // Load settings into form data when available
+  React.useEffect(() => {
+    if (settings && !loading) {
+      setFormData({
+        merchant_id: settings.merchant_id || "",
+        merchant_key: settings.merchant_key || "",
+        passphrase: settings.passphrase || "",
+        is_test_mode: settings.is_test_mode !== undefined ? settings.is_test_mode : true
+      });
+    }
+  }, [settings, loading]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleToggle = (checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      is_test_mode: checked
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    setError(null);
+    
+    try {
+      const success = await updateSettings(formData);
+      if (success) {
+        toast.success("Payment settings updated successfully");
+      }
+    } catch (err: any) {
+      setError(err.message || "An error occurred saving settings");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <Layout requireAuth={true} allowedRoles={["admin"]}>
@@ -48,13 +100,12 @@ const PaymentSettings: React.FC = () => {
                     <Label htmlFor="merchantId">Merchant ID</Label>
                     <Input
                       id="merchantId"
+                      name="merchant_id"
                       placeholder="e.g., 10000000"
-                      value={settings?.merchant_id || ""}
-                      onChange={(e) =>
-                        updateSettings({ merchant_id: e.target.value })
-                      }
+                      value={formData.merchant_id}
+                      onChange={handleChange}
                       className="bg-betting-black border-betting-light-gray"
-                      disabled={isLoading || isSaving}
+                      disabled={loading || isSaving}
                     />
                   </div>
 
@@ -62,13 +113,12 @@ const PaymentSettings: React.FC = () => {
                     <Label htmlFor="merchantKey">Merchant Key</Label>
                     <Input
                       id="merchantKey"
+                      name="merchant_key"
                       placeholder="e.g., abcdef1234567890"
-                      value={settings?.merchant_key || ""}
-                      onChange={(e) =>
-                        updateSettings({ merchant_key: e.target.value })
-                      }
+                      value={formData.merchant_key}
+                      onChange={handleChange}
                       className="bg-betting-black border-betting-light-gray"
-                      disabled={isLoading || isSaving}
+                      disabled={loading || isSaving}
                     />
                   </div>
 
@@ -76,25 +126,22 @@ const PaymentSettings: React.FC = () => {
                     <Label htmlFor="passphrase">Passphrase</Label>
                     <Input
                       id="passphrase"
+                      name="passphrase"
                       placeholder="Your secure passphrase"
                       type="password"
-                      value={settings?.passphrase || ""}
-                      onChange={(e) =>
-                        updateSettings({ passphrase: e.target.value })
-                      }
+                      value={formData.passphrase}
+                      onChange={handleChange}
                       className="bg-betting-black border-betting-light-gray"
-                      disabled={isLoading || isSaving}
+                      disabled={loading || isSaving}
                     />
                   </div>
 
                   <div className="flex items-center space-x-2 pt-4">
                     <Switch
                       id="test-mode"
-                      checked={settings?.is_test_mode}
-                      onCheckedChange={(checked) =>
-                        updateSettings({ is_test_mode: checked })
-                      }
-                      disabled={isLoading || isSaving}
+                      checked={formData.is_test_mode}
+                      onCheckedChange={handleToggle}
+                      disabled={loading || isSaving}
                     />
                     <Label htmlFor="test-mode">Test Mode</Label>
                   </div>
@@ -102,7 +149,7 @@ const PaymentSettings: React.FC = () => {
                   <Button
                     type="submit"
                     className="bg-betting-green hover:bg-betting-green-dark mt-4"
-                    disabled={isLoading || isSaving}
+                    disabled={loading || isSaving}
                   >
                     {isSaving ? (
                       <>

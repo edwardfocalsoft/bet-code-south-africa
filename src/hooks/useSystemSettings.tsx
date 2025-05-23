@@ -31,7 +31,7 @@ export const useSystemSettings = () => {
       if (error) throw error;
       
       if (data) {
-        setSettings(data);
+        setSettings(data as SystemSettings);
       }
     } catch (error: any) {
       console.error("Error fetching system settings:", error);

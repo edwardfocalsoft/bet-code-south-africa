@@ -414,6 +414,30 @@ export type Database = {
         }
         Relationships: []
       }
+      system_settings: {
+        Row: {
+          created_at: string
+          id: string
+          min_withdrawal_amount: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          min_withdrawal_amount?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          min_withdrawal_amount?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       tickets: {
         Row: {
           betting_site: Database["public"]["Enums"]["betting_site"]

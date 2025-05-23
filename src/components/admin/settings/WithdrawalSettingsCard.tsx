@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, BadgeSouth, Save } from "lucide-react";
+import { Loader2, BadgeDollarSign, Save } from "lucide-react";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 const WithdrawalSettingsCard: React.FC = () => {
@@ -56,7 +56,7 @@ const WithdrawalSettingsCard: React.FC = () => {
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
-          <BadgeSouth className="h-5 w-5 text-betting-green" />
+          <BadgeDollarSign className="h-5 w-5 text-betting-green" />
           <CardTitle>Withdrawal Settings</CardTitle>
         </div>
         <CardDescription>
