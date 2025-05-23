@@ -1,95 +1,62 @@
 
-import React, { ReactNode, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import React, { useEffect } from "react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import MarqueeNotice from "./MarqueeNotice";
-import { useAuth } from "@/contexts/AuthContext";
-import { Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/auth";
+import SEO, { SEOProps } from "./SEO";
 
 interface LayoutProps {
-  children: ReactNode;
+  children: React.ReactNode;
   requireAuth?: boolean;
   allowedRoles?: string[];
-  redirectIfAuth?: boolean;
-  isHomePage?: boolean;
-  hideNavigation?: boolean;
+  hideMarquee?: boolean;
+  seo?: SEOProps;
 }
 
-const Layout: React.FC<LayoutProps> = ({ 
-  children, 
+const Layout: React.FC<LayoutProps> = ({
+  children,
   requireAuth = false,
-  allowedRoles = ["buyer", "seller", "admin"],
-  redirectIfAuth = false,
-  isHomePage = false,
-  hideNavigation = false
+  allowedRoles = [],
+  hideMarquee = false,
+  seo,
 }) => {
-  const { currentUser, userRole, loading } = useAuth();
+  const { user, isInitialized, loading, currentUser } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  
-  useEffect(() => {
-    if (!loading) {
-      // Redirect if not authenticated but auth is required
-      if (requireAuth && !currentUser) {
-        navigate("/auth/login", { 
-          replace: true,
-          state: { from: location.pathname }
-        });
-      }
-      
-      // Redirect if role not allowed
-      if (currentUser && userRole && allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
-        navigate("/", { replace: true });
-      }
-      
-      // Redirect if authenticated but should redirect (e.g., login page)
-      if (redirectIfAuth && currentUser) {
-        // Redirect to appropriate dashboard based on role
-        if (userRole === "admin") {
-          navigate("/admin/dashboard", { replace: true });
-        } else if (userRole === "seller") {
-          navigate("/seller/dashboard", { replace: true });
-        } else {
-          navigate("/buyer/dashboard", { replace: true });
-        }
-      }
-      
-      // Redirect authenticated users from home page to their respective dashboards
-      if (isHomePage && currentUser && userRole) {
-        if (userRole === "admin") {
-          navigate("/admin/dashboard", { replace: true });
-        } else if (userRole === "seller") {
-          navigate("/seller/dashboard", { replace: true });
-        } else {
-          navigate("/buyer/dashboard", { replace: true });
-        }
-      }
-    }
-  }, [currentUser, loading, requireAuth, allowedRoles, redirectIfAuth, isHomePage, userRole, navigate, location]);
 
-  if (loading && requireAuth) {
+  useEffect(() => {
+    if (requireAuth && isInitialized && !loading && !user) {
+      navigate("/login?redirect=" + encodeURIComponent(window.location.pathname));
+    }
+
+    if (
+      requireAuth &&
+      allowedRoles.length > 0 &&
+      isInitialized &&
+      !loading &&
+      user &&
+      currentUser &&
+      !allowedRoles.includes(currentUser.role)
+    ) {
+      navigate("/dashboard");
+    }
+  }, [requireAuth, isInitialized, loading, user, allowedRoles, navigate, currentUser]);
+
+  if (requireAuth && (loading || !isInitialized)) {
     return (
-      <div className="flex flex-col min-h-screen">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin mx-auto text-betting-green" />
-            <p className="mt-4 text-lg text-muted-foreground">Loading...</p>
-          </div>
-        </main>
-        <Footer />
+      <div className="min-h-screen bg-betting-black text-white flex items-center justify-center">
+        Loading...
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {!hideNavigation && <Navbar />}
-      {!hideNavigation && <MarqueeNotice />}
-      <main className="flex-1">
-        {children}
-      </main>
+    <div className="flex flex-col min-h-screen bg-betting-black text-white">
+      <SEO {...seo} />
+      <Navbar />
+      {!hideMarquee && <MarqueeNotice />}
+      <main className="flex-grow">{children}</main>
       <Footer />
     </div>
   );
