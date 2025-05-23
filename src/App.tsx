@@ -3,7 +3,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/ui/theme-provider";
-import AuthProvider from "./contexts/auth/AuthProvider";
+import { AuthProvider } from "./contexts/auth/AuthProvider";
 import { HelmetProvider } from 'react-helmet-async';
 
 // Public pages

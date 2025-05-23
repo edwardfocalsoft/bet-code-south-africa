@@ -41,6 +41,7 @@ export const useSEOSettings = () => {
   const fetchSettings = async () => {
     setIsLoading(true);
     try {
+      // Use as unknown first before casting to SEOSettings to avoid TS errors
       const { data, error } = await supabase
         .from("seo_settings")
         .select("*")
@@ -49,7 +50,7 @@ export const useSEOSettings = () => {
       if (error) throw error;
       
       if (data) {
-        setSettings(data as SEOSettings);
+        setSettings(data as unknown as SEOSettings);
       }
     } catch (error: any) {
       console.error("Error fetching SEO settings:", error);
@@ -85,16 +86,16 @@ export const useSEOSettings = () => {
       let result;
       
       if (existingSettings?.id) {
-        // Update existing record
+        // Update existing record using type casting
         result = await supabase
           .from("seo_settings")
-          .update(updatedSettings)
+          .update(updatedSettings as any)
           .eq("id", existingSettings.id);
       } else {
-        // Create new record
+        // Create new record using type casting
         result = await supabase
           .from("seo_settings")
-          .insert(updatedSettings);
+          .insert(updatedSettings as any);
       }
 
       if (result.error) throw result.error;

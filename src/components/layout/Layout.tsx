@@ -13,6 +13,9 @@ interface LayoutProps {
   allowedRoles?: string[];
   hideMarquee?: boolean;
   seo?: SEOProps;
+  redirectIfAuth?: boolean;
+  hideNavigation?: boolean;
+  isHomePage?: boolean;
 }
 
 const Layout: React.FC<LayoutProps> = ({
@@ -21,6 +24,9 @@ const Layout: React.FC<LayoutProps> = ({
   allowedRoles = [],
   hideMarquee = false,
   seo,
+  redirectIfAuth = false,
+  hideNavigation = false,
+  isHomePage = false,
 }) => {
   const { user, isInitialized, loading, currentUser } = useAuth();
   const navigate = useNavigate();
@@ -28,6 +34,10 @@ const Layout: React.FC<LayoutProps> = ({
   useEffect(() => {
     if (requireAuth && isInitialized && !loading && !user) {
       navigate("/login?redirect=" + encodeURIComponent(window.location.pathname));
+    }
+
+    if (redirectIfAuth && isInitialized && !loading && user) {
+      navigate("/dashboard");
     }
 
     if (
@@ -41,7 +51,7 @@ const Layout: React.FC<LayoutProps> = ({
     ) {
       navigate("/dashboard");
     }
-  }, [requireAuth, isInitialized, loading, user, allowedRoles, navigate, currentUser]);
+  }, [requireAuth, isInitialized, loading, user, allowedRoles, navigate, currentUser, redirectIfAuth]);
 
   if (requireAuth && (loading || !isInitialized)) {
     return (
@@ -54,7 +64,7 @@ const Layout: React.FC<LayoutProps> = ({
   return (
     <div className="flex flex-col min-h-screen bg-betting-black text-white">
       <SEO {...seo} />
-      <Navbar />
+      {!hideNavigation && <Navbar />}
       {!hideMarquee && <MarqueeNotice />}
       <main className="flex-grow">{children}</main>
       <Footer />
