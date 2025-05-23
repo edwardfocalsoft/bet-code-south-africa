@@ -106,7 +106,11 @@ const CaseDetails = () => {
             />
 
             {!isCaseClosed && (
-              <ReplyForm onSubmit={handleSubmitReply} />
+              <ReplyForm 
+                onSubmit={handleSubmitReply}
+                isLoading={loading}
+                caseStatus={caseDetails.status} 
+              />
             )}
           </div>
 

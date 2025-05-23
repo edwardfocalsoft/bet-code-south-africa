@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const useCaseRefund = () => {
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const processRefund = async (
     caseId: string,
@@ -13,7 +13,7 @@ export const useCaseRefund = () => {
     sellerId: string,
     amount: number
   ) => {
-    setIsProcessing(true);
+    setIsLoading(true);
     
     try {
       // 1. First update the case status to resolved
@@ -82,9 +82,9 @@ export const useCaseRefund = () => {
       toast.error(`Failed to process refund: ${error.message}`);
       return false;
     } finally {
-      setIsProcessing(false);
+      setIsLoading(false);
     }
   };
 
-  return { processRefund, isProcessing };
+  return { processRefund, isLoading };
 };

@@ -33,7 +33,7 @@ const RefundDialog: React.FC<RefundDialogProps> = ({
   amount,
   onRefundComplete
 }) => {
-  const { processRefund, isProcessing } = useCaseRefund();
+  const { processRefund, isLoading } = useCaseRefund();
 
   const handleRefund = async () => {
     const success = await processRefund(caseId, purchaseId, buyerId, sellerId, amount);
@@ -63,16 +63,16 @@ const RefundDialog: React.FC<RefundDialogProps> = ({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={isProcessing}
+            disabled={isLoading}
           >
             Cancel
           </Button>
           <Button 
             onClick={handleRefund}
             className="bg-red-600 hover:bg-red-700"
-            disabled={isProcessing}
+            disabled={isLoading}
           >
-            {isProcessing ? (
+            {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Processing...

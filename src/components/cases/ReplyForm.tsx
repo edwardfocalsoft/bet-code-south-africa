@@ -17,7 +17,7 @@ const ReplyForm: React.FC<ReplyFormProps> = ({
 }) => {
   const [replyContent, setReplyContent] = useState("");
 
-  if (caseStatus === "closed") {
+  if (caseStatus === "closed" || caseStatus === "resolved") {
     return null;
   }
 
