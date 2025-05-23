@@ -1,6 +1,7 @@
 
-import React from 'react';
-import { Loader2 } from "lucide-react";
+// Assuming this component exists in the given path, we'll update it
+// to use our new refund functionality
+import React from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,76 +11,76 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { useCaseRefund } from "@/hooks/cases/operations/useCaseRefund";
 
 interface RefundDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  handleRefund: () => void;
-  isLoading: boolean;
-  purchaseData: any;
-  ticketData: any;
-  caseNumber: string;
+  caseId: string;
+  purchaseId: string;
+  buyerId: string;
+  sellerId: string;
+  amount: number;
+  onRefundComplete: () => void;
 }
 
 const RefundDialog: React.FC<RefundDialogProps> = ({
   open,
   onOpenChange,
-  handleRefund,
-  isLoading,
-  purchaseData,
-  ticketData,
-  caseNumber
+  caseId,
+  purchaseId,
+  buyerId,
+  sellerId,
+  amount,
+  onRefundComplete
 }) => {
+  const { processRefund, isProcessing } = useCaseRefund();
+
+  const handleRefund = async () => {
+    const success = await processRefund(caseId, purchaseId, buyerId, sellerId, amount);
+    if (success) {
+      onOpenChange(false);
+      onRefundComplete();
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Process Refund</DialogTitle>
           <DialogDescription>
-            This will refund the customer and deduct the amount from the
-            seller's account.
+            This will refund R{amount.toFixed(2)} to the buyer and deduct the same amount from the seller's balance.
           </DialogDescription>
         </DialogHeader>
 
         <div className="py-4">
-          <p className="font-medium">Refund Details:</p>
-          <ul className="mt-2 space-y-1">
-            <li>
-              <span className="text-muted-foreground">Amount: </span>
-              <span className="font-medium">
-                R{Number(purchaseData?.price).toFixed(2)}
-              </span>
-            </li>
-            <li>
-              <span className="text-muted-foreground">Ticket: </span>
-              <span className="font-medium">{ticketData?.title}</span>
-            </li>
-            <li>
-              <span className="text-muted-foreground">Case #: </span>
-              <span className="font-medium">{caseNumber}</span>
-            </li>
-          </ul>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to process this refund? This action cannot be undone.
+          </p>
         </div>
 
         <DialogFooter>
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
+            disabled={isProcessing}
           >
             Cancel
           </Button>
-          <Button
-            className="bg-purple-600 hover:bg-purple-700"
+          <Button 
             onClick={handleRefund}
-            disabled={isLoading}
+            className="bg-red-600 hover:bg-red-700"
+            disabled={isProcessing}
           >
-            {isLoading ? (
+            {isProcessing ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Processing...
               </>
             ) : (
-              "Confirm Refund"
+              "Process Refund"
             )}
           </Button>
         </DialogFooter>

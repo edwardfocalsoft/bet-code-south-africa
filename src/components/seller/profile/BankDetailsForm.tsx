@@ -1,11 +1,12 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, BadgeDollarSign } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { southAfricanBanks } from "@/data/banksList";
 
 interface BankDetailsFormProps {
   bankDetails: {
@@ -34,6 +35,19 @@ const BankDetailsForm: React.FC<BankDetailsFormProps> = ({
   isSaving,
   onSubmit
 }) => {
+  // Update the branch code when bank name changes
+  useEffect(() => {
+    if (bankDetails.bankName) {
+      const selectedBank = southAfricanBanks.find(bank => bank.name === bankDetails.bankName);
+      if (selectedBank) {
+        setBankDetails(prev => ({
+          ...prev,
+          branchCode: selectedBank.code
+        }));
+      }
+    }
+  }, [bankDetails.bankName, setBankDetails]);
+
   return (
     <Card className="betting-card mt-6">
       <CardHeader>
@@ -61,14 +75,22 @@ const BankDetailsForm: React.FC<BankDetailsFormProps> = ({
             </div>
             <div className="space-y-2">
               <Label htmlFor="bankName">Bank Name</Label>
-              <Input
-                id="bankName"
+              <Select
                 value={bankDetails.bankName}
-                onChange={(e) => setBankDetails({...bankDetails, bankName: e.target.value})}
-                placeholder="e.g. Standard Bank"
-                className="bg-betting-black border-betting-light-gray"
+                onValueChange={(value) => setBankDetails({...bankDetails, bankName: value})}
                 disabled={isSaving}
-              />
+              >
+                <SelectTrigger className="bg-betting-black border-betting-light-gray">
+                  <SelectValue placeholder="Select your bank" />
+                </SelectTrigger>
+                <SelectContent>
+                  {southAfricanBanks.map((bank) => (
+                    <SelectItem key={bank.name} value={bank.name}>
+                      {bank.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           
@@ -89,11 +111,11 @@ const BankDetailsForm: React.FC<BankDetailsFormProps> = ({
               <Input
                 id="branchCode"
                 value={bankDetails.branchCode}
-                onChange={(e) => setBankDetails({...bankDetails, branchCode: e.target.value})}
-                placeholder="Branch code or sort code"
-                className="bg-betting-black border-betting-light-gray"
-                disabled={isSaving}
+                readOnly
+                className="bg-betting-black/50 border-betting-light-gray"
+                disabled={true}
               />
+              <p className="text-xs text-muted-foreground">Branch code is automatically set based on the selected bank</p>
             </div>
           </div>
           
