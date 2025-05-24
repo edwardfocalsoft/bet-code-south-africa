@@ -27,6 +27,7 @@ interface TransactionHistoryCardProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  className?: string;
 }
 
 const TransactionHistoryCard: React.FC<TransactionHistoryCardProps> = ({
@@ -35,7 +36,8 @@ const TransactionHistoryCard: React.FC<TransactionHistoryCardProps> = ({
   isLoading,
   currentPage,
   totalPages,
-  onPageChange
+  onPageChange,
+  className
 }) => {
   const formatDate = (dateString: string) => {
     try {
@@ -46,7 +48,7 @@ const TransactionHistoryCard: React.FC<TransactionHistoryCardProps> = ({
   };
 
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader>
         <CardTitle>Transaction History</CardTitle>
         <CardDescription>

@@ -7,19 +7,32 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/auth";
 import { useWallet } from "@/hooks/useWallet";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { AlertCircle, Loader2, Wallet, CreditCard, Info } from "lucide-react";
 import { formatCurrency } from "@/utils/formatting";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import TransactionsTable from "@/components/seller/dashboard/TransactionsTable";
+import TransactionHistoryCard from "@/components/wallet/TransactionHistoryCard";
 
 const SellerWithdrawals: React.FC = () => {
   const { currentUser } = useAuth();
-  const { creditBalance } = useWallet();
+  const { 
+    creditBalance, 
+    transactions, 
+    currentTransactions, 
+    isLoading: walletLoading, 
+    currentPage, 
+    totalPages, 
+    setCurrentPage 
+  } = useWallet();
+  const { settings, isLoading: settingsLoading } = useSystemSettings();
   const [amount, setAmount] = useState("");
   const [processing, setProcessing] = useState(false);
 
   const WITHDRAWAL_FEE_PERCENTAGE = 10;
+
+  // Use system settings for minimum withdrawal amount, fallback to 1000
+  const minWithdrawalAmount = settings?.min_withdrawal_amount || 1000;
 
   const handleWithdrawRequest = async () => {
     setProcessing(true);
@@ -31,8 +44,8 @@ const SellerWithdrawals: React.FC = () => {
         return;
       }
 
-      if (withdrawAmount < 1000) {
-        toast.error("Minimum withdrawal amount is R1,000");
+      if (withdrawAmount < minWithdrawalAmount) {
+        toast.error(`Minimum withdrawal amount is ${formatCurrency(minWithdrawalAmount)}`);
         return;
       }
 
@@ -66,10 +79,22 @@ const SellerWithdrawals: React.FC = () => {
     return amount - calculateFee(amount);
   };
 
-  const isEligible = (creditBalance || 0) >= 1000;
+  const isEligible = (creditBalance || 0) >= minWithdrawalAmount;
   const inputAmount = parseFloat(amount) || 0;
   const feeAmount = calculateFee(inputAmount);
   const netAmount = calculateNetAmount(inputAmount);
+
+  if (settingsLoading) {
+    return (
+      <Layout requireAuth={true} allowedRoles={["seller", "admin"]}>
+        <div className="container mx-auto py-8">
+          <div className="flex justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-betting-green" />
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout requireAuth={true} allowedRoles={["seller", "admin"]}>
@@ -98,7 +123,7 @@ const SellerWithdrawals: React.FC = () => {
               
               {!isEligible && (
                 <p className="text-sm text-muted-foreground">
-                  You need at least R1,000 to request a withdrawal
+                  You need at least {formatCurrency(minWithdrawalAmount)} to request a withdrawal
                 </p>
               )}
               
@@ -121,12 +146,12 @@ const SellerWithdrawals: React.FC = () => {
               {!isEligible ? (
                 <div className="flex items-center p-4 gap-3 bg-betting-light-gray/10 rounded-md">
                   <AlertCircle className="h-5 w-5 text-yellow-500" />
-                  <p>You need at least R1,000 to request a withdrawal.</p>
+                  <p>You need at least {formatCurrency(minWithdrawalAmount)} to request a withdrawal.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <Label htmlFor="amount">Withdrawal Amount (min R1,000)</Label>
+                    <Label htmlFor="amount">Withdrawal Amount (min {formatCurrency(minWithdrawalAmount)})</Label>
                     <div className="flex gap-2">
                       <Input
                         id="amount"
@@ -140,7 +165,7 @@ const SellerWithdrawals: React.FC = () => {
                       <Button 
                         onClick={handleWithdrawRequest} 
                         className="bg-betting-green hover:bg-betting-green-dark"
-                        disabled={processing || !amount || parseFloat(amount) < 1000 || parseFloat(amount) > (creditBalance || 0)}
+                        disabled={processing || !amount || parseFloat(amount) < minWithdrawalAmount || parseFloat(amount) > (creditBalance || 0)}
                       >
                         {processing ? (
                           <>
@@ -198,7 +223,14 @@ const SellerWithdrawals: React.FC = () => {
         </div>
         
         <h2 className="text-2xl font-bold mt-8 mb-4">Transaction History</h2>
-        <TransactionsTable className="mb-8" />
+        <TransactionHistoryCard 
+          transactions={transactions}
+          currentTransactions={currentTransactions}
+          isLoading={walletLoading}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
       </div>
     </Layout>
   );
