@@ -3,7 +3,6 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/ui/theme-provider";
-import { AuthProvider } from "./contexts/auth/AuthProvider";
 import { HelmetProvider } from 'react-helmet-async';
 
 // Public pages
@@ -61,6 +60,7 @@ import Cases from "@/pages/user/Cases";
 import CaseDetails from "@/pages/user/CaseDetails";
 
 // Context providers
+import { AuthProvider } from "./contexts/auth/AuthProvider";
 import MaintenanceMiddleware from "@/components/layout/MaintenanceMiddleware";
 import "./App.css";
 
@@ -68,8 +68,8 @@ function App() {
   return (
     <HelmetProvider>
       <ThemeProvider defaultTheme="dark" storageKey="bettickets-theme">
-        <AuthProvider>
-          <Router>
+        <Router>
+          <AuthProvider>
             <MaintenanceMiddleware>
               <Routes>
                 {/* Public routes */}
@@ -133,8 +133,8 @@ function App() {
               </Routes>
             </MaintenanceMiddleware>
             <Toaster position="top-right" />
-          </Router>
-        </AuthProvider>
+          </AuthProvider>
+        </Router>
       </ThemeProvider>
     </HelmetProvider>
   );
