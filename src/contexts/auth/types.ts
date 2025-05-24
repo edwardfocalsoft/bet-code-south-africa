@@ -1,21 +1,14 @@
 
-import { User as UserType, UserRole } from "@/types";
+import { User, UserRole } from "@/types";
 
 export interface AuthContextType {
-  // User state
-  currentUser: UserType | null;
-  user: UserType | null; // Add this for backward compatibility
+  currentUser: User | null;
   userRole: UserRole | null;
   loading: boolean;
   isAdmin: boolean;
-  isInitialized: boolean; // Add this for backward compatibility
-  
-  // Auth functions
-  login: (email: string, password: string) => Promise<UserType | null>;
+  login: (email: string, password: string) => Promise<User | null>;
   logout: () => Promise<void>;
-  signup: (email: string, password: string, role: UserRole) => Promise<UserType | null>;
-  register: (email: string, password: string, role: UserRole) => Promise<UserType | null>;
-  
-  // Route access
-  checkRouteAccess: (requiredRole?: UserRole) => boolean;
+  signup: (email: string, password: string, role: UserRole) => Promise<User | null>;
+  register: (email: string, password: string, role: UserRole) => Promise<User | null>;
+  checkRouteAccess: (allowedRoles: UserRole[]) => boolean;
 }

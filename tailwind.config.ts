@@ -93,10 +93,6 @@ const config = {
           '0%': { transform: 'translateX(100%)' },
           '100%': { transform: 'translateX(-100%)' },
         },
-        "marquee-slow": {
-          '0%': { transform: 'translateX(100%)' },
-          '100%': { transform: 'translateX(-100%)' },
-        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -104,7 +100,6 @@ const config = {
         "wiggle": "wiggle 0.5s ease-in-out",
         "fade-in": "fade-in 0.3s ease-in",
         "marquee": "marquee 20s linear infinite",
-        "marquee-slow": "marquee-slow 80s linear infinite", // Slowed down from 40s to 80s
       },
     },
   },

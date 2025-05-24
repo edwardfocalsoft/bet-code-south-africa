@@ -35,11 +35,9 @@ export const useAuthProvider = () => {
   return {
     // User state
     currentUser,
-    user: currentUser, // For backward compatibility
     userRole,
     loading,
     isAdmin,
-    isInitialized: !loading, // For backward compatibility
     
     // Auth functions
     login,

@@ -12,18 +12,14 @@ import { formatCurrency } from "@/utils/formatting";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import TransactionsTable from "@/components/seller/dashboard/TransactionsTable";
-import { useSystemSettings } from "@/hooks/useSystemSettings";
-import { Pagination } from "@/components/ui/pagination";
 
 const SellerWithdrawals: React.FC = () => {
   const { currentUser } = useAuth();
-  const { creditBalance, transactions, currentPage, totalPages, setCurrentPage } = useWallet();
-  const { settings, isLoading: isLoadingSettings } = useSystemSettings();
+  const { creditBalance } = useWallet();
   const [amount, setAmount] = useState("");
   const [processing, setProcessing] = useState(false);
 
   const WITHDRAWAL_FEE_PERCENTAGE = 10;
-  const minimumWithdrawalAmount = settings?.min_withdrawal_amount || 1000;
 
   const handleWithdrawRequest = async () => {
     setProcessing(true);
@@ -35,8 +31,8 @@ const SellerWithdrawals: React.FC = () => {
         return;
       }
 
-      if (withdrawAmount < minimumWithdrawalAmount) {
-        toast.error(`Minimum withdrawal amount is R${minimumWithdrawalAmount.toFixed(0)}`);
+      if (withdrawAmount < 1000) {
+        toast.error("Minimum withdrawal amount is R1,000");
         return;
       }
 
@@ -70,7 +66,7 @@ const SellerWithdrawals: React.FC = () => {
     return amount - calculateFee(amount);
   };
 
-  const isEligible = (creditBalance || 0) >= minimumWithdrawalAmount;
+  const isEligible = (creditBalance || 0) >= 1000;
   const inputAmount = parseFloat(amount) || 0;
   const feeAmount = calculateFee(inputAmount);
   const netAmount = calculateNetAmount(inputAmount);
@@ -102,7 +98,7 @@ const SellerWithdrawals: React.FC = () => {
               
               {!isEligible && (
                 <p className="text-sm text-muted-foreground">
-                  You need at least {formatCurrency(minimumWithdrawalAmount)} to request a withdrawal
+                  You need at least R1,000 to request a withdrawal
                 </p>
               )}
               
@@ -125,12 +121,12 @@ const SellerWithdrawals: React.FC = () => {
               {!isEligible ? (
                 <div className="flex items-center p-4 gap-3 bg-betting-light-gray/10 rounded-md">
                   <AlertCircle className="h-5 w-5 text-yellow-500" />
-                  <p>You need at least {formatCurrency(minimumWithdrawalAmount)} to request a withdrawal.</p>
+                  <p>You need at least R1,000 to request a withdrawal.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <Label htmlFor="amount">Withdrawal Amount (min {formatCurrency(minimumWithdrawalAmount)})</Label>
+                    <Label htmlFor="amount">Withdrawal Amount (min R1,000)</Label>
                     <div className="flex gap-2">
                       <Input
                         id="amount"
@@ -144,7 +140,7 @@ const SellerWithdrawals: React.FC = () => {
                       <Button 
                         onClick={handleWithdrawRequest} 
                         className="bg-betting-green hover:bg-betting-green-dark"
-                        disabled={processing || !amount || parseFloat(amount) < minimumWithdrawalAmount || parseFloat(amount) > (creditBalance || 0)}
+                        disabled={processing || !amount || parseFloat(amount) < 1000 || parseFloat(amount) > (creditBalance || 0)}
                       >
                         {processing ? (
                           <>
@@ -202,27 +198,7 @@ const SellerWithdrawals: React.FC = () => {
         </div>
         
         <h2 className="text-2xl font-bold mt-8 mb-4">Transaction History</h2>
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Recent Transactions</CardTitle>
-            <CardDescription>
-              Your recent wallet transactions
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <TransactionsTable className="mb-4" />
-            
-            {totalPages > 1 && (
-              <div className="flex justify-center mt-6">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                />
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <TransactionsTable className="mb-8" />
       </div>
     </Layout>
   );

@@ -363,36 +363,6 @@ export type Database = {
           },
         ]
       }
-      seo_settings: {
-        Row: {
-          created_at: string
-          default_og_image: string
-          id: string
-          site_description: string
-          site_keywords: string
-          site_title: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          default_og_image?: string
-          id?: string
-          site_description?: string
-          site_keywords?: string
-          site_title?: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          default_og_image?: string
-          id?: string
-          site_description?: string
-          site_keywords?: string
-          site_title?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       site_settings: {
         Row: {
           favicon_url: string | null

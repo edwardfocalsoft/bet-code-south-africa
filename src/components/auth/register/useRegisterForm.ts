@@ -50,10 +50,9 @@ export const useRegisterForm = () => {
     try {
       const user = await signUp(data.email, data.password, role);
       
-      // Check if user was successfully created (not null)
       if (user) {
         // Navigate to confirmation page with role parameter
-        navigate(`/register/confirmation?role=${role}`);
+        navigate(`/auth/register/confirmation?role=${role}`);
       }
     } catch (error: any) {
       console.error("Registration error:", error);
