@@ -10,7 +10,7 @@ import { cleanupAuthState } from "../authUtils";
 export const useRegistration = () => {
   const [loading, setLoading] = useState(false);
 
-  const register = async (email: string, password: string, role: UserRole) => {
+  const register = async (email: string, password: string, role: UserRole): Promise<UserType | null> => {
     try {
       setLoading(true);
       

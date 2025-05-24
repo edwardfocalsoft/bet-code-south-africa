@@ -13,8 +13,8 @@ export interface AuthContextType {
   // Auth functions
   login: (email: string, password: string) => Promise<UserType | null>;
   logout: () => Promise<void>;
-  signup: (email: string, password: string, role: UserRole) => Promise<void>;
-  register: (email: string, password: string, role: UserRole) => Promise<void>;
+  signup: (email: string, password: string, role: UserRole) => Promise<UserType | null>;
+  register: (email: string, password: string, role: UserRole) => Promise<UserType | null>;
   
   // Route access
   checkRouteAccess: (requiredRole?: UserRole) => boolean;
