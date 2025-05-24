@@ -19,12 +19,14 @@ interface TicketInfoStepProps {
     title: string;
     description: string;
     bettingSite: BettingSite;
+    numberOfLegs: number;
   };
   setTicketData: React.Dispatch<React.SetStateAction<any>>;
   errors: {
     title: string;
     description: string;
     bettingSite: string;
+    numberOfLegs: string;
   };
   onNext: () => void;
 }
@@ -35,12 +37,6 @@ const TicketInfoStep: React.FC<TicketInfoStepProps> = ({
   errors,
   onNext,
 }) => {
-  const ticketTypes = [
-    "Standard Ticket",
-    "High Stake Ticket",
-    "Long Ticket"
-  ];
-  
   // Using only the values defined in the BettingSite type
   const bettingSites: BettingSite[] = [
     "Betway",
@@ -51,28 +47,51 @@ const TicketInfoStep: React.FC<TicketInfoStepProps> = ({
     "Easybet",
   ];
 
+  // Auto-determine ticket type based on number of legs
+  const getTicketType = (legs: number): string => {
+    if (legs >= 2 && legs <= 3) return "High Stake Ticket";
+    if (legs >= 4 && legs <= 6) return "Standard Ticket";
+    if (legs >= 7) return "Long Ticket";
+    return "Standard Ticket"; // Default
+  };
+
+  const handleLegsChange = (value: string) => {
+    const legs = parseInt(value) || 0;
+    const ticketType = getTicketType(legs);
+    setTicketData({
+      ...ticketData, 
+      numberOfLegs: legs,
+      title: ticketType
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="title">Ticket Type</Label>
-        <Select
+        <Label htmlFor="numberOfLegs">Number of Legs</Label>
+        <Input
+          id="numberOfLegs"
+          type="number"
+          min="2"
+          placeholder="Enter number of legs"
+          value={ticketData.numberOfLegs || ""}
+          onChange={(e) => handleLegsChange(e.target.value)}
+          className="bg-betting-black border-betting-light-gray"
+        />
+        {errors.numberOfLegs && <p className="text-red-500 text-xs mt-1">{errors.numberOfLegs}</p>}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="title">Ticket Type (Auto-determined)</Label>
+        <Input
+          id="title"
           value={ticketData.title}
-          onValueChange={(value) => setTicketData({...ticketData, title: value})}
-        >
-          <SelectTrigger 
-            id="title" 
-            className="bg-betting-black border-betting-light-gray"
-          >
-            <SelectValue placeholder="Select ticket type" />
-          </SelectTrigger>
-          <SelectContent className="bg-betting-dark-gray text-white border-betting-light-gray">
-            {ticketTypes.map(type => (
-              <SelectItem key={type} value={type} className="hover:bg-betting-black">
-                {type}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          disabled
+          className="bg-betting-light-gray border-betting-light-gray text-muted-foreground"
+        />
+        <p className="text-xs text-muted-foreground">
+          High Stake (2-3 legs) • Standard (4-6 legs) • Long (7+ legs)
+        </p>
         {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
       </div>
 

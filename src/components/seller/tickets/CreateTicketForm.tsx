@@ -50,7 +50,9 @@ const CreateTicketForm: React.FC = () => {
   
   const handleSubmit = async () => {
     if (!currentUser?.id) {
-      toast.error("You must be logged in to create a ticket");
+      toast.error("Authentication required", {
+        description: "You must be logged in to create a ticket",
+      });
       return;
     }
     
@@ -78,10 +80,14 @@ const CreateTicketForm: React.FC = () => {
       
       if (error) throw error;
       
-      toast.success("Ticket created successfully!");
+      toast.success("Ticket created successfully!", {
+        description: "Your ticket has been published and is now available for purchase.",
+      });
       navigate(`/seller/tickets`);
     } catch (error: any) {
-      toast.error(`Error creating ticket: ${error.message}`);
+      toast.error("Error creating ticket", {
+        description: error.message || "Failed to create ticket. Please try again.",
+      });
     } finally {
       setIsSubmitting(false);
     }

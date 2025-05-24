@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { useAuth } from "@/contexts/auth";
@@ -7,13 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Save, CreditCard, Settings as SettingsIcon } from "lucide-react";
+import { Loader2, Save, CreditCard, Search } from "lucide-react";
 import { usePaymentSettings } from "@/hooks/usePaymentSettings";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import SiteSettingsTab from "@/components/admin/site/SiteSettingsTab";
+import SEOSettingsTab from "@/components/admin/seo/SEOSettingsTab";
 
 const UserSettings: React.FC = () => {
   const { currentUser, userRole } = useAuth();
@@ -24,7 +24,6 @@ const UserSettings: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [passwordError, setPasswordError] = useState("");
-  const { toast } = useToast();
   const { settings, loading: paymentLoading, updateSettings } = usePaymentSettings();
   const [paymentFormData, setPaymentFormData] = useState({
     merchant_id: "",
@@ -63,15 +62,12 @@ const UserSettings: React.FC = () => {
       
       if (error) throw error;
       
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been updated successfully.",
+      toast.success("Profile updated successfully!", {
+        description: "Your profile information has been saved.",
       });
     } catch (error: any) {
-      toast({
-        title: "Error",
+      toast.error("Error updating profile", {
         description: error.message || "Failed to update profile",
-        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -97,19 +93,16 @@ const UserSettings: React.FC = () => {
       
       if (error) throw error;
       
-      toast({
-        title: "Password updated",
-        description: "Your password has been changed successfully.",
+      toast.success("Password updated successfully!", {
+        description: "Your password has been changed.",
       });
       
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (error: any) {
-      toast({
-        title: "Error",
+      toast.error("Error updating password", {
         description: error.message || "Failed to update password",
-        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -136,10 +129,8 @@ const UserSettings: React.FC = () => {
     
     // Validate before submitting
     if (!paymentFormData.merchant_id || !paymentFormData.merchant_key || !paymentFormData.passphrase) {
-      toast({
-        title: "Validation Error",
+      toast.error("Validation Error", {
         description: "Please fill in all required fields",
-        variant: "destructive",
       });
       setLoading(false);
       return;
@@ -148,9 +139,8 @@ const UserSettings: React.FC = () => {
     const success = await updateSettings(paymentFormData);
     
     if (success) {
-      toast({
-        title: "Success",
-        description: "Payment gateway settings have been updated",
+      toast.success("Payment settings saved successfully!", {
+        description: "Payment gateway configuration has been updated.",
       });
     }
     
@@ -159,6 +149,15 @@ const UserSettings: React.FC = () => {
 
   const showPaymentSettings = userRole === "admin";
   const showSiteSettings = userRole === "admin";
+  const showSEOSettings = userRole === "admin";
+
+  const getTabsCount = () => {
+    let count = 2; // Profile and Security are always shown
+    if (showPaymentSettings) count++;
+    if (showSiteSettings) count++;
+    if (showSEOSettings) count++;
+    return count;
+  };
 
   return (
     <Layout requireAuth={true}>
@@ -166,11 +165,12 @@ const UserSettings: React.FC = () => {
         <h1 className="text-3xl font-bold mb-6">Account Settings</h1>
         
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className={`grid w-full ${showSiteSettings && showPaymentSettings ? 'grid-cols-4' : showSiteSettings || showPaymentSettings ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          <TabsList className={`grid w-full grid-cols-${getTabsCount()}`}>
             <TabsTrigger value="profile">Profile Information</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
             {showPaymentSettings && <TabsTrigger value="payment">Payment Gateway</TabsTrigger>}
-            {showSiteSettings && <TabsTrigger value="site"><SettingsIcon className="mr-2 h-4 w-4" /> Site Settings</TabsTrigger>}
+            {showSiteSettings && <TabsTrigger value="site">Site Settings</TabsTrigger>}
+            {showSEOSettings && <TabsTrigger value="seo"><Search className="mr-2 h-4 w-4" /> SEO Settings</TabsTrigger>}
           </TabsList>
           
           <TabsContent value="profile">
@@ -413,6 +413,12 @@ const UserSettings: React.FC = () => {
           {showSiteSettings && (
             <TabsContent value="site">
               <SiteSettingsTab />
+            </TabsContent>
+          )}
+
+          {showSEOSettings && (
+            <TabsContent value="seo">
+              <SEOSettingsTab />
             </TabsContent>
           )}
         </Tabs>

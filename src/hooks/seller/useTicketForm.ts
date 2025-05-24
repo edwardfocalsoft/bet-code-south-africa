@@ -13,6 +13,7 @@ interface TicketFormData {
   date: Date;
   time: string;
   ticketCode: string;
+  numberOfLegs: number;
 }
 
 interface TicketFormErrors {
@@ -24,6 +25,7 @@ interface TicketFormErrors {
   date: string;
   time: string;
   ticketCode: string;
+  numberOfLegs: string;
 }
 
 export const useTicketForm = () => {
@@ -38,6 +40,7 @@ export const useTicketForm = () => {
     date: new Date(),
     time: "19:00",
     ticketCode: "",
+    numberOfLegs: 0,
   });
   
   const [errors, setErrors] = useState<TicketFormErrors>({
@@ -49,6 +52,7 @@ export const useTicketForm = () => {
     date: "",
     time: "",
     ticketCode: "",
+    numberOfLegs: "",
   });
   
   const [isCheckingTicketCode, setIsCheckingTicketCode] = useState(false);
@@ -56,6 +60,13 @@ export const useTicketForm = () => {
   const validateStep1 = () => {
     let valid = true;
     const newErrors = { ...errors };
+    
+    if (!ticketData.numberOfLegs || ticketData.numberOfLegs < 2) {
+      newErrors.numberOfLegs = "Number of legs must be at least 2";
+      valid = false;
+    } else {
+      newErrors.numberOfLegs = "";
+    }
     
     if (!ticketData.title.trim()) {
       newErrors.title = "Ticket type is required";
