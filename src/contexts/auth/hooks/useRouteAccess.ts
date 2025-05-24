@@ -8,9 +8,10 @@ export const useRouteAccess = (
   currentUser: UserType | null,
   userRole: UserRole | null
 ) => {
-  const checkRouteAccess = (allowedRoles: UserRole[]): boolean => {
+  const checkRouteAccess = (requiredRole?: UserRole): boolean => {
     if (!currentUser || !userRole) return false;
-    return allowedRoles.includes(userRole);
+    if (!requiredRole) return true; // No specific role required
+    return userRole === requiredRole;
   };
 
   return {
