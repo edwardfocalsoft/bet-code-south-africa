@@ -65,11 +65,11 @@ const TopSellersSection: React.FC<TopSellersSectionProps> = ({
                         </div>
                       )}
                       
-                      {/* Enhanced Seller Card */}
+                      {/* Enhanced Seller Card - removed shadow-lg shadow-betting-green/20 glow effect */}
                       <Card className={`
                         border transition-all duration-300 group-hover:scale-105 h-full
                         ${isTopThree 
-                          ? 'border-betting-green bg-gradient-to-br from-betting-dark-gray to-betting-black shadow-lg shadow-betting-green/20' 
+                          ? 'border-betting-green bg-gradient-to-br from-betting-dark-gray to-betting-black' 
                           : 'border-betting-light-gray bg-betting-dark-gray hover:border-betting-green/50'
                         }
                       `}>

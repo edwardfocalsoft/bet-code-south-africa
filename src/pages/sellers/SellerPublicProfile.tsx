@@ -12,12 +12,22 @@ import SellerProfileHeader from "@/components/sellers/profile/SellerProfileHeade
 import SellerTicketsTab from "@/components/sellers/profile/SellerTicketsTab";
 import SellerReviewsTab from "@/components/sellers/profile/SellerReviewsTab";
 import SellerStatsTab from "@/components/sellers/profile/SellerStatsTab";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { ChevronDown } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const SellerPublicProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState("tickets");
   const { currentUser } = useAuth();
   const { loading, seller, reviews, stats } = useSellerProfile(id);
+  const isMobile = useIsMobile();
   
   // Get seller tickets using the useTickets hook
   const { tickets: sellerTickets, loading: ticketsLoading } = useTickets({
@@ -55,6 +65,14 @@ const SellerPublicProfile: React.FC = () => {
       </Layout>
     );
   }
+
+  const tabOptions = [
+    { value: "tickets", label: "Tickets" },
+    { value: "reviews", label: "Reviews" },
+    { value: "stats", label: "Stats" }
+  ];
+
+  const currentTabLabel = tabOptions.find(tab => tab.value === activeTab)?.label || "Tickets";
   
   return (
     <Layout>
@@ -65,29 +83,75 @@ const SellerPublicProfile: React.FC = () => {
           </div>
           
           <div className="md:col-span-2">
-            <Tabs defaultValue="tickets" value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="bg-betting-black mb-8">
-                <TabsTrigger value="tickets">Tickets</TabsTrigger>
-                <TabsTrigger value="reviews">Reviews</TabsTrigger>
-                <TabsTrigger value="stats">Stats</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="tickets">
-                <SellerTicketsTab 
-                  sellerName={seller.username} 
-                  tickets={filteredTickets} 
-                  loading={ticketsLoading} 
-                />
-              </TabsContent>
-              
-              <TabsContent value="reviews">
-                <SellerReviewsTab reviews={reviews} />
-              </TabsContent>
-              
-              <TabsContent value="stats">
-                <SellerStatsTab stats={stats} />
-              </TabsContent>
-            </Tabs>
+            {isMobile ? (
+              <div className="mb-6">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-between bg-betting-dark-gray border-betting-light-gray text-white hover:bg-betting-light-gray"
+                    >
+                      {currentTabLabel}
+                      <ChevronDown className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent 
+                    className="w-full bg-betting-dark-gray border-betting-light-gray"
+                    align="start"
+                  >
+                    {tabOptions.map((tab) => (
+                      <DropdownMenuItem
+                        key={tab.value}
+                        onClick={() => setActiveTab(tab.value)}
+                        className="text-gray-300 hover:text-white hover:bg-betting-light-gray cursor-pointer"
+                      >
+                        {tab.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                
+                <div className="mt-4">
+                  {activeTab === "tickets" && (
+                    <SellerTicketsTab 
+                      sellerName={seller.username} 
+                      tickets={filteredTickets} 
+                      loading={ticketsLoading} 
+                    />
+                  )}
+                  {activeTab === "reviews" && (
+                    <SellerReviewsTab reviews={reviews} />
+                  )}
+                  {activeTab === "stats" && (
+                    <SellerStatsTab stats={stats} />
+                  )}
+                </div>
+              </div>
+            ) : (
+              <Tabs defaultValue="tickets" value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="bg-betting-black mb-8">
+                  <TabsTrigger value="tickets">Tickets</TabsTrigger>
+                  <TabsTrigger value="reviews">Reviews</TabsTrigger>
+                  <TabsTrigger value="stats">Stats</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="tickets">
+                  <SellerTicketsTab 
+                    sellerName={seller.username} 
+                    tickets={filteredTickets} 
+                    loading={ticketsLoading} 
+                  />
+                </TabsContent>
+                
+                <TabsContent value="reviews">
+                  <SellerReviewsTab reviews={reviews} />
+                </TabsContent>
+                
+                <TabsContent value="stats">
+                  <SellerStatsTab stats={stats} />
+                </TabsContent>
+              </Tabs>
+            )}
           </div>
         </div>
       </div>
