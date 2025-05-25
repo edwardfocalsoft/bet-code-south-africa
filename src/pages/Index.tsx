@@ -11,8 +11,6 @@ import { useTickets } from "@/hooks/useTickets";
 import { useSellers } from "@/hooks/useSellers";
 
 const Index: React.FC = () => {
-  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
-  
   // Get random active tickets with kickoff times in the future
   const { tickets: featuredTickets, loading: ticketsLoading } = useTickets({
     fetchOnMount: true,
@@ -40,8 +38,6 @@ const Index: React.FC = () => {
       <FeaturedTicketsSection 
         tickets={featuredTickets}
         loading={ticketsLoading}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
       />
       <TopSellersSection 
         sellers={topSellers}
