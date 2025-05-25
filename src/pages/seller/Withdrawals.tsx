@@ -31,7 +31,7 @@ const SellerWithdrawals: React.FC = () => {
 
   const WITHDRAWAL_FEE_PERCENTAGE = 10;
 
-  // Use system settings for minimum withdrawal amount, fallback to 1000
+  // Use system settings for minimum withdrawal amount
   const minWithdrawalAmount = settings?.min_withdrawal_amount || 1000;
 
   const handleWithdrawRequest = async () => {
@@ -84,7 +84,8 @@ const SellerWithdrawals: React.FC = () => {
   const feeAmount = calculateFee(inputAmount);
   const netAmount = calculateNetAmount(inputAmount);
 
-  if (settingsLoading) {
+  // Show loading state while either wallet or settings are loading
+  if (settingsLoading || walletLoading) {
     return (
       <Layout requireAuth={true} allowedRoles={["seller", "admin"]}>
         <div className="container mx-auto py-8">
