@@ -9,9 +9,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, AlertCircle, UserCheck, UserX } from "lucide-react";
+import { Check, X, AlertCircle, UserCheck, UserX, ChevronDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type SellerStatus = "pending" | "approved" | "suspended" | "all";
 
@@ -21,6 +28,7 @@ const AdminSellers: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<SellerStatus>("pending");
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const fetchSellers = async (status: SellerStatus = "pending") => {
     try {
@@ -77,7 +85,6 @@ const AdminSellers: React.FC = () => {
     try {
       console.log(`Setting seller ${sellerId} approval status to: ${approve}`);
       
-      // Update the seller's approval status
       const { error: updateError, data } = await supabase
         .from("profiles")
         .update({ approved: approve })
@@ -96,7 +103,6 @@ const AdminSellers: React.FC = () => {
         description: `Seller ${approve ? "approved" : "rejected"} successfully.`,
       });
       
-      // Immediately refresh the list to reflect the changes
       fetchSellers(activeTab);
     } catch (error: any) {
       console.error("Error updating seller:", error);
@@ -124,7 +130,6 @@ const AdminSellers: React.FC = () => {
         variant: suspend ? "destructive" : "default",
       });
       
-      // Immediately refresh the list
       fetchSellers(activeTab);
     } catch (error: any) {
       console.error("Error updating seller:", error);
@@ -217,6 +222,15 @@ const AdminSellers: React.FC = () => {
     ));
   };
 
+  const tabOptions = [
+    { value: "pending", label: "Pending" },
+    { value: "approved", label: "Approved" },
+    { value: "suspended", label: "Suspended" },
+    { value: "all", label: "All" }
+  ];
+
+  const currentTabLabel = tabOptions.find(tab => tab.value === activeTab)?.label || "Pending";
+
   return (
     <Layout requireAuth={true} allowedRoles={["admin"]}>
       <div className="container mx-auto py-8">
@@ -230,20 +244,34 @@ const AdminSellers: React.FC = () => {
           </Alert>
         )}
         
-        <Tabs 
-          defaultValue="pending" 
-          value={activeTab} 
-          onValueChange={(value) => setActiveTab(value as SellerStatus)}
-          className="mb-6"
-        >
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="pending">Pending</TabsTrigger>
-            <TabsTrigger value="approved">Approved</TabsTrigger>
-            <TabsTrigger value="suspended">Suspended</TabsTrigger>
-            <TabsTrigger value="all">All</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value={activeTab} className="mt-4">
+        {isMobile ? (
+          <div className="space-y-6">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-between bg-betting-dark-gray border-betting-light-gray text-white hover:bg-betting-light-gray"
+                >
+                  {currentTabLabel}
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent 
+                className="w-full bg-betting-dark-gray border-betting-light-gray"
+                align="start"
+              >
+                {tabOptions.map((tab) => (
+                  <DropdownMenuItem
+                    key={tab.value}
+                    onClick={() => setActiveTab(tab.value as SellerStatus)}
+                    className="text-gray-300 hover:text-white hover:bg-betting-light-gray cursor-pointer"
+                  >
+                    {tab.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
             <div className="betting-card">
               <Table>
                 <TableHeader>
@@ -260,8 +288,41 @@ const AdminSellers: React.FC = () => {
                 </TableBody>
               </Table>
             </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        ) : (
+          <Tabs 
+            defaultValue="pending" 
+            value={activeTab} 
+            onValueChange={(value) => setActiveTab(value as SellerStatus)}
+            className="mb-6"
+          >
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="pending">Pending</TabsTrigger>
+              <TabsTrigger value="approved">Approved</TabsTrigger>
+              <TabsTrigger value="suspended">Suspended</TabsTrigger>
+              <TabsTrigger value="all">All</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value={activeTab} className="mt-4">
+              <div className="betting-card">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Username</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Sign Up Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {renderSellerTable()}
+                  </TableBody>
+                </Table>
+              </div>
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
     </Layout>
   );

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { BettingTicket } from "@/types";
 import { 
-  BarChart, Download, Loader2, AlertCircle
+  BarChart, Download, Loader2, AlertCircle, ChevronDown
 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,6 +15,13 @@ import { isPast } from "date-fns";
 import TicketsTable from "@/components/admin/tickets/TicketsTable";
 import TicketsFilter from "@/components/admin/tickets/TicketsFilter";
 import TicketsStats from "@/components/admin/tickets/TicketsStats";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface TicketWithSeller extends BettingTicket {
   sellerEmail: string;
@@ -62,8 +69,8 @@ const AdminTickets: React.FC = () => {
   const [statsLoading, setStatsLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
-  // Use the enhanced useTickets hook with role set to "admin"
   const { toggleTicketVisibility, markTicketAsExpired } = useTickets({
     fetchOnMount: false,
     filterExpired: false,
@@ -87,23 +94,19 @@ const AdminTickets: React.FC = () => {
       
       switch (filter) {
         case "active":
-          // For active tickets, ensure both is_expired is false AND kickoff time hasn't passed
           query = query.eq("is_hidden", false);
           const now = new Date().toISOString();
-          query = query.gt("kickoff_time", now); // Only future kickoff times
-          query = query.eq("is_expired", false); // And not manually expired
+          query = query.gt("kickoff_time", now);
+          query = query.eq("is_expired", false);
           break;
         case "expired":
-          // For expired tickets, include either is_expired = true OR kickoff_time in the past
           query = query.or(`is_expired.eq.true,kickoff_time.lt.${new Date().toISOString()}`);
           break;
         case "hidden":
           query = query.eq("is_hidden", true);
           break;
-        // "all" doesn't need a filter
       }
       
-      // Order by most recent first
       query = query.order("created_at", { ascending: false });
       
       const { data, error: fetchError } = await query;
@@ -128,7 +131,6 @@ const AdminTickets: React.FC = () => {
           createdAt: new Date(ticket.created_at),
           odds: ticket.odds ? parseFloat(ticket.odds) : undefined,
           isHidden: ticket.is_hidden,
-          // Make sure to mark tickets as expired if kickoff time has passed
           isExpired: ticket.is_expired || isExpiredByDate,
           eventResults: ticket.event_results
         };
@@ -152,7 +154,6 @@ const AdminTickets: React.FC = () => {
   const applyFilters = (ticketsToFilter: TicketWithSeller[], filterState: TicketsFilterState) => {
     let filtered = [...ticketsToFilter];
     
-    // Apply search
     if (filterState.searchTerm) {
       const search = filterState.searchTerm.toLowerCase();
       filtered = filtered.filter(ticket => 
@@ -162,12 +163,10 @@ const AdminTickets: React.FC = () => {
       );
     }
     
-    // Apply betting site filter
     if (filterState.bettingSite) {
       filtered = filtered.filter(ticket => ticket.bettingSite === filterState.bettingSite);
     }
     
-    // Apply price filters
     if (filterState.minPrice !== null) {
       filtered = filtered.filter(ticket => ticket.price >= (filterState.minPrice || 0));
     }
@@ -176,7 +175,6 @@ const AdminTickets: React.FC = () => {
       filtered = filtered.filter(ticket => ticket.price <= (filterState.maxPrice || 9999999));
     }
     
-    // Apply sorting
     filtered.sort((a, b) => {
       const field = filterState.sortField;
       const order = filterState.sortOrder === "desc" ? 1 : -1;
@@ -187,7 +185,7 @@ const AdminTickets: React.FC = () => {
         return (a.price - b.price) * order;
       } else if (field === "kickoffTime") {
         return (a.kickoffTime.getTime() - b.kickoffTime.getTime()) * order;
-      } else { // createdAt
+      } else {
         return (a.createdAt.getTime() - b.createdAt.getTime()) * order;
       }
     });
@@ -243,7 +241,6 @@ const AdminTickets: React.FC = () => {
     setExportLoading(true);
     
     try {
-      // Create CSV content
       let csvContent = "data:text/csv;charset=utf-8,";
       csvContent += "Title,Seller,Email,Price,Betting Site,Kickoff Time,Created At,Hidden,Expired\n";
       
@@ -263,7 +260,6 @@ const AdminTickets: React.FC = () => {
         csvContent += row.join(",") + "\n";
       });
       
-      // Create and trigger download
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement("a");
       link.setAttribute("href", encodedUri);
@@ -314,22 +310,28 @@ const AdminTickets: React.FC = () => {
 
   useEffect(() => {
     fetchTickets(activeTab);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
   
   useEffect(() => {
     if (showStats) {
       generateStats();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showStats]);
 
-  // Apply filters when filters state changes or allTickets changes
   useEffect(() => {
     if (allTickets.length > 0) {
       applyFilters(allTickets, filters);
     }
   }, [filters, allTickets]);
+
+  const tabOptions = [
+    { value: "active", label: "Active" },
+    { value: "expired", label: "Expired" },
+    { value: "hidden", label: "Hidden" },
+    { value: "all", label: "All" }
+  ];
+
+  const currentTabLabel = tabOptions.find(tab => tab.value === activeTab)?.label || "Active";
 
   return (
     <Layout requireAuth={true} allowedRoles={["admin"]}>
@@ -340,26 +342,40 @@ const AdminTickets: React.FC = () => {
         error={error}
       />
       
-      <Tabs 
-        defaultValue="active" 
-        value={activeTab} 
-        onValueChange={(value) => setActiveTab(value as TicketFilter)}
-        className="container mx-auto mb-6"
-      >
-        <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-2 md:grid-cols-4">
-          <TabsTrigger value="active">Active</TabsTrigger>
-          <TabsTrigger value="expired">Expired</TabsTrigger>
-          <TabsTrigger value="hidden">Hidden</TabsTrigger>
-          <TabsTrigger value="all">All</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value={activeTab} className="mt-4">
+      {isMobile ? (
+        <div className="container mx-auto space-y-6">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="w-full justify-between bg-betting-dark-gray border-betting-light-gray text-white hover:bg-betting-light-gray"
+              >
+                {currentTabLabel}
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent 
+              className="w-full bg-betting-dark-gray border-betting-light-gray"
+              align="start"
+            >
+              {tabOptions.map((tab) => (
+                <DropdownMenuItem
+                  key={tab.value}
+                  onClick={() => setActiveTab(tab.value as TicketFilter)}
+                  className="text-gray-300 hover:text-white hover:bg-betting-light-gray cursor-pointer"
+                >
+                  {tab.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
           <TicketsFilter 
             searchTerm={filters.searchTerm}
             bettingSite={filters.bettingSite}
             onSearchChange={(value) => handleSearchChange(value)}
             onBettingSiteChange={(site) => handleBettingSiteChange(site)}
-            uniqueBettingSites={[...new Set(allTickets.map(ticket => ticket.bettingSite))]}
+            uniqueBettingSites={uniqueBettingSites}
           />
           
           <div className="betting-card overflow-x-auto">
@@ -370,8 +386,41 @@ const AdminTickets: React.FC = () => {
               onMarkExpired={markTicketAsExpired}
             />
           </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      ) : (
+        <Tabs 
+          defaultValue="active" 
+          value={activeTab} 
+          onValueChange={(value) => setActiveTab(value as TicketFilter)}
+          className="container mx-auto mb-6"
+        >
+          <TabsList className="grid w-full md:w-auto md:inline-grid grid-cols-2 md:grid-cols-4">
+            <TabsTrigger value="active">Active</TabsTrigger>
+            <TabsTrigger value="expired">Expired</TabsTrigger>
+            <TabsTrigger value="hidden">Hidden</TabsTrigger>
+            <TabsTrigger value="all">All</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value={activeTab} className="mt-4">
+            <TicketsFilter 
+              searchTerm={filters.searchTerm}
+              bettingSite={filters.bettingSite}
+              onSearchChange={(value) => handleSearchChange(value)}
+              onBettingSiteChange={(site) => handleBettingSiteChange(site)}
+              uniqueBettingSites={uniqueBettingSites}
+            />
+            
+            <div className="betting-card overflow-x-auto">
+              <TicketsTable 
+                tickets={tickets}
+                loading={loading}
+                onToggleVisibility={toggleTicketVisibility}
+                onMarkExpired={markTicketAsExpired}
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
+      )}
       
       <Dialog open={showStats} onOpenChange={setShowStats}>
         <TicketsStats stats={stats} loading={statsLoading} />
@@ -380,7 +429,6 @@ const AdminTickets: React.FC = () => {
   );
 };
 
-// New component for the tickets page header
 const AdminTicketsHeader: React.FC<{
   setShowStats: (show: boolean) => void;
   exportTickets: () => void;
