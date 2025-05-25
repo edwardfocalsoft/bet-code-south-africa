@@ -32,7 +32,7 @@ const SellerWithdrawals: React.FC = () => {
   const WITHDRAWAL_FEE_PERCENTAGE = 10;
 
   // Use system settings for minimum withdrawal amount
-  const minWithdrawalAmount = settings?.min_withdrawal_amount || 100;
+  const minWithdrawalAmount = 100;
 
   const handleWithdrawRequest = async () => {
     setProcessing(true);
