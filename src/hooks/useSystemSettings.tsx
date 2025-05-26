@@ -32,6 +32,20 @@ export const useSystemSettings = () => {
       
       if (data) {
         setSettings(data as SystemSettings);
+      } else {
+        // If no settings exist, create default ones
+        const { data: newSettings, error: insertError } = await supabase
+          .from("system_settings")
+          .insert({
+            min_withdrawal_amount: 1000
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        if (newSettings) {
+          setSettings(newSettings as SystemSettings);
+        }
       }
     } catch (error: any) {
       console.error("Error fetching system settings:", error);

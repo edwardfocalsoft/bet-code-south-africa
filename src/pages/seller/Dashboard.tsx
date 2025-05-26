@@ -1,107 +1,98 @@
 
 import React from "react";
 import Layout from "@/components/layout/Layout";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { PlusCircle, Ticket, CreditCard, Award, Wallet } from "lucide-react";
-import { useAuth } from "@/contexts/auth";
-import { useWallet } from "@/hooks/useWallet";
-import { useSellerDashboard } from "@/hooks/useSellerDashboard";
 import StatCard from "@/components/seller/dashboard/StatCard";
-import PerformanceChart from "@/components/seller/dashboard/PerformanceChart";
-import SalesTipsCard from "@/components/seller/dashboard/SalesTipsCard";
-import ProfileIncompleteAlert from "@/components/seller/dashboard/ProfileIncompleteAlert";
+import EnhancedPerformanceChart from "@/components/seller/dashboard/EnhancedPerformanceChart";
 import RecentSalesCard from "@/components/seller/dashboard/RecentSalesCard";
-import { formatCurrency } from "@/utils/formatting";
+import SalesTipsCard from "@/components/seller/dashboard/SalesTipsCard";
+import SupportCard from "@/components/seller/dashboard/SupportCard";
+import ProfileIncompleteAlert from "@/components/seller/dashboard/ProfileIncompleteAlert";
+import TransactionsTable from "@/components/seller/dashboard/TransactionsTable";
+import { useSellerDashboard } from "@/hooks/useSellerDashboard";
+import { Loader2 } from "lucide-react";
 
 const SellerDashboard: React.FC = () => {
-  const { currentUser } = useAuth();
-  const { creditBalance } = useWallet();
   const { 
-    isLoading, 
-    totalSales,
-    totalRevenue, 
-    ticketsSold, 
-    winRate, 
-    monthlyGrowth,
-    profileComplete,
-    performanceData,
-    recentSales,
-    subscribersCount
-  } = useSellerDashboard(currentUser);
+    stats, 
+    recentSales, 
+    transactions, 
+    loading, 
+    isProfileIncomplete 
+  } = useSellerDashboard();
+
+  // Generate mock performance data for the chart
+  const performanceData = [
+    { period: "Jan", sales: 12, revenue: 2400, avgRating: 4.2 },
+    { period: "Feb", sales: 19, revenue: 3800, avgRating: 4.3 },
+    { period: "Mar", sales: 15, revenue: 3000, avgRating: 4.1 },
+    { period: "Apr", sales: 22, revenue: 4400, avgRating: 4.5 },
+    { period: "May", sales: 18, revenue: 3600, avgRating: 4.4 },
+    { period: "Jun", sales: 25, revenue: 5000, avgRating: 4.6 },
+  ];
+
+  if (loading) {
+    return (
+      <Layout requireAuth={true} allowedRoles={["seller", "admin"]}>
+        <div className="container mx-auto py-8">
+          <div className="flex justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-betting-green" />
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout requireAuth={true} allowedRoles={["seller", "admin"]}>
       <div className="container mx-auto py-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">Seller Dashboard</h1>
-            <p className="text-muted-foreground">Welcome back, {currentUser?.username || "Seller"}</p>
-          </div>
-          <Link to="/seller/tickets/create">
-            <Button className="bg-betting-green hover:bg-betting-green-dark flex items-center gap-2 w-full sm:w-auto">
-              <PlusCircle className="h-4 w-4" />
-              Create New Ticket
-            </Button>
-          </Link>
-        </div>
+        <h1 className="text-3xl font-bold mb-6">Seller Dashboard</h1>
         
-        {!profileComplete && <ProfileIncompleteAlert visible={true} />}
+        {isProfileIncomplete && <ProfileIncompleteAlert />}
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
             title="Total Sales"
-            value={formatCurrency(totalRevenue || 0)}
-            icon={Ticket}
-            subtitle="Lifetime earnings"
-            loading={isLoading}
+            value={stats.totalSales}
+            icon="TrendingUp"
+            trend={{ value: 12, isPositive: true }}
           />
-          
           <StatCard
-            title="Tickets Sold"
-            value={ticketsSold}
-            icon={CreditCard}
-            loading={isLoading}
-            action={
-              <Link to="/seller/tickets" className="text-xs hover:underline text-betting-green">
-                View tickets
-              </Link>
-            }
+            title="Active Tickets"
+            value={stats.activeTickets}
+            icon="Ticket"
+            trend={{ value: 5, isPositive: true }}
           />
-          
           <StatCard
-            title="Win Rate"
-            value={`${winRate.toFixed(0)}%`}
-            icon={Award}
-            subtitle="Based on rated tickets"
-            loading={isLoading}
+            title="Total Revenue"
+            value={`R${stats.totalRevenue.toLocaleString()}`}
+            icon="DollarSign"
+            trend={{ value: 8, isPositive: true }}
           />
-          
           <StatCard
-            title="Subscribers"
-            value={subscribersCount}
-            icon={Wallet}
-            subtitle="People following you"
-            loading={isLoading}
+            title="Average Rating"
+            value={stats.averageRating.toFixed(1)}
+            icon="Star"
+            trend={{ value: 2, isPositive: true }}
           />
         </div>
-        
-        {/* Added more bottom margin (mb-12) to ensure enough space between sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+
+        <div className="mb-8">
+          <EnhancedPerformanceChart 
+            data={performanceData}
+            isLoading={loading}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <RecentSalesCard sales={recentSales} />
+          <SalesTipsCard />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <div className="lg:col-span-2">
-            <PerformanceChart 
-              loading={isLoading} 
-              monthlyGrowth={monthlyGrowth} 
-              data={performanceData} 
-            />
+            <TransactionsTable transactions={transactions} />
           </div>
-          <div>
-            <SalesTipsCard />
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 gap-6">
-          <RecentSalesCard loading={isLoading} sales={recentSales} />
+          <SupportCard />
         </div>
       </div>
     </Layout>
