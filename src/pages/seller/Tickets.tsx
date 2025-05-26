@@ -13,27 +13,69 @@ import { LoadingState } from "@/components/purchases/LoadingState";
 import TicketFilters from "@/components/seller/tickets/TicketFilters";
 import EmptyTicketsState from "@/components/seller/tickets/EmptyTicketsState";
 import TicketsTable from "@/components/seller/tickets/TicketsTable";
+import { Pagination } from "@/components/ui/pagination";
 
 const SellerTickets: React.FC = () => {
   const { currentUser } = useAuth();
   const [tickets, setTickets] = useState<BettingTicket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'expired'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const pageSize = 5;
 
   useEffect(() => {
     if (currentUser?.id) {
       fetchTickets();
     }
-  }, [currentUser]);
+  }, [currentUser, currentPage, activeFilter]);
 
   const fetchTickets = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      // Get total count for pagination
+      let countQuery = supabase
+        .from("tickets")
+        .select("*", { count: 'exact', head: true })
+        .eq("seller_id", currentUser?.id);
+
+      // Apply filter to count query
+      if (activeFilter === 'active') {
+        const now = new Date().toISOString();
+        countQuery = countQuery.gt('kickoff_time', now).eq('is_hidden', false);
+      } else if (activeFilter === 'expired') {
+        const now = new Date().toISOString();
+        countQuery = countQuery.lt('kickoff_time', now);
+      }
+
+      const { count, error: countError } = await countQuery;
+      if (countError) throw countError;
+
+      const totalRecords = count || 0;
+      const calculatedTotalPages = Math.ceil(totalRecords / pageSize);
+      setTotalPages(calculatedTotalPages || 1);
+
+      // Fetch tickets with pagination
+      const from = (currentPage - 1) * pageSize;
+      const to = from + pageSize - 1;
+
+      let query = supabase
         .from("tickets")
         .select("*")
         .eq("seller_id", currentUser?.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(from, to);
+
+      // Apply filter to data query
+      if (activeFilter === 'active') {
+        const now = new Date().toISOString();
+        query = query.gt('kickoff_time', now).eq('is_hidden', false);
+      } else if (activeFilter === 'expired') {
+        const now = new Date().toISOString();
+        query = query.lt('kickoff_time', now);
+      }
+      
+      const { data, error } = await query;
       
       if (error) throw error;
       
@@ -99,23 +141,13 @@ const SellerTickets: React.FC = () => {
       
       setTickets(tickets.filter(ticket => ticket.id !== ticketId));
       toast.success("Ticket deleted successfully");
+      
+      // Refetch to update pagination
+      fetchTickets();
     } catch (error: any) {
       toast.error(`Error deleting ticket: ${error.message}`);
     }
   };
-
-  const getFilteredTickets = () => {
-    switch (activeFilter) {
-      case 'active':
-        return tickets.filter(ticket => !ticket.isExpired && !ticket.isHidden);
-      case 'expired':
-        return tickets.filter(ticket => ticket.isExpired);
-      default:
-        return tickets;
-    }
-  };
-
-  const filteredTickets = getFilteredTickets();
 
   return (
     <Layout requireAuth={true} allowedRoles={["seller", "admin"]}>
@@ -139,14 +171,26 @@ const SellerTickets: React.FC = () => {
               setActiveFilter={setActiveFilter} 
             />
             
-            {filteredTickets.length === 0 ? (
+            {tickets.length === 0 ? (
               <EmptyTicketsState activeFilter={activeFilter} />
             ) : (
-              <TicketsTable 
-                tickets={filteredTickets} 
-                onToggleVisibility={toggleTicketVisibility}
-                onDelete={deleteTicket}
-              />
+              <>
+                <TicketsTable 
+                  tickets={tickets} 
+                  onToggleVisibility={toggleTicketVisibility}
+                  onDelete={deleteTicket}
+                />
+                
+                {totalPages > 1 && (
+                  <div className="mt-6 flex justify-center">
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setCurrentPage}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </>
         )}

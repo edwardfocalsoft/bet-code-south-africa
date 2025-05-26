@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -21,21 +20,35 @@ export const useSellerDashboard = (user: any) => {
     const fetchDashboardStats = async () => {
       setIsLoading(true);
       try {
-        // Fetch total tickets sold
+        // Fetch active tickets (tickets with kickoff time in the future)
+        const now = new Date().toISOString();
+        const { count: activeTicketsCount, error: activeTicketsError } = await supabase
+          .from('tickets')
+          .select('*', { count: 'exact', head: true })
+          .eq('seller_id', user.id)
+          .gt('kickoff_time', now)
+          .eq('is_hidden', false);
+        
+        if (activeTicketsError) throw activeTicketsError;
+        setTicketsSold(activeTicketsCount || 0);
+        
+        // Fetch total tickets sold (completed purchases)
         const { count: soldCount, error: soldError } = await supabase
           .from('purchases')
           .select('*', { count: 'exact', head: true })
-          .eq('seller_id', user.id);
+          .eq('seller_id', user.id)
+          .eq('payment_status', 'completed');
         
         if (soldError) throw soldError;
-        setTicketsSold(soldCount || 0);
+        setTotalSales(soldCount || 0);
         
         // Fetch winning tickets
         const { count: winCount, error: winError } = await supabase
           .from('purchases')
           .select('*', { count: 'exact', head: true })
           .eq('seller_id', user.id)
-          .eq('is_winner', true);
+          .eq('is_winner', true)
+          .eq('payment_status', 'completed');
         
         if (winError) throw winError;
         setWinRate(soldCount ? Math.round((winCount / soldCount) * 100) : 0);
@@ -65,13 +78,13 @@ export const useSellerDashboard = (user: any) => {
         const { data: salesData, error: salesError } = await supabase
           .from('purchases')
           .select('price')
-          .eq('seller_id', user.id);
+          .eq('seller_id', user.id)
+          .eq('payment_status', 'completed');
         
         if (salesError) throw salesError;
         if (salesData && salesData.length > 0) {
           const revenue = salesData.reduce((sum, purchase) => sum + (purchase.price || 0), 0);
           setTotalRevenue(revenue);
-          setTotalSales(salesData.length);
         }
 
         // Fetch monthly performance data for the past 6 months using real database data
@@ -82,6 +95,7 @@ export const useSellerDashboard = (user: any) => {
           .from('purchases')
           .select('price, purchase_date')
           .eq('seller_id', user.id)
+          .eq('payment_status', 'completed')
           .gte('purchase_date', sixMonthsAgo.toISOString())
           .order('purchase_date', { ascending: true });
           
@@ -163,6 +177,7 @@ export const useSellerDashboard = (user: any) => {
             tickets (title)
           `)
           .eq('seller_id', user.id)
+          .eq('payment_status', 'completed')
           .order('purchase_date', { ascending: false })
           .limit(5);
         

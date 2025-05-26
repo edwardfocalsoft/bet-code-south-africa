@@ -1,16 +1,17 @@
 
 import React from "react";
+import { Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import StatCard from "@/components/seller/dashboard/StatCard";
 import SinglePerformanceChart from "@/components/seller/dashboard/SinglePerformanceChart";
 import RecentSalesCard from "@/components/seller/dashboard/RecentSalesCard";
 import SalesTipsCard from "@/components/seller/dashboard/SalesTipsCard";
-import SupportCard from "@/components/seller/dashboard/SupportCard";
 import ProfileIncompleteAlert from "@/components/seller/dashboard/ProfileIncompleteAlert";
 import TransactionsTable from "@/components/seller/dashboard/TransactionsTable";
+import { Button } from "@/components/ui/button";
 import { useSellerDashboard } from "@/hooks/useSellerDashboard";
 import { useAuth } from "@/contexts/auth";
-import { Loader2, TrendingUp, Ticket, DollarSign, Star } from "lucide-react";
+import { Loader2, TrendingUp, Ticket, DollarSign, Star, ArrowRight } from "lucide-react";
 
 const SellerDashboard: React.FC = () => {
   const { currentUser } = useAuth();
@@ -94,11 +95,21 @@ const SellerDashboard: React.FC = () => {
           <SalesTipsCard />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className="lg:col-span-2">
+        <div className="mb-8">
+          <div className="betting-card">
+            <div className="p-6 border-b">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Recent Transactions</h3>
+                <Link to="/user/wallet">
+                  <Button variant="outline" size="sm" className="flex items-center gap-2">
+                    View More
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
             <TransactionsTable limit={3} showPagination={false} />
           </div>
-          <SupportCard />
         </div>
       </div>
     </Layout>
