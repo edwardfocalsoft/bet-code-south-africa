@@ -13,6 +13,7 @@ import { formatCurrency } from "@/utils/formatting";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import TransactionHistoryCard from "@/components/wallet/TransactionHistoryCard";
+import { supabase } from "@/integrations/supabase/client";
 
 const SellerWithdrawals: React.FC = () => {
   const { currentUser } = useAuth();
@@ -32,9 +33,14 @@ const SellerWithdrawals: React.FC = () => {
   const WITHDRAWAL_FEE_PERCENTAGE = 10;
 
   // Use system settings for minimum withdrawal amount
-  const minWithdrawalAmount = 100;
+  const minWithdrawalAmount = settings?.min_withdrawal_amount || 100;
 
   const handleWithdrawRequest = async () => {
+    if (!currentUser) {
+      toast.error("You must be logged in to request a withdrawal");
+      return;
+    }
+
     setProcessing(true);
     try {
       // Validate amount
@@ -49,14 +55,59 @@ const SellerWithdrawals: React.FC = () => {
         return;
       }
 
-      if (withdrawAmount > creditBalance) {
+      if (withdrawAmount > (creditBalance || 0)) {
         toast.error("Insufficient balance for this withdrawal");
         return;
       }
 
-      // Here we would process the withdrawal request
-      toast.success("Your withdrawal request has been submitted for processing", {
-        description: "You will be notified when it has been processed",
+      // Calculate net amount after fee
+      const feeAmount = calculateFee(withdrawAmount);
+      const netAmount = calculateNetAmount(withdrawAmount);
+
+      // Create withdrawal record in database
+      const { error: withdrawalError } = await supabase
+        .from('withdrawals')
+        .insert({
+          seller_id: currentUser.id,
+          amount: netAmount, // Store the net amount they'll receive
+          status: 'pending'
+        });
+
+      if (withdrawalError) {
+        console.error("Error creating withdrawal record:", withdrawalError);
+        toast.error("Failed to create withdrawal request");
+        return;
+      }
+
+      // Deduct the full withdrawal amount from seller's balance
+      const { error: balanceError } = await supabase.rpc('add_credits', {
+        user_id: currentUser.id,
+        amount_to_add: -withdrawAmount // Negative amount to deduct
+      });
+
+      if (balanceError) {
+        console.error("Error updating balance:", balanceError);
+        toast.error("Failed to process withdrawal");
+        return;
+      }
+
+      // Create wallet transaction record
+      const { error: transactionError } = await supabase
+        .from('wallet_transactions')
+        .insert({
+          user_id: currentUser.id,
+          amount: -withdrawAmount, // Negative for withdrawal
+          type: 'withdrawal',
+          description: `Withdrawal request - Fee: ${formatCurrency(feeAmount)}, Net: ${formatCurrency(netAmount)}`
+        });
+
+      if (transactionError) {
+        console.error("Error creating transaction record:", transactionError);
+        // Don't fail the whole process for transaction logging
+      }
+
+      toast.success("Withdrawal request submitted successfully!", {
+        description: `You will receive ${formatCurrency(netAmount)} after processing`,
         duration: 5000
       });
 
