@@ -21,12 +21,12 @@ export const useSellerDashboard = (user: any) => {
       setIsLoading(true);
       try {
         // Fetch active tickets (tickets with kickoff time in the future)
-        const now = new Date().toISOString();
+        const nowISOString = new Date().toISOString();
         const { count: activeTicketsCount, error: activeTicketsError } = await supabase
           .from('tickets')
           .select('*', { count: 'exact', head: true })
           .eq('seller_id', user.id)
-          .gt('kickoff_time', now)
+          .gt('kickoff_time', nowISOString)
           .eq('is_hidden', false);
         
         if (activeTicketsError) throw activeTicketsError;
