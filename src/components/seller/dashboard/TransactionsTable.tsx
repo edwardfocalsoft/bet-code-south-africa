@@ -19,57 +19,78 @@ interface Transaction {
 
 interface TransactionsTableProps {
   className?: string;
+  limit?: number;
+  showPagination?: boolean;
 }
 
-const TransactionsTable: React.FC<TransactionsTableProps> = ({ className = "" }) => {
+const TransactionsTable: React.FC<TransactionsTableProps> = ({ 
+  className = "", 
+  limit,
+  showPagination = true 
+}) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const { currentUser } = useAuth();
-  const pageSize = 10; // Items per page
+  const pageSize = limit || 10; // Use limit prop or default to 10
 
   useEffect(() => {
     if (currentUser) {
       fetchTransactions();
     }
-  }, [currentUser, currentPage]);
+  }, [currentUser, currentPage, limit]);
 
   const fetchTransactions = async () => {
     if (!currentUser) return;
 
     setLoading(true);
     try {
-      // Get total count for pagination
-      const { count, error: countError } = await supabase
-        .from('wallet_transactions')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', currentUser.id)
-        .in('type', ['sale', 'tip']);
+      // If limit is provided, don't paginate, just get the limited results
+      if (limit) {
+        const { data, error } = await supabase
+          .from('wallet_transactions')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .in('type', ['sale', 'tip'])
+          .order('created_at', { ascending: false })
+          .limit(limit);
 
-      if (countError) throw countError;
-      
-      // Calculate total pages
-      const totalRecords = count || 0;
-      const calculatedTotalPages = Math.ceil(totalRecords / pageSize);
-      setTotalPages(calculatedTotalPages || 1);
-      
-      // Fetch transactions with pagination
-      const from = (currentPage - 1) * pageSize;
-      const to = from + pageSize - 1;
-      
-      const { data, error } = await supabase
-        .from('wallet_transactions')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .in('type', ['sale', 'tip'])
-        .order('created_at', { ascending: false })
-        .range(from, to);
+        if (error) throw error;
+        setTransactions(data || []);
+        setTotalPages(1);
+      } else {
+        // Get total count for pagination
+        const { count, error: countError } = await supabase
+          .from('wallet_transactions')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', currentUser.id)
+          .in('type', ['sale', 'tip']);
 
-      if (error) throw error;
-      
-      setTransactions(data || []);
+        if (countError) throw countError;
+        
+        // Calculate total pages
+        const totalRecords = count || 0;
+        const calculatedTotalPages = Math.ceil(totalRecords / pageSize);
+        setTotalPages(calculatedTotalPages || 1);
+        
+        // Fetch transactions with pagination
+        const from = (currentPage - 1) * pageSize;
+        const to = from + pageSize - 1;
+        
+        const { data, error } = await supabase
+          .from('wallet_transactions')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .in('type', ['sale', 'tip'])
+          .order('created_at', { ascending: false })
+          .range(from, to);
+
+        if (error) throw error;
+        
+        setTransactions(data || []);
+      }
     } catch (err: any) {
       console.error('Error fetching transactions:', err);
       setError(err.message);
@@ -141,7 +162,7 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({ className = "" })
         </Table>
       </div>
       
-      {totalPages > 1 && (
+      {showPagination && totalPages > 1 && (
         <div className="mt-4 flex justify-center">
           <Pagination
             currentPage={currentPage}

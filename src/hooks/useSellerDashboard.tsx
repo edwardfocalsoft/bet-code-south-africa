@@ -52,7 +52,7 @@ export const useSellerDashboard = (user: any) => {
           setAverageRating(Number(average.toFixed(1)));
         }
 
-        // Fetch subscribers count - Fixed to correctly count all subscribers
+        // Fetch subscribers count
         const { count: subCount, error: subError } = await supabase
           .from('subscriptions')
           .select('*', { count: 'exact', head: true })
@@ -74,9 +74,9 @@ export const useSellerDashboard = (user: any) => {
           setTotalSales(salesData.length);
         }
 
-        // Fetch monthly performance data for the past 6 months
+        // Fetch monthly performance data for the past 6 months using real database data
         const now = new Date();
-        const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1); // First day of 6 months ago
+        const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
         
         const { data: monthlyData, error: monthlyError } = await supabase
           .from('purchases')
@@ -87,41 +87,37 @@ export const useSellerDashboard = (user: any) => {
           
         if (monthlyError) throw monthlyError;
         
-        // Process monthly data
+        // Process real monthly data
         if (monthlyData && monthlyData.length > 0) {
-          // Create a map to store sales for each month
-          const monthlySales: Record<string, number> = {};
+          // Create a map to store sales count for each month
+          const monthlySalesCount: Record<string, number> = {};
           
-          // Initialize monthlySales with 0 for the past 6 months
+          // Initialize monthlySalesCount with 0 for the past 6 months
           for (let i = 0; i < 6; i++) {
             const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            const monthKey = monthDate.toLocaleString('default', { month: 'short' }) + ' ' + monthDate.getFullYear();
-            monthlySales[monthKey] = 0;
+            const monthKey = monthDate.toLocaleString('default', { month: 'short' });
+            monthlySalesCount[monthKey] = 0;
           }
           
-          // Sum up sales for each month
+          // Count sales for each month
           monthlyData.forEach(sale => {
             const saleDate = new Date(sale.purchase_date);
-            const monthKey = saleDate.toLocaleString('default', { month: 'short' }) + ' ' + saleDate.getFullYear();
+            const monthKey = saleDate.toLocaleString('default', { month: 'short' });
             
-            if (monthlySales[monthKey] !== undefined) {
-              monthlySales[monthKey] += Number(sale.price);
+            if (monthlySalesCount[monthKey] !== undefined) {
+              monthlySalesCount[monthKey] += 1; // Count number of sales, not revenue
             }
           });
           
           // Convert to array format required by the chart
-          const formattedData = Object.entries(monthlySales)
+          const formattedData = Object.entries(monthlySalesCount)
             .sort((a, b) => {
-              // Parse month names to get proper sorting
-              const [monthA, yearA] = a[0].split(' ');
-              const [monthB, yearB] = b[0].split(' ');
-              const dateA = new Date(`${monthA} 1, ${yearA}`);
-              const dateB = new Date(`${monthB} 1, ${yearB}`);
-              return dateA.getTime() - dateB.getTime();
+              const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+              return months.indexOf(a[0]) - months.indexOf(b[0]);
             })
             .slice(-6) // Take only the most recent 6 months
             .map(([month, sales]) => ({
-              name: month.split(' ')[0], // Just use the month abbreviation for the chart
+              name: month,
               sales: sales
             }));
           
@@ -136,10 +132,8 @@ export const useSellerDashboard = (user: any) => {
               const growth = ((currentMonth - previousMonth) / previousMonth) * 100;
               setMonthlyGrowth(parseFloat(growth.toFixed(1)));
             } else if (currentMonth > 0) {
-              // If previous month was 0, but current month has sales, show 100% growth
               setMonthlyGrowth(100);
             } else {
-              // Both months are 0
               setMonthlyGrowth(0);
             }
           }
@@ -157,7 +151,7 @@ export const useSellerDashboard = (user: any) => {
         if (bankError) throw bankError;
         setProfileComplete(bankData && bankData.length > 0);
 
-        // Fetch recent sales
+        // Fetch recent sales (limit to latest 5)
         const { data: recentData, error: recentError } = await supabase
           .from('purchases')
           .select(`

@@ -2,7 +2,7 @@
 import React from "react";
 import Layout from "@/components/layout/Layout";
 import StatCard from "@/components/seller/dashboard/StatCard";
-import EnhancedPerformanceChart from "@/components/seller/dashboard/EnhancedPerformanceChart";
+import SinglePerformanceChart from "@/components/seller/dashboard/SinglePerformanceChart";
 import RecentSalesCard from "@/components/seller/dashboard/RecentSalesCard";
 import SalesTipsCard from "@/components/seller/dashboard/SalesTipsCard";
 import SupportCard from "@/components/seller/dashboard/SupportCard";
@@ -28,15 +28,13 @@ const SellerDashboard: React.FC = () => {
     recentSales
   } = useSellerDashboard(currentUser);
 
-  // Generate mock performance data for the chart
-  const chartData = [
-    { period: "Jan", sales: 12, revenue: 2400, avgRating: 4.2 },
-    { period: "Feb", sales: 19, revenue: 3800, avgRating: 4.3 },
-    { period: "Mar", sales: 15, revenue: 3000, avgRating: 4.1 },
-    { period: "Apr", sales: 22, revenue: 4400, avgRating: 4.5 },
-    { period: "May", sales: 18, revenue: 3600, avgRating: 4.4 },
-    { period: "Jun", sales: 25, revenue: 5000, avgRating: 4.6 },
-  ];
+  // Transform performanceData to match chart requirements
+  const chartData = performanceData.map(item => ({
+    period: item.name,
+    sales: item.sales,
+    revenue: item.sales * 100, // Approximate revenue for chart
+    avgRating: averageRating || 0
+  }));
 
   if (isLoading) {
     return (
@@ -85,20 +83,20 @@ const SellerDashboard: React.FC = () => {
         </div>
 
         <div className="mb-8">
-          <EnhancedPerformanceChart 
+          <SinglePerformanceChart 
             data={chartData}
             isLoading={isLoading}
           />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <RecentSalesCard sales={recentSales} loading={isLoading} />
+          <RecentSalesCard sales={recentSales.slice(0, 3)} loading={isLoading} />
           <SalesTipsCard />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <div className="lg:col-span-2">
-            <TransactionsTable />
+            <TransactionsTable limit={3} showPagination={false} />
           </div>
           <SupportCard />
         </div>
