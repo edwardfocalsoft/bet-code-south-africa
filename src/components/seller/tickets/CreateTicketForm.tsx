@@ -220,6 +220,22 @@ const CreateTicketForm: React.FC = () => {
     }
   };
 
+  // Convert optional FormErrors to required string errors for step components
+  const getStep1Errors = () => ({
+    title: errors.title || "",
+    description: errors.description || "",
+    bettingSite: errors.bettingSite || "",
+    numberOfLegs: errors.numberOfLegs || "",
+  });
+
+  const getStep2Errors = () => ({
+    price: errors.price || "",
+    odds: errors.odds || "",
+    date: errors.date || "",
+    time: errors.time || "",
+    ticketCode: errors.ticketCode || "",
+  });
+
   return (
     <>
       <div className="mb-8 bg-betting-dark-gray p-4 rounded-lg space-y-4">
@@ -270,7 +286,7 @@ const CreateTicketForm: React.FC = () => {
             <TicketInfoStep 
               ticketData={ticketData}
               setTicketData={setTicketData}
-              errors={errors}
+              errors={getStep1Errors()}
               onNext={handleNextStep}
             />
           )}
@@ -279,7 +295,7 @@ const CreateTicketForm: React.FC = () => {
             <TicketDetailsStep
               ticketData={ticketData}
               setTicketData={setTicketData}
-              errors={errors}
+              errors={getStep2Errors()}
               onPrev={handlePrevStep}
               onSubmit={handleNextStep}
               isSubmitting={isSubmitting || validatingStep}
