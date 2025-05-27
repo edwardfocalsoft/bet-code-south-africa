@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Star, Award, Trophy, TrendingUp } from "lucide-react";
 import TipButton from "@/components/sellers/TipButton";
+import SubscribeButton from "@/components/sellers/SubscribeButton";
 import { useAuth } from "@/contexts/auth";
 
 interface SellerProfileHeaderProps {
@@ -73,7 +74,11 @@ const SellerProfileHeader: React.FC<SellerProfileHeaderProps> = ({ seller, stats
         </div>
         
         {!isSelf && currentUser && (
-          <div className="mt-4 flex justify-center border-t border-betting-light-gray/20 pt-4">
+          <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-center border-t border-betting-light-gray/20 pt-4">
+            <SubscribeButton 
+              sellerId={seller.id}
+              variant="outline"
+            />
             <TipButton 
               sellerId={seller.id}
               sellerName={seller.username || "Seller"}
