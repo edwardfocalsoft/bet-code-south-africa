@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,7 +35,7 @@ interface MultiTicketFormProps {
 }
 
 const BETTING_SITES: BettingSite[] = [
-  "betway", "supabets", "hollywoodbets", "sportingbet", "betxchange", "fafabet"
+  "Betway", "Supabets", "HollywoodBets", "Playa", "10bet", "Easybet"
 ];
 
 const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
@@ -156,7 +155,7 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
                   <SelectContent>
                     {BETTING_SITES.map(site => (
                       <SelectItem key={site} value={site}>
-                        {site.charAt(0).toUpperCase() + site.slice(1)}
+                        {site}
                       </SelectItem>
                     ))}
                   </SelectContent>
