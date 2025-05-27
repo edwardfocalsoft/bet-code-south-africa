@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -21,12 +22,12 @@ export const useSellerDashboard = (user: any) => {
       setIsLoading(true);
       try {
         // Fetch active tickets (tickets with kickoff time in the future)
-        const nowISOString = new Date().toISOString();
+        const currentTime = new Date().toISOString();
         const { count: activeTicketsCount, error: activeTicketsError } = await supabase
           .from('tickets')
           .select('*', { count: 'exact', head: true })
           .eq('seller_id', user.id)
-          .gt('kickoff_time', nowISOString)
+          .gt('kickoff_time', currentTime)
           .eq('is_hidden', false);
         
         if (activeTicketsError) throw activeTicketsError;
@@ -88,8 +89,8 @@ export const useSellerDashboard = (user: any) => {
         }
 
         // Fetch monthly performance data for the past 6 months using real database data
-        const now = new Date();
-        const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+        const currentDate = new Date();
+        const sixMonthsAgo = new Date(currentDate.getFullYear(), currentDate.getMonth() - 5, 1);
         
         const { data: monthlyData, error: monthlyError } = await supabase
           .from('purchases')
@@ -108,7 +109,7 @@ export const useSellerDashboard = (user: any) => {
           
           // Initialize monthlySalesCount with 0 for the past 6 months
           for (let i = 0; i < 6; i++) {
-            const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
             const monthKey = monthDate.toLocaleString('default', { month: 'short' });
             monthlySalesCount[monthKey] = 0;
           }

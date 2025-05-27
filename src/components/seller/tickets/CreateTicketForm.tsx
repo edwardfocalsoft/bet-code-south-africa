@@ -2,6 +2,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { ChevronRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,15 +12,49 @@ import TicketInfoStep from "./form-steps/TicketInfoStep";
 import TicketDetailsStep from "./form-steps/TicketDetailsStep";
 import ProgressStepper from "./form-steps/ProgressStepper";
 import TicketPreview from "./form-steps/TicketPreview";
+import MultiTicketForm from "./MultiTicketForm";
 import { useTicketForm } from "@/hooks/seller/useTicketForm";
+import { useMultiTicketForm } from "@/hooks/seller/useMultiTicketForm";
 
 const CreateTicketForm: React.FC = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { ticketData, setTicketData, errors, validateStep1, validateStep2, step, setStep, isCheckingTicketCode } = useTicketForm();
+  const [isMultiMode, setIsMultiMode] = useState(false);
+  
+  // Single ticket form
+  const { 
+    ticketData, 
+    setTicketData, 
+    errors, 
+    validateStep1, 
+    validateStep2, 
+    step, 
+    setStep, 
+    isCheckingTicketCode 
+  } = useTicketForm();
+  
+  // Multi ticket form
+  const {
+    formData: multiTicketData,
+    addTicket,
+    removeTicket,
+    updateTicket,
+    addScannedCode,
+    validateTicketCodeUniqueness,
+    isScanning,
+    setIsScanning
+  } = useMultiTicketForm();
+  
   const [previewOpen, setPreviewOpen] = useState(false);
   const [validatingStep, setValidatingStep] = useState(false);
+  
+  const handleModeToggle = (checked: boolean) => {
+    setIsMultiMode(checked);
+    if (checked && multiTicketData.tickets.length === 0) {
+      addTicket();
+    }
+  };
   
   const handleNextStep = async () => {
     if (step === 1 && validateStep1()) {
@@ -48,45 +84,136 @@ const CreateTicketForm: React.FC = () => {
     }
   };
   
+  const validateMultiTickets = async () => {
+    if (multiTicketData.tickets.length === 0) {
+      toast.error("Please add at least one ticket");
+      return false;
+    }
+    
+    for (const ticket of multiTicketData.tickets) {
+      if (!ticket.title.trim()) {
+        toast.error("All tickets must have a title");
+        return false;
+      }
+      if (!ticket.description.trim()) {
+        toast.error("All tickets must have a description");
+        return false;
+      }
+      if (!ticket.bettingSite) {
+        toast.error("All tickets must have a betting site selected");
+        return false;
+      }
+      if (!ticket.ticketCode.trim()) {
+        toast.error("All tickets must have a ticket code");
+        return false;
+      }
+      if (!ticket.odds.trim()) {
+        toast.error("All tickets must have odds");
+        return false;
+      }
+      if (ticket.numberOfLegs < 2) {
+        toast.error("All tickets must have at least 2 legs");
+        return false;
+      }
+      if (!ticket.isFree && ticket.price <= 0) {
+        toast.error("Paid tickets must have a valid price");
+        return false;
+      }
+      
+      // Check ticket code uniqueness
+      const isUnique = await validateTicketCodeUniqueness(ticket.ticketCode);
+      if (!isUnique) {
+        toast.error(`Ticket code ${ticket.ticketCode} is already in use`);
+        return false;
+      }
+      
+      // Check if kickoff time is in the future
+      const kickoffTime = new Date(ticket.date);
+      const [hours, minutes] = ticket.time.split(':').map(Number);
+      kickoffTime.setHours(hours, minutes);
+      
+      if (kickoffTime <= new Date()) {
+        toast.error("All tickets must have a future kickoff time");
+        return false;
+      }
+    }
+    
+    return true;
+  };
+  
   const handleSubmit = async () => {
     if (!currentUser?.id) {
       toast.error("Authentication required", {
-        description: "You must be logged in to create a ticket",
+        description: "You must be logged in to create tickets",
       });
       return;
     }
     
     setIsSubmitting(true);
     try {
-      // Create a Date object with the selected date and time
-      const kickoffTime = new Date(ticketData.date);
-      const [hours, minutes] = ticketData.time.split(':').map(Number);
-      kickoffTime.setHours(hours, minutes);
+      if (isMultiMode) {
+        // Handle multi-ticket submission
+        const isValid = await validateMultiTickets();
+        if (!isValid) return;
+        
+        const ticketsToInsert = multiTicketData.tickets.map(ticket => {
+          const kickoffTime = new Date(ticket.date);
+          const [hours, minutes] = ticket.time.split(':').map(Number);
+          kickoffTime.setHours(hours, minutes);
+          
+          return {
+            seller_id: currentUser.id,
+            title: ticket.title,
+            description: ticket.description,
+            betting_site: ticket.bettingSite,
+            price: ticket.isFree ? 0 : ticket.price,
+            is_free: ticket.isFree,
+            odds: parseFloat(ticket.odds),
+            kickoff_time: kickoffTime.toISOString(),
+            ticket_code: ticket.ticketCode
+          };
+        });
+        
+        const { error } = await supabase
+          .from("tickets")
+          .insert(ticketsToInsert);
+        
+        if (error) throw error;
+        
+        toast.success(`${multiTicketData.tickets.length} tickets created successfully!`, {
+          description: "Your tickets have been published and are now available for purchase.",
+        });
+      } else {
+        // Handle single ticket submission
+        const kickoffTime = new Date(ticketData.date);
+        const [hours, minutes] = ticketData.time.split(':').map(Number);
+        kickoffTime.setHours(hours, minutes);
+        
+        const { error } = await supabase
+          .from("tickets")
+          .insert({
+            seller_id: currentUser.id,
+            title: ticketData.title,
+            description: ticketData.description,
+            betting_site: ticketData.bettingSite,
+            price: ticketData.isFree ? 0 : ticketData.price,
+            is_free: ticketData.isFree,
+            odds: parseFloat(ticketData.odds),
+            kickoff_time: kickoffTime.toISOString(),
+            ticket_code: ticketData.ticketCode
+          });
+        
+        if (error) throw error;
+        
+        toast.success("Ticket created successfully!", {
+          description: "Your ticket has been published and is now available for purchase.",
+        });
+      }
       
-      const { data, error } = await supabase
-        .from("tickets")
-        .insert({
-          seller_id: currentUser.id,
-          title: ticketData.title,
-          description: ticketData.description,
-          betting_site: ticketData.bettingSite,
-          price: ticketData.isFree ? 0 : ticketData.price,
-          is_free: ticketData.isFree,
-          odds: parseFloat(ticketData.odds),
-          kickoff_time: kickoffTime.toISOString(),
-          ticket_code: ticketData.ticketCode
-        })
-        .select();
-      
-      if (error) throw error;
-      
-      toast.success("Ticket created successfully!", {
-        description: "Your ticket has been published and is now available for purchase.",
-      });
       navigate(`/seller/tickets`);
     } catch (error: any) {
-      toast.error("Error creating ticket", {
-        description: error.message || "Failed to create ticket. Please try again.",
+      toast.error("Error creating tickets", {
+        description: error.message || "Failed to create tickets. Please try again.",
       });
     } finally {
       setIsSubmitting(false);
@@ -95,37 +222,79 @@ const CreateTicketForm: React.FC = () => {
 
   return (
     <>
-      <div className="mb-8 bg-betting-dark-gray p-4 rounded-lg">
-        <ProgressStepper currentStep={step} />
+      <div className="mb-8 bg-betting-dark-gray p-4 rounded-lg space-y-4">
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="multi-mode"
+            checked={isMultiMode}
+            onCheckedChange={handleModeToggle}
+          />
+          <Label htmlFor="multi-mode">Create Multiple Tickets</Label>
+        </div>
+        
+        {!isMultiMode && <ProgressStepper currentStep={step} />}
       </div>
       
-      {step === 1 && (
-        <TicketInfoStep 
-          ticketData={ticketData}
-          setTicketData={setTicketData}
-          errors={errors}
-          onNext={handleNextStep}
-        />
+      {isMultiMode ? (
+        <div className="space-y-6">
+          <MultiTicketForm
+            tickets={multiTicketData.tickets}
+            onAddTicket={addTicket}
+            onRemoveTicket={removeTicket}
+            onUpdateTicket={updateTicket}
+            onCodeScanned={addScannedCode}
+            isScanning={isScanning}
+            setIsScanning={setIsScanning}
+          />
+          
+          <div className="flex justify-end">
+            <Button 
+              onClick={handleSubmit}
+              disabled={isSubmitting || multiTicketData.tickets.length === 0}
+              className="bg-betting-green hover:bg-betting-green-dark"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating Tickets...
+                </>
+              ) : (
+                `Create ${multiTicketData.tickets.length} Tickets`
+              )}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
+          {step === 1 && (
+            <TicketInfoStep 
+              ticketData={ticketData}
+              setTicketData={setTicketData}
+              errors={errors}
+              onNext={handleNextStep}
+            />
+          )}
+          
+          {step === 2 && (
+            <TicketDetailsStep
+              ticketData={ticketData}
+              setTicketData={setTicketData}
+              errors={errors}
+              onPrev={handlePrevStep}
+              onSubmit={handleNextStep}
+              isSubmitting={isSubmitting || validatingStep}
+              showPreview={showTicketPreview}
+              isCheckingTicketCode={isCheckingTicketCode}
+            />
+          )}
+          
+          <TicketPreview 
+            isOpen={previewOpen}
+            onClose={() => setPreviewOpen(false)}
+            ticketData={ticketData}
+          />
+        </>
       )}
-      
-      {step === 2 && (
-        <TicketDetailsStep
-          ticketData={ticketData}
-          setTicketData={setTicketData}
-          errors={errors}
-          onPrev={handlePrevStep}
-          onSubmit={handleNextStep}
-          isSubmitting={isSubmitting || validatingStep}
-          showPreview={showTicketPreview}
-          isCheckingTicketCode={isCheckingTicketCode}
-        />
-      )}
-      
-      <TicketPreview 
-        isOpen={previewOpen}
-        onClose={() => setPreviewOpen(false)}
-        ticketData={ticketData}
-      />
     </>
   );
 };

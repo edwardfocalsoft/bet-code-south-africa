@@ -53,7 +53,7 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
           .from('wallet_transactions')
           .select('*')
           .eq('user_id', currentUser.id)
-          .in('type', ['sale', 'tip'])
+          .in('type', ['sale', 'tip', 'withdrawal'])
           .order('created_at', { ascending: false })
           .limit(limit);
 
@@ -66,7 +66,7 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
           .from('wallet_transactions')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', currentUser.id)
-          .in('type', ['sale', 'tip']);
+          .in('type', ['sale', 'tip', 'withdrawal']);
 
         if (countError) throw countError;
         
@@ -83,7 +83,7 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
           .from('wallet_transactions')
           .select('*')
           .eq('user_id', currentUser.id)
-          .in('type', ['sale', 'tip'])
+          .in('type', ['sale', 'tip', 'withdrawal'])
           .order('created_at', { ascending: false })
           .range(from, to);
 
@@ -109,6 +109,8 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
         return <Badge className="bg-green-600">Sale</Badge>;
       case 'tip':
         return <Badge className="bg-purple-600">Tip</Badge>;
+      case 'withdrawal':
+        return <Badge className="bg-orange-600">Withdrawal</Badge>;
       default:
         return <Badge variant="outline">{type}</Badge>;
     }
@@ -130,7 +132,7 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
     <div className={className}>
       <div className="betting-card overflow-x-auto">
         <Table>
-          <TableCaption>Income from sales and tips</TableCaption>
+          <TableCaption>Income from sales and tips, and withdrawal requests</TableCaption>
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
@@ -146,8 +148,10 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({
                   <TableCell>{formatDate(transaction.created_at)}</TableCell>
                   <TableCell>{getTransactionBadge(transaction.type)}</TableCell>
                   <TableCell>{transaction.description}</TableCell>
-                  <TableCell className="text-right text-green-500 font-medium">
-                    R {Number(transaction.amount).toFixed(2)}
+                  <TableCell className={`text-right font-medium ${
+                    transaction.amount > 0 ? 'text-green-500' : 'text-red-500'
+                  }`}>
+                    {transaction.amount > 0 ? '+' : ''}R {Math.abs(Number(transaction.amount)).toFixed(2)}
                   </TableCell>
                 </TableRow>
               ))
