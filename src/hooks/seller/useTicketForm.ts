@@ -19,7 +19,15 @@ interface TicketFormData {
 }
 
 interface FormErrors {
-  [key: string]: string;
+  title?: string;
+  description?: string;
+  bettingSite?: string;
+  numberOfLegs?: string;
+  price?: string;
+  odds?: string;
+  date?: string;
+  time?: string;
+  ticketCode?: string;
 }
 
 export const useTicketForm = (initialData?: Partial<TicketFormData>) => {
@@ -45,7 +53,7 @@ export const useTicketForm = (initialData?: Partial<TicketFormData>) => {
   const updateField = (field: keyof TicketFormData, value: any) => {
     setTicketData(prev => ({ ...prev, [field]: value }));
     // Clear error for this field when user starts typing
-    if (errors[field]) {
+    if (errors[field as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [field]: "" }));
     }
   };
