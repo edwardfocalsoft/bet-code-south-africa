@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -21,19 +20,7 @@ export const useSellerDashboard = (user: any) => {
     const fetchDashboardStats = async () => {
       setIsLoading(true);
       try {
-        // Fetch active tickets (tickets with kickoff time in the future)
-        const currentTime = new Date().toISOString();
-        const { count: activeTicketsCount, error: activeTicketsError } = await supabase
-          .from('tickets')
-          .select('*', { count: 'exact', head: true })
-          .eq('seller_id', user.id)
-          .gt('kickoff_time', currentTime)
-          .eq('is_hidden', false);
-        
-        if (activeTicketsError) throw activeTicketsError;
-        setTicketsSold(activeTicketsCount || 0);
-        
-        // Fetch total tickets sold (completed purchases)
+        // Fetch total tickets sold (completed purchases) - this is the actual number of tickets sold
         const { count: soldCount, error: soldError } = await supabase
           .from('purchases')
           .select('*', { count: 'exact', head: true })
@@ -41,6 +28,7 @@ export const useSellerDashboard = (user: any) => {
           .eq('payment_status', 'completed');
         
         if (soldError) throw soldError;
+        setTicketsSold(soldCount || 0);
         setTotalSales(soldCount || 0);
         
         // Fetch winning tickets

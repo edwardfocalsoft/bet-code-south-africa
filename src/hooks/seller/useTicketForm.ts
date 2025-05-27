@@ -1,7 +1,9 @@
 
 import { useState } from "react";
-import { BettingSite } from "@/types";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { BettingSite } from "@/types";
 
 interface TicketFormData {
   title: string;
@@ -16,162 +18,102 @@ interface TicketFormData {
   numberOfLegs: number;
 }
 
-interface TicketFormErrors {
-  title: string;
-  description: string;
-  bettingSite: string;
-  price: string;
-  odds: string;
-  date: string;
-  time: string;
-  ticketCode: string;
-  numberOfLegs: string;
-}
-
-export const useTicketForm = () => {
-  const [step, setStep] = useState(1);
-  const [ticketData, setTicketData] = useState<TicketFormData>({
-    title: "",
-    description: "",
-    bettingSite: "" as BettingSite,
-    price: 0,
-    isFree: false,
-    odds: "",
-    date: new Date(),
-    time: "19:00",
-    ticketCode: "",
-    numberOfLegs: 0,
-  });
+export const useTicketForm = (initialData?: Partial<TicketFormData>) => {
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const [errors, setErrors] = useState<TicketFormErrors>({
-    title: "",
-    description: "",
-    bettingSite: "",
-    price: "",
-    odds: "",
-    date: "",
-    time: "",
-    ticketCode: "",
-    numberOfLegs: "",
+  const [formData, setFormData] = useState<TicketFormData>({
+    title: initialData?.title || "",
+    description: initialData?.description || "",
+    bettingSite: initialData?.bettingSite || "" as BettingSite,
+    price: initialData?.price || 0,
+    isFree: initialData?.isFree || false,
+    odds: initialData?.odds || "",
+    date: initialData?.date || new Date(),
+    time: initialData?.time || "19:00",
+    ticketCode: initialData?.ticketCode || "",
+    numberOfLegs: initialData?.numberOfLegs || 0,
   });
-  
-  const [isCheckingTicketCode, setIsCheckingTicketCode] = useState(false);
 
-  const validateStep1 = () => {
-    let valid = true;
-    const newErrors = { ...errors };
-    
-    if (!ticketData.numberOfLegs || ticketData.numberOfLegs < 2) {
-      newErrors.numberOfLegs = "Number of legs must be at least 2";
-      valid = false;
-    } else {
-      newErrors.numberOfLegs = "";
-    }
-    
-    if (!ticketData.title.trim()) {
-      newErrors.title = "Ticket type is required";
-      valid = false;
-    } else {
-      newErrors.title = "";
-    }
-    
-    if (!ticketData.description.trim()) {
-      newErrors.description = "Description is required";
-      valid = false;
-    } else {
-      newErrors.description = "";
-    }
-    
-    if (!ticketData.bettingSite) {
-      newErrors.bettingSite = "Betting site is required";
-      valid = false;
-    } else {
-      newErrors.bettingSite = "";
-    }
-    
-    setErrors(newErrors);
-    return valid;
+  const updateField = (field: keyof TicketFormData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
-  
-  const validateTicketCodeUniqueness = async (ticketCode: string): Promise<boolean> => {
-    setIsCheckingTicketCode(true);
+
+  const validateForm = (): boolean => {
+    if (!formData.title.trim()) {
+      toast.error("Title is required");
+      return false;
+    }
+    if (!formData.description.trim()) {
+      toast.error("Description is required");
+      return false;
+    }
+    if (!formData.bettingSite) {
+      toast.error("Betting site is required");
+      return false;
+    }
+    if (!formData.ticketCode.trim()) {
+      toast.error("Ticket code is required");
+      return false;
+    }
+    if (!formData.odds.trim()) {
+      toast.error("Odds are required");
+      return false;
+    }
+    if (formData.numberOfLegs < 2) {
+      toast.error("Number of legs must be at least 2");
+      return false;
+    }
+    if (!formData.isFree && formData.price <= 0) {
+      toast.error("Price must be greater than 0 for paid tickets");
+      return false;
+    }
+    return true;
+  };
+
+  const submitTicket = async (userId: string) => {
+    if (!validateForm()) return false;
+    
+    setIsSubmitting(true);
     try {
-      const { data, error, count } = await supabase
-        .from("tickets")
-        .select("ticket_code", { count: "exact" })
-        .eq("ticket_code", ticketCode)
-        .limit(1);
-      
-      if (error) {
-        throw error;
-      }
-      
-      return count === 0; // Return true if the ticket code is unique (not found)
-    } catch (error) {
-      console.error("Error checking ticket code uniqueness:", error);
-      return false; // Assume it's not unique if there's an error
+      // Combine date and time for kickoff_time
+      const kickoffDateTime = new Date(formData.date);
+      const [hours, minutes] = formData.time.split(':');
+      kickoffDateTime.setHours(parseInt(hours), parseInt(minutes));
+
+      const ticketData = {
+        seller_id: userId,
+        title: formData.title,
+        description: formData.description,
+        betting_site: formData.bettingSite,
+        price: formData.isFree ? 0 : formData.price,
+        is_free: formData.isFree,
+        odds: parseFloat(formData.odds),
+        kickoff_time: kickoffDateTime.toISOString(),
+        ticket_code: formData.ticketCode,
+      };
+
+      const { error } = await supabase
+        .from('tickets')
+        .insert(ticketData);
+
+      if (error) throw error;
+
+      toast.success("Ticket created successfully!");
+      navigate('/seller/tickets');
+      return true;
+    } catch (error: any) {
+      toast.error(`Error creating ticket: ${error.message}`);
+      return false;
     } finally {
-      setIsCheckingTicketCode(false);
+      setIsSubmitting(false);
     }
-  };
-  
-  const validateStep2 = async () => {
-    let valid = true;
-    const newErrors = { ...errors };
-    
-    if (!ticketData.isFree && (ticketData.price <= 0 || isNaN(ticketData.price))) {
-      newErrors.price = "Please set a valid price";
-      valid = false;
-    } else {
-      newErrors.price = "";
-    }
-    
-    if (!ticketData.odds.trim()) {
-      newErrors.odds = "Odds are required";
-      valid = false;
-    } else {
-      newErrors.odds = "";
-    }
-    
-    if (!ticketData.ticketCode.trim()) {
-      newErrors.ticketCode = "Ticket code is required";
-      valid = false;
-    } else {
-      // Check if ticket code is unique
-      const isUnique = await validateTicketCodeUniqueness(ticketData.ticketCode);
-      if (!isUnique) {
-        newErrors.ticketCode = "This ticket code is already in use. Please choose another.";
-        valid = false;
-      } else {
-        newErrors.ticketCode = "";
-      }
-    }
-    
-    // Date/time validation
-    const now = new Date();
-    const kickoffTime = new Date(ticketData.date);
-    const [hours, minutes] = ticketData.time.split(':').map(Number);
-    kickoffTime.setHours(hours, minutes);
-    
-    if (kickoffTime <= now) {
-      newErrors.date = "Kickoff time must be in the future";
-      valid = false;
-    } else {
-      newErrors.date = "";
-    }
-    
-    setErrors(newErrors);
-    return valid;
   };
 
   return {
-    step,
-    setStep,
-    ticketData,
-    setTicketData,
-    errors,
-    validateStep1,
-    validateStep2,
-    isCheckingTicketCode
+    formData,
+    updateField,
+    submitTicket,
+    isSubmitting,
   };
 };

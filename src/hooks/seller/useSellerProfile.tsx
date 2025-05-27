@@ -13,33 +13,15 @@ export const useSellerProfile = (userId: string | undefined) => {
     displayWhatsapp: false,
     whatsappNumber: "",
   });
-  const [whatsappFieldsExist, setWhatsappFieldsExist] = useState(false);
-
-  // Helper function to check if WhatsApp fields exist
-  const checkWhatsAppFieldsExist = async (): Promise<boolean> => {
-    try {
-      // We'll use a direct query to check if the columns exist
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("display_whatsapp, whatsapp_number")
-        .limit(1);
-      
-      // If the query didn't error out, the fields exist
-      return !error;
-    } catch {
-      return false;
-    }
-  };
 
   const loadProfile = async () => {
     if (!userId) return;
     
     setIsLoading(true);
     try {
-      // First fetch basic profile data
       const { data, error } = await supabase
         .from("profiles")
-        .select("username, avatar_url")
+        .select("username, avatar_url, display_whatsapp, whatsapp_number")
         .eq("id", userId)
         .maybeSingle();
 
@@ -49,37 +31,12 @@ export const useSellerProfile = (userId: string | undefined) => {
         setProfileData({
           username: data.username || "",
           avatarUrl: data.avatar_url || "",
-          displayWhatsapp: false,
-          whatsappNumber: "",
+          displayWhatsapp: data.display_whatsapp || false,
+          whatsappNumber: data.whatsapp_number || "",
         });
-        
-        // Check if WhatsApp fields exist
-        const fieldsExist = await checkWhatsAppFieldsExist();
-        setWhatsappFieldsExist(fieldsExist);
-        
-        // Then try to fetch WhatsApp fields separately if they exist
-        if (fieldsExist) {
-          try {
-            const { data: whatsAppData } = await supabase
-              .from("profiles")
-              .select("*") // Select all columns to avoid specific column errors
-              .eq("id", userId)
-              .maybeSingle();
-              
-            if (whatsAppData) {
-              // Access fields safely with type assertion since TS doesn't know these fields yet
-              setProfileData(prev => ({
-                ...prev,
-                displayWhatsapp: !!(whatsAppData as any).display_whatsapp,
-                whatsappNumber: (whatsAppData as any).whatsapp_number || "",
-              }));
-            }
-          } catch (whatsAppError) {
-            console.log("Error fetching WhatsApp fields:", whatsAppError);
-          }
-        }
       }
     } catch (error: any) {
+      console.error("Error loading profile:", error);
       toast.error(`Error loading profile: ${error.message}`);
     } finally {
       setIsLoading(false);
@@ -92,37 +49,19 @@ export const useSellerProfile = (userId: string | undefined) => {
     
     setIsSaving(true);
     try {
-      // Create update object with required fields
-      const updateData: Record<string, any> = { 
+      const updateData = { 
         username: profileData.username,
         avatar_url: profileData.avatarUrl,
+        display_whatsapp: profileData.displayWhatsapp,
+        whatsapp_number: profileData.displayWhatsapp ? profileData.whatsappNumber : null
       };
       
-      // First update the basic profile fields that we know exist
-      const { error: basicUpdateError } = await supabase
+      const { error } = await supabase
         .from("profiles")
         .update(updateData)
         .eq("id", userId);
         
-      if (basicUpdateError) throw basicUpdateError;
-      
-      // Then try to update WhatsApp fields separately if they exist
-      if (whatsappFieldsExist) {
-        // Since we confirmed the fields exist, we can update them directly
-        // We need to use a type assertion to bypass TypeScript's strict checking
-        const { error: whatsappError } = await supabase
-          .from("profiles")
-          .update({
-            // Use "as any" to bypass type checking since these fields exist at runtime but not in the TypeScript definition
-            display_whatsapp: profileData.displayWhatsapp,
-            whatsapp_number: profileData.displayWhatsapp ? profileData.whatsappNumber : null
-          } as any)
-          .eq("id", userId);
-          
-        if (whatsappError) {
-          console.log("Error updating WhatsApp fields:", whatsappError);
-        }
-      }
+      if (error) throw error;
       
       toast.success("Profile updated successfully");
     } catch (error: any) {

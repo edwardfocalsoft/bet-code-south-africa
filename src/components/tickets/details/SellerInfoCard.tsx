@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
-import { Loader2, User } from "lucide-react";
+import { Loader2, User, MessageCircle } from "lucide-react";
 import TipButton from "@/components/sellers/TipButton";
 import { useAuth } from "@/contexts/auth";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,14 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
       </Card>
     );
   }
+
+  const handleWhatsAppClick = () => {
+    if (seller.whatsapp_number) {
+      const cleanNumber = seller.whatsapp_number.replace(/\D/g, '');
+      const whatsappUrl = `https://wa.me/${cleanNumber}`;
+      window.open(whatsappUrl, '_blank');
+    }
+  };
 
   return (
     <Card className="betting-card mb-6">
@@ -63,6 +71,18 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
               View Profile
             </Button>
           </Link>
+          
+          {seller.display_whatsapp && seller.whatsapp_number && !isSeller && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full flex items-center justify-center gap-1 text-green-600 border-green-600 hover:bg-green-50"
+              onClick={handleWhatsAppClick}
+            >
+              <MessageCircle className="h-4 w-4" />
+              WhatsApp
+            </Button>
+          )}
           
           {!isSeller && currentUser && (
             <TipButton 

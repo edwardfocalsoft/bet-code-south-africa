@@ -2,19 +2,26 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { BankDetails } from "@/types";
+
+interface BankDetails {
+  accountHolder: string;
+  bankName: string;
+  accountType: string;
+  accountNumber: string;
+  branchCode: string;
+}
 
 export const useSellerBankDetails = (userId: string | undefined) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [hasBankDetails, setHasBankDetails] = useState(false);
   const [bankDetails, setBankDetails] = useState<BankDetails>({
     accountHolder: "",
     bankName: "",
+    accountType: "Savings",
     accountNumber: "",
     branchCode: "",
-    accountType: "checking",
   });
-  const [hasBankDetails, setHasBankDetails] = useState(false);
 
   const loadBankDetails = async () => {
     if (!userId) return;
@@ -31,16 +38,19 @@ export const useSellerBankDetails = (userId: string | undefined) => {
       
       if (data) {
         setBankDetails({
-          accountHolder: data.account_holder,
-          bankName: data.bank_name,
-          accountNumber: data.account_number,
-          branchCode: data.branch_code,
-          accountType: data.account_type,
+          accountHolder: data.account_holder || "",
+          bankName: data.bank_name || "",
+          accountType: data.account_type || "Savings",
+          accountNumber: data.account_number || "",
+          branchCode: data.branch_code || "",
         });
         setHasBankDetails(true);
+      } else {
+        setHasBankDetails(false);
       }
     } catch (error: any) {
       console.error("Error loading bank details:", error);
+      toast.error(`Error loading bank details: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -50,42 +60,29 @@ export const useSellerBankDetails = (userId: string | undefined) => {
     e.preventDefault();
     if (!userId) return;
     
-    // Basic validation
-    if (!bankDetails.accountHolder || !bankDetails.bankName || 
-        !bankDetails.accountNumber || !bankDetails.branchCode) {
-      toast.error("Please fill in all bank details");
-      return;
-    }
-    
     setIsSaving(true);
     try {
+      const bankData = {
+        user_id: userId,
+        account_holder: bankDetails.accountHolder,
+        bank_name: bankDetails.bankName,
+        account_type: bankDetails.accountType,
+        account_number: bankDetails.accountNumber,
+        branch_code: bankDetails.branchCode,
+      };
+
       if (hasBankDetails) {
-        // Update existing bank details
         const { error } = await supabase
           .from("bank_details")
-          .update({ 
-            account_holder: bankDetails.accountHolder,
-            bank_name: bankDetails.bankName,
-            account_number: bankDetails.accountNumber,
-            branch_code: bankDetails.branchCode,
-            account_type: bankDetails.accountType,
-          })
+          .update(bankData)
           .eq("user_id", userId);
-        
+          
         if (error) throw error;
       } else {
-        // Create new bank details
         const { error } = await supabase
           .from("bank_details")
-          .insert({ 
-            user_id: userId,
-            account_holder: bankDetails.accountHolder,
-            bank_name: bankDetails.bankName,
-            account_number: bankDetails.accountNumber,
-            branch_code: bankDetails.branchCode,
-            account_type: bankDetails.accountType,
-          });
-        
+          .insert(bankData);
+          
         if (error) throw error;
         setHasBankDetails(true);
       }

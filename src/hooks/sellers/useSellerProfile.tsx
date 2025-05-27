@@ -19,10 +19,10 @@ export const useSellerProfile = (id: string | undefined) => {
     setError(null);
     
     try {
-      // Fetch seller profile
+      // Fetch seller profile including WhatsApp information
       const { data: sellerData, error: sellerError } = await supabase
         .from('profiles')
-        .select('id, username, avatar_url, created_at')
+        .select('id, username, avatar_url, created_at, display_whatsapp, whatsapp_number')
         .eq('id', id)
         .single();
         

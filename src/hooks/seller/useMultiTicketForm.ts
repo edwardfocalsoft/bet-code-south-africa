@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { BettingSite } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface SingleTicketData {
   id: string;
@@ -30,6 +31,7 @@ export const useMultiTicketForm = () => {
   
   const [isScanning, setIsScanning] = useState(false);
   const [scannedCodes, setScannedCodes] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const generateTicketId = () => {
     return Math.random().toString(36).substr(2, 9);
@@ -81,6 +83,9 @@ export const useMultiTicketForm = () => {
         ...prev,
         tickets: [...prev.tickets, newTicket]
       }));
+      toast.success(`Ticket code ${code} scanned successfully`);
+    } else {
+      toast.error("This code has already been scanned");
     }
   };
 
@@ -103,6 +108,124 @@ export const useMultiTicketForm = () => {
     }
   };
 
+  const validateTicket = (ticket: SingleTicketData): boolean => {
+    if (!ticket.title.trim()) {
+      toast.error("All tickets must have a title");
+      return false;
+    }
+    if (!ticket.description.trim()) {
+      toast.error("All tickets must have a description");
+      return false;
+    }
+    if (!ticket.bettingSite) {
+      toast.error("All tickets must have a betting site selected");
+      return false;
+    }
+    if (!ticket.ticketCode.trim()) {
+      toast.error("All tickets must have a ticket code");
+      return false;
+    }
+    if (!ticket.odds.trim()) {
+      toast.error("All tickets must have odds specified");
+      return false;
+    }
+    if (ticket.numberOfLegs < 2) {
+      toast.error("All tickets must have at least 2 legs");
+      return false;
+    }
+    if (!ticket.isFree && ticket.price <= 0) {
+      toast.error("All paid tickets must have a price greater than 0");
+      return false;
+    }
+    return true;
+  };
+
+  const submitMultipleTickets = async (userId: string) => {
+    if (formData.tickets.length === 0) {
+      toast.error("Please add at least one ticket");
+      return false;
+    }
+
+    // Validate all tickets
+    for (const ticket of formData.tickets) {
+      if (!validateTicket(ticket)) {
+        return false;
+      }
+    }
+
+    setIsSubmitting(true);
+    try {
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const ticket of formData.tickets) {
+        try {
+          // Check if ticket code is unique
+          const isUnique = await validateTicketCodeUniqueness(ticket.ticketCode);
+          if (!isUnique) {
+            toast.error(`Ticket code ${ticket.ticketCode} already exists`);
+            errorCount++;
+            continue;
+          }
+
+          // Combine date and time for kickoff_time
+          const kickoffDateTime = new Date(ticket.date);
+          const [hours, minutes] = ticket.time.split(':');
+          kickoffDateTime.setHours(parseInt(hours), parseInt(minutes));
+
+          const ticketData = {
+            seller_id: userId,
+            title: ticket.title,
+            description: ticket.description,
+            betting_site: ticket.bettingSite,
+            price: ticket.isFree ? 0 : ticket.price,
+            is_free: ticket.isFree,
+            odds: parseFloat(ticket.odds),
+            kickoff_time: kickoffDateTime.toISOString(),
+            ticket_code: ticket.ticketCode,
+          };
+
+          const { error } = await supabase
+            .from('tickets')
+            .insert(ticketData);
+
+          if (error) {
+            throw error;
+          }
+
+          successCount++;
+        } catch (error: any) {
+          console.error(`Error creating ticket ${ticket.ticketCode}:`, error);
+          errorCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`Successfully created ${successCount} ticket(s)`);
+      }
+      if (errorCount > 0) {
+        toast.error(`Failed to create ${errorCount} ticket(s)`);
+      }
+
+      // Reset form if all tickets were created successfully
+      if (errorCount === 0) {
+        setFormData({
+          tickets: [],
+          isMultiTicket: false,
+        });
+        setScannedCodes([]);
+        return true;
+      }
+
+      return successCount > 0;
+    } catch (error: any) {
+      toast.error(`Error creating tickets: ${error.message}`);
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const toggleMultiTicket = () => {
     setFormData(prev => ({
       ...prev,
@@ -117,12 +240,14 @@ export const useMultiTicketForm = () => {
     isScanning,
     setIsScanning,
     scannedCodes,
+    isSubmitting,
     addTicket,
     removeTicket,
     updateTicket,
     addScannedCode,
     validateTicketCodeUniqueness,
     toggleMultiTicket,
-    createEmptyTicket
+    createEmptyTicket,
+    submitMultipleTickets,
   };
 };

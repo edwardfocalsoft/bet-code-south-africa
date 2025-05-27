@@ -56,6 +56,16 @@ export const useSellerProfileData = (userId: string | undefined) => {
     }
   };
 
+  // Enhanced saveBankDetails with success message
+  const handleSaveBankDetails = async (e: React.FormEvent) => {
+    try {
+      await saveBankDetails(e);
+      toast.success("Bank details updated successfully");
+    } catch (error: any) {
+      toast.error(`Error updating bank details: ${error.message}`);
+    }
+  };
+
   const isLoading = isLoadingProfile || isLoadingBankDetails;
   const isSaving = isSavingProfile || uploading;
 
@@ -73,6 +83,6 @@ export const useSellerProfileData = (userId: string | undefined) => {
     filePreview,
     handleFileChange,
     saveProfile: handleSaveProfile,
-    saveBankDetails,
+    saveBankDetails: handleSaveBankDetails,
   };
 };
