@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -5,6 +6,7 @@ export const useSellerDashboard = (user: any) => {
   const [winRate, setWinRate] = useState<number>(0);
   const [averageRating, setAverageRating] = useState<number | null>(null);
   const [ticketsSold, setTicketsSold] = useState<number>(0);
+  const [activeTickets, setActiveTickets] = useState<number>(0);
   const [subscribersCount, setSubscribersCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [totalSales, setTotalSales] = useState<number>(0);
@@ -20,7 +22,7 @@ export const useSellerDashboard = (user: any) => {
     const fetchDashboardStats = async () => {
       setIsLoading(true);
       try {
-        // Fetch total tickets sold (completed purchases) - this is the actual number of tickets sold
+        // Fetch total tickets sold (completed purchases)
         const { count: soldCount, error: soldError } = await supabase
           .from('purchases')
           .select('*', { count: 'exact', head: true })
@@ -30,6 +32,19 @@ export const useSellerDashboard = (user: any) => {
         if (soldError) throw soldError;
         setTicketsSold(soldCount || 0);
         setTotalSales(soldCount || 0);
+        
+        // Fetch active tickets (tickets with future kickoff times and not expired/hidden)
+        const now = new Date().toISOString();
+        const { count: activeCount, error: activeError } = await supabase
+          .from('tickets')
+          .select('*', { count: 'exact', head: true })
+          .eq('seller_id', user.id)
+          .eq('is_expired', false)
+          .eq('is_hidden', false)
+          .gt('kickoff_time', now);
+        
+        if (activeError) throw activeError;
+        setActiveTickets(activeCount || 0);
         
         // Fetch winning tickets
         const { count: winCount, error: winError } = await supabase
@@ -90,35 +105,30 @@ export const useSellerDashboard = (user: any) => {
           
         if (monthlyError) throw monthlyError;
         
-        // Process real monthly data
         if (monthlyData && monthlyData.length > 0) {
-          // Create a map to store sales count for each month
           const monthlySalesCount: Record<string, number> = {};
           
-          // Initialize monthlySalesCount with 0 for the past 6 months
           for (let i = 0; i < 6; i++) {
             const monthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
             const monthKey = monthDate.toLocaleString('default', { month: 'short' });
             monthlySalesCount[monthKey] = 0;
           }
           
-          // Count sales for each month
           monthlyData.forEach(sale => {
             const saleDate = new Date(sale.purchase_date);
             const monthKey = saleDate.toLocaleString('default', { month: 'short' });
             
             if (monthlySalesCount[monthKey] !== undefined) {
-              monthlySalesCount[monthKey] += 1; // Count number of sales, not revenue
+              monthlySalesCount[monthKey] += 1;
             }
           });
           
-          // Convert to array format required by the chart
           const formattedData = Object.entries(monthlySalesCount)
             .sort((a, b) => {
               const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
               return months.indexOf(a[0]) - months.indexOf(b[0]);
             })
-            .slice(-6) // Take only the most recent 6 months
+            .slice(-6)
             .map(([month, sales]) => ({
               name: month,
               sales: sales
@@ -126,7 +136,6 @@ export const useSellerDashboard = (user: any) => {
           
           setPerformanceData(formattedData);
           
-          // Calculate monthly growth (comparing current month with previous month)
           if (formattedData.length >= 2) {
             const currentMonth = formattedData[formattedData.length - 1].sales;
             const previousMonth = formattedData[formattedData.length - 2].sales;
@@ -190,6 +199,7 @@ export const useSellerDashboard = (user: any) => {
     winRate,
     averageRating,
     ticketsSold,
+    activeTickets,
     subscribersCount,
     monthlyGrowth,
     profileComplete,

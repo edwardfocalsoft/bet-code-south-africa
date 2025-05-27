@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,12 +14,14 @@ import TicketPreview from "./form-steps/TicketPreview";
 import MultiTicketForm from "./MultiTicketForm";
 import { useTicketForm } from "@/hooks/seller/useTicketForm";
 import { useMultiTicketForm } from "@/hooks/seller/useMultiTicketForm";
+import { useTicketNotifications } from "@/hooks/seller/useTicketNotifications";
 
 const CreateTicketForm: React.FC = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMultiMode, setIsMultiMode] = useState(false);
+  const { notifySubscribersOfNewTicket } = useTicketNotifications();
   
   // Single ticket form
   const { 
@@ -174,11 +175,21 @@ const CreateTicketForm: React.FC = () => {
           };
         });
         
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("tickets")
-          .insert(ticketsToInsert);
+          .insert(ticketsToInsert)
+          .select('id, title');
         
         if (error) throw error;
+        
+        // Notify subscribers for each created ticket
+        if (data && data.length > 0) {
+          console.log('Notifying subscribers about multiple new tickets');
+          const notificationPromises = data.map(ticket => 
+            notifySubscribersOfNewTicket(currentUser.id, ticket.id, ticket.title)
+          );
+          await Promise.all(notificationPromises);
+        }
         
         toast.success(`${multiTicketData.tickets.length} tickets created successfully!`, {
           description: "Your tickets have been published and are now available for purchase.",
@@ -189,7 +200,7 @@ const CreateTicketForm: React.FC = () => {
         const [hours, minutes] = ticketData.time.split(':').map(Number);
         kickoffTime.setHours(hours, minutes);
         
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("tickets")
           .insert({
             seller_id: currentUser.id,
@@ -201,9 +212,17 @@ const CreateTicketForm: React.FC = () => {
             odds: parseFloat(ticketData.odds),
             kickoff_time: kickoffTime.toISOString(),
             ticket_code: ticketData.ticketCode
-          });
+          })
+          .select('id')
+          .single();
         
         if (error) throw error;
+        
+        // Notify subscribers about the new ticket
+        if (data?.id) {
+          console.log('Notifying subscribers about new ticket:', data.id);
+          await notifySubscribersOfNewTicket(currentUser.id, data.id, ticketData.title);
+        }
         
         toast.success("Ticket created successfully!", {
           description: "Your ticket has been published and is now available for purchase.",

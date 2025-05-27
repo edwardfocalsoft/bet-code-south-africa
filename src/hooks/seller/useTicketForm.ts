@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BettingSite } from "@/types";
+import { useTicketNotifications } from "./useTicketNotifications";
 
 interface TicketFormData {
   title: string;
@@ -19,23 +20,24 @@ interface TicketFormData {
 }
 
 interface FormErrors {
-  title?: string;
-  description?: string;
-  bettingSite?: string;
-  numberOfLegs?: string;
-  price?: string;
-  odds?: string;
-  date?: string;
-  time?: string;
-  ticketCode?: string;
+  title: string;
+  description: string;
+  bettingSite: string;
+  numberOfLegs: string;
+  price: string;
+  odds: string;
+  date: string;
+  time: string;
+  ticketCode: string;
 }
 
 export const useTicketForm = (initialData?: Partial<TicketFormData>) => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState(1);
-  const [errors, setErrors] = useState<FormErrors>({});
+  const [errors, setErrors] = useState<Partial<FormErrors>>({});
   const [isCheckingTicketCode, setIsCheckingTicketCode] = useState(false);
+  const { notifySubscribersOfNewTicket } = useTicketNotifications();
   
   const [ticketData, setTicketData] = useState<TicketFormData>({
     title: initialData?.title || "",
@@ -59,7 +61,7 @@ export const useTicketForm = (initialData?: Partial<TicketFormData>) => {
   };
 
   const validateStep1 = (): boolean => {
-    const newErrors: FormErrors = {};
+    const newErrors: Partial<FormErrors> = {};
     
     if (!ticketData.title.trim()) {
       newErrors.title = "Title is required";
@@ -76,7 +78,7 @@ export const useTicketForm = (initialData?: Partial<TicketFormData>) => {
   };
 
   const validateStep2 = async (): Promise<boolean> => {
-    const newErrors: FormErrors = {};
+    const newErrors: Partial<FormErrors> = {};
     
     if (!ticketData.ticketCode.trim()) {
       newErrors.ticketCode = "Ticket code is required";
@@ -149,11 +151,19 @@ export const useTicketForm = (initialData?: Partial<TicketFormData>) => {
         ticket_code: ticketData.ticketCode,
       };
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('tickets')
-        .insert(ticketDataForDb);
+        .insert(ticketDataForDb)
+        .select('id')
+        .single();
 
       if (error) throw error;
+
+      // Notify subscribers about the new ticket
+      if (data?.id) {
+        console.log('Notifying subscribers about new ticket:', data.id);
+        await notifySubscribersOfNewTicket(userId, data.id, ticketData.title);
+      }
 
       toast.success("Ticket created successfully!");
       navigate('/seller/tickets');

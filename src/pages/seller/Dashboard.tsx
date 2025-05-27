@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -22,6 +21,7 @@ const SellerDashboard: React.FC = () => {
     winRate,
     averageRating,
     ticketsSold,
+    activeTickets,
     subscribersCount,
     monthlyGrowth,
     profileComplete,
@@ -65,7 +65,7 @@ const SellerDashboard: React.FC = () => {
           />
           <StatCard
             title="Active Tickets"
-            value={ticketsSold}
+            value={activeTickets}
             icon={Ticket}
             trend={{ value: 5, isPositive: true }}
           />
