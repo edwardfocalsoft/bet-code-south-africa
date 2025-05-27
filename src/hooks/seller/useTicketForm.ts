@@ -18,11 +18,18 @@ interface TicketFormData {
   numberOfLegs: number;
 }
 
+interface FormErrors {
+  [key: string]: string;
+}
+
 export const useTicketForm = (initialData?: Partial<TicketFormData>) => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [step, setStep] = useState(1);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [isCheckingTicketCode, setIsCheckingTicketCode] = useState(false);
   
-  const [formData, setFormData] = useState<TicketFormData>({
+  const [ticketData, setTicketData] = useState<TicketFormData>({
     title: initialData?.title || "",
     description: initialData?.description || "",
     bettingSite: initialData?.bettingSite || "" as BettingSite,
@@ -36,66 +43,107 @@ export const useTicketForm = (initialData?: Partial<TicketFormData>) => {
   });
 
   const updateField = (field: keyof TicketFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setTicketData(prev => ({ ...prev, [field]: value }));
+    // Clear error for this field when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: "" }));
+    }
   };
 
-  const validateForm = (): boolean => {
-    if (!formData.title.trim()) {
-      toast.error("Title is required");
-      return false;
+  const validateStep1 = (): boolean => {
+    const newErrors: FormErrors = {};
+    
+    if (!ticketData.title.trim()) {
+      newErrors.title = "Title is required";
     }
-    if (!formData.description.trim()) {
-      toast.error("Description is required");
-      return false;
+    if (!ticketData.description.trim()) {
+      newErrors.description = "Description is required";
     }
-    if (!formData.bettingSite) {
-      toast.error("Betting site is required");
-      return false;
+    if (!ticketData.bettingSite) {
+      newErrors.bettingSite = "Betting site is required";
     }
-    if (!formData.ticketCode.trim()) {
-      toast.error("Ticket code is required");
-      return false;
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateStep2 = async (): Promise<boolean> => {
+    const newErrors: FormErrors = {};
+    
+    if (!ticketData.ticketCode.trim()) {
+      newErrors.ticketCode = "Ticket code is required";
+    } else {
+      // Check if ticket code already exists
+      setIsCheckingTicketCode(true);
+      try {
+        const { data, error } = await supabase
+          .from("tickets")
+          .select("id")
+          .eq("ticket_code", ticketData.ticketCode)
+          .maybeSingle();
+
+        if (error) throw error;
+        
+        if (data) {
+          newErrors.ticketCode = "This ticket code already exists";
+        }
+      } catch (error: any) {
+        console.error("Error checking ticket code:", error);
+        toast.error("Error validating ticket code");
+      } finally {
+        setIsCheckingTicketCode(false);
+      }
     }
-    if (!formData.odds.trim()) {
-      toast.error("Odds are required");
-      return false;
+    
+    if (!ticketData.odds.trim()) {
+      newErrors.odds = "Odds are required";
     }
-    if (formData.numberOfLegs < 2) {
-      toast.error("Number of legs must be at least 2");
-      return false;
+    if (ticketData.numberOfLegs < 2) {
+      newErrors.numberOfLegs = "Number of legs must be at least 2";
     }
-    if (!formData.isFree && formData.price <= 0) {
-      toast.error("Price must be greater than 0 for paid tickets");
-      return false;
+    if (!ticketData.isFree && ticketData.price <= 0) {
+      newErrors.price = "Price must be greater than 0 for paid tickets";
     }
-    return true;
+
+    // Check if kickoff time is in the future
+    const kickoffTime = new Date(ticketData.date);
+    const [hours, minutes] = ticketData.time.split(':');
+    kickoffTime.setHours(parseInt(hours), parseInt(minutes));
+    
+    if (kickoffTime <= new Date()) {
+      newErrors.date = "Kickoff time must be in the future";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const submitTicket = async (userId: string) => {
-    if (!validateForm()) return false;
+    const isValid = await validateStep2();
+    if (!isValid) return false;
     
     setIsSubmitting(true);
     try {
       // Combine date and time for kickoff_time
-      const kickoffDateTime = new Date(formData.date);
-      const [hours, minutes] = formData.time.split(':');
+      const kickoffDateTime = new Date(ticketData.date);
+      const [hours, minutes] = ticketData.time.split(':');
       kickoffDateTime.setHours(parseInt(hours), parseInt(minutes));
 
-      const ticketData = {
+      const ticketDataForDb = {
         seller_id: userId,
-        title: formData.title,
-        description: formData.description,
-        betting_site: formData.bettingSite,
-        price: formData.isFree ? 0 : formData.price,
-        is_free: formData.isFree,
-        odds: parseFloat(formData.odds),
+        title: ticketData.title,
+        description: ticketData.description,
+        betting_site: ticketData.bettingSite,
+        price: ticketData.isFree ? 0 : ticketData.price,
+        is_free: ticketData.isFree,
+        odds: parseFloat(ticketData.odds),
         kickoff_time: kickoffDateTime.toISOString(),
-        ticket_code: formData.ticketCode,
+        ticket_code: ticketData.ticketCode,
       };
 
       const { error } = await supabase
         .from('tickets')
-        .insert(ticketData);
+        .insert(ticketDataForDb);
 
       if (error) throw error;
 
@@ -111,9 +159,17 @@ export const useTicketForm = (initialData?: Partial<TicketFormData>) => {
   };
 
   return {
-    formData,
+    ticketData,
+    setTicketData,
+    formData: ticketData, // For backward compatibility
     updateField,
     submitTicket,
     isSubmitting,
+    step,
+    setStep,
+    errors,
+    validateStep1,
+    validateStep2,
+    isCheckingTicketCode,
   };
 };

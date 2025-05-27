@@ -208,6 +208,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           credit_balance: number
+          display_whatsapp: boolean | null
           email: string
           id: string
           loyalty_points: number | null
@@ -215,12 +216,14 @@ export type Database = {
           suspended: boolean
           updated_at: string
           username: string | null
+          whatsapp_number: string | null
         }
         Insert: {
           approved?: boolean
           avatar_url?: string | null
           created_at?: string
           credit_balance?: number
+          display_whatsapp?: boolean | null
           email: string
           id: string
           loyalty_points?: number | null
@@ -228,12 +231,14 @@ export type Database = {
           suspended?: boolean
           updated_at?: string
           username?: string | null
+          whatsapp_number?: string | null
         }
         Update: {
           approved?: boolean
           avatar_url?: string | null
           created_at?: string
           credit_balance?: number
+          display_whatsapp?: boolean | null
           email?: string
           id?: string
           loyalty_points?: number | null
@@ -241,6 +246,7 @@ export type Database = {
           suspended?: boolean
           updated_at?: string
           username?: string | null
+          whatsapp_number?: string | null
         }
         Relationships: []
       }
