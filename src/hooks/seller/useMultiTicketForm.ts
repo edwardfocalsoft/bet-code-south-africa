@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { BettingSite } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -33,46 +33,12 @@ export const useMultiTicketForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const startCamera = useCallback(async (): Promise<boolean> => {
-    try {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error("Camera API not available");
-      }
-      
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        } 
-      });
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('Camera error:', error);
-      toast.error('Could not access camera');
-      return false;
-    }
-  }, []);
-
-  const stopCamera = useCallback(() => {
-    if (videoRef.current?.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
-      videoRef.current.srcObject = null;
-    }
-  }, []);
-
+  // Clean up camera on unmount
   useEffect(() => {
     return () => {
       stopCamera();
     };
-  }, [stopCamera]);
+  }, []);
 
   const startCamera = async () => {
     try {
@@ -350,9 +316,11 @@ export const useMultiTicketForm = () => {
     updateTicket,
     addScannedCode,
     validateTicketCodeUniqueness,
+    toggleMultiTicket,
+    createEmptyTicket,
+    submitMultipleTickets,
     startCamera,
     stopCamera,
     videoRef,
-    submitMultipleTickets,
   };
 };
