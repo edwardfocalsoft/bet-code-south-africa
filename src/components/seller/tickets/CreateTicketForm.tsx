@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -239,7 +238,7 @@ const CreateTicketForm: React.FC = () => {
           price: ticketData.isFree ? 0 : ticketData.price,
           is_free: ticketData.isFree,
           odds: parseFloat(ticketData.odds),
-          kickoff_time: kicketTime.toISOString(),
+          kickoff_time: kickoffTime.toISOString(),
           ticket_code: ticketData.ticketCode
         };
         
