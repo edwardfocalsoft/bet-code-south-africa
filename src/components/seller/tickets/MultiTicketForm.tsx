@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,9 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ScanText, Plus, Trash2 } from "lucide-react";
+import { ScanText, Plus, Trash2, CameraOff } from "lucide-react";
 import { BettingSite } from "@/types";
-import OCRTicketScanner from "./OCRTicketScanner";
+import { toast } from "sonner";
 
 interface SingleTicketData {
   id: string;
@@ -33,6 +32,9 @@ interface MultiTicketFormProps {
   onCodeScanned: (code: string) => void;
   isScanning: boolean;
   setIsScanning: (scanning: boolean) => void;
+  startCamera: () => Promise<void>;
+  stopCamera: () => void;
+  videoRef: React.RefObject<HTMLVideoElement>;
 }
 
 const BETTING_SITES: BettingSite[] = [
@@ -47,6 +49,9 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
   onCodeScanned,
   isScanning,
   setIsScanning,
+  startCamera,
+  stopCamera,
+  videoRef,
 }) => {
   const formatDate = (date: Date) => {
     return date.toISOString().split('T')[0];
@@ -57,6 +62,31 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
     onUpdateTicket(ticketId, { date: newDate });
   };
 
+  const handleScanClick = async () => {
+    try {
+      if (isScanning) {
+        stopCamera();
+        setIsScanning(false);
+      } else {
+        await startCamera();
+        setIsScanning(true);
+      }
+    } catch (error) {
+      console.error('Camera error:', error);
+      toast.error('Failed to access camera');
+      setIsScanning(false);
+    }
+  };
+
+  // Clean up camera when component unmounts
+  useEffect(() => {
+    return () => {
+      if (isScanning) {
+        stopCamera();
+      }
+    };
+  }, [isScanning, stopCamera]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -64,12 +94,21 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
         <div className="flex gap-2">
           <Button
             type="button"
-            onClick={() => setIsScanning(true)}
-            variant="outline"
+            onClick={handleScanClick}
+            variant={isScanning ? "destructive" : "outline"}
             className="flex items-center gap-2"
           >
-            <ScanText className="h-4 w-4" />
-            Scan Handwritten Codes
+            {isScanning ? (
+              <>
+                <CameraOff className="h-4 w-4" />
+                Stop Scanning
+              </>
+            ) : (
+              <>
+                <ScanText className="h-4 w-4" />
+                Scan Handwritten Codes
+              </>
+            )}
           </Button>
           <Button
             type="button"
@@ -83,7 +122,27 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
         </div>
       </div>
 
-      {tickets.length === 0 && (
+      {isScanning && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Scan Ticket Code</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center gap-4">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full h-auto max-h-64 rounded-lg border border-gray-300"
+            />
+            <div className="text-sm text-muted-foreground text-center">
+              Point your camera at the handwritten ticket code
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {tickets.length === 0 && !isScanning && (
         <Card>
           <CardContent className="pt-6">
             <p className="text-center text-muted-foreground">
@@ -165,12 +224,14 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
 
               <div className="space-y-2">
                 <Label htmlFor={`ticket-code-${ticket.id}`}>Ticket Code *</Label>
-                <Input
-                  id={`ticket-code-${ticket.id}`}
-                  value={ticket.ticketCode}
-                  onChange={(e) => onUpdateTicket(ticket.id, { ticketCode: e.target.value })}
-                  placeholder="Enter or scan ticket code"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id={`ticket-code-${ticket.id}`}
+                    value={ticket.ticketCode}
+                    onChange={(e) => onUpdateTicket(ticket.id, { ticketCode: e.target.value })}
+                    placeholder="Enter or scan ticket code"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -227,12 +288,6 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
           </CardContent>
         </Card>
       ))}
-
-      <OCRTicketScanner
-        isOpen={isScanning}
-        onClose={() => setIsScanning(false)}
-        onCodeScanned={onCodeScanned}
-      />
     </div>
   );
 };
