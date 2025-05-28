@@ -23,7 +23,8 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
-  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -40,10 +41,12 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
   const startCamera = async () => {
     try {
       console.log('[OCRScanner] Starting camera...');
+      setCameraError(null);
+      setVideoLoaded(false);
       
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { 
-          facingMode: "environment", // Use back camera if available
+          facingMode: "environment",
           width: { ideal: 1280 },
           height: { ideal: 720 }
         },
@@ -52,26 +55,36 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
         setStream(mediaStream);
-        setIsScanning(true);
         
-        // Start scanning once video is loaded
+        // Wait for video to load
         videoRef.current.onloadedmetadata = () => {
-          console.log('[OCRScanner] Video loaded, ready for OCR scanning');
+          console.log('[OCRScanner] Video metadata loaded');
+          if (videoRef.current) {
+            videoRef.current.play().then(() => {
+              console.log('[OCRScanner] Video playing successfully');
+              setVideoLoaded(true);
+              setIsScanning(true);
+            }).catch((error) => {
+              console.error('[OCRScanner] Error playing video:', error);
+              setCameraError("Failed to start video playback");
+            });
+          }
+        };
+
+        videoRef.current.onerror = (error) => {
+          console.error('[OCRScanner] Video error:', error);
+          setCameraError("Video stream error");
         };
       }
     } catch (error) {
       console.error("Error accessing camera:", error);
+      setCameraError("Could not access camera. Please check permissions and try again.");
       toast.error("Could not access camera. Please check permissions and try again.");
     }
   };
 
   const stopCamera = () => {
     console.log('[OCRScanner] Stopping camera...');
-    
-    if (scanIntervalRef.current) {
-      clearInterval(scanIntervalRef.current);
-      scanIntervalRef.current = null;
-    }
     
     if (stream) {
       stream.getTracks().forEach(track => {
@@ -83,10 +96,13 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
     setIsScanning(false);
     setIsProcessing(false);
     setOcrProgress(0);
+    setVideoLoaded(false);
+    setCameraError(null);
   };
 
   const captureAndProcessImage = async () => {
-    if (!videoRef.current || !canvasRef.current || isProcessing) {
+    if (!videoRef.current || !canvasRef.current || isProcessing || !videoLoaded) {
+      toast.error("Camera not ready. Please wait for video to load.");
       return;
     }
 
@@ -99,6 +115,7 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
       const ctx = canvas.getContext('2d');
       
       if (!ctx || video.videoWidth === 0 || video.videoHeight === 0) {
+        toast.error("Video not ready for capture");
         setIsProcessing(false);
         return;
       }
@@ -113,6 +130,7 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
       // Convert canvas to blob for OCR processing
       canvas.toBlob(async (blob) => {
         if (!blob) {
+          toast.error("Failed to capture image");
           setIsProcessing(false);
           return;
         }
@@ -134,11 +152,11 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
           
           console.log('[OCRScanner] OCR result:', text);
           
-          // Extract alphanumeric codes from the recognized text
-          const detectedCodes = extractTicketCodes(text);
+          // Extract numeric codes from the recognized text (only numbers)
+          const detectedCodes = extractNumericCodes(text);
           
           if (detectedCodes.length > 0) {
-            console.log('[OCRScanner] Ticket codes detected:', detectedCodes);
+            console.log('[OCRScanner] Numeric codes detected:', detectedCodes);
             
             // For now, take the first detected code
             const firstCode = detectedCodes[0];
@@ -146,7 +164,7 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
             toast.success(`Ticket code "${firstCode}" scanned successfully!`);
             onClose();
           } else {
-            toast.error("No valid ticket codes found. Please ensure the text is clearly visible.");
+            toast.error("No valid numeric ticket codes found. Please ensure the numbers are clearly visible.");
           }
         } catch (ocrError) {
           console.error('[OCRScanner] OCR processing error:', ocrError);
@@ -163,25 +181,23 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
     }
   };
 
-  // Extract potential ticket codes from OCR text
-  const extractTicketCodes = (text: string): string[] => {
+  // Extract only numeric codes from OCR text (as per user requirement)
+  const extractNumericCodes = (text: string): string[] => {
     const codes: string[] = [];
     
     // Clean up the text and split into lines
     const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
     
     for (const line of lines) {
-      // Look for alphanumeric sequences that could be ticket codes
-      // Typically 4-20 characters, containing letters and numbers
-      const matches = line.match(/[A-Za-z0-9]{4,20}/g);
+      // Look for numeric sequences that could be ticket codes
+      // Only numbers, typically 4-20 characters
+      const matches = line.match(/\b\d{4,20}\b/g);
       
       if (matches) {
         for (const match of matches) {
-          // Filter out sequences that are too short or look like common words
-          if (match.length >= 4 && 
-              /[0-9]/.test(match) && // Must contain at least one number
-              !/^(the|and|for|you|are|not|can|was|but|had|his|her|all|any|may|day|get|has|him|how|man|new|now|old|see|two|way|who|boy|did|its|let|put|say|she|too|use)$/i.test(match)) {
-            codes.push(match.toUpperCase());
+          // Filter out sequences that are too short
+          if (match.length >= 4) {
+            codes.push(match);
           }
         }
       }
@@ -192,15 +208,16 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
   };
 
   const handleManualInput = () => {
-    const code = prompt("Enter ticket code manually:");
+    const code = prompt("Enter numeric ticket code manually:");
     if (code && code.trim()) {
-      const cleanCode = code.trim().toUpperCase();
-      if (cleanCode.length >= 4) {
+      const cleanCode = code.trim();
+      // Validate that it's numeric
+      if (/^\d{4,}$/.test(cleanCode)) {
         onCodeScanned(cleanCode);
         toast.success("Ticket code added successfully!");
         onClose();
       } else {
-        toast.error("Please enter a valid ticket code (at least 4 characters)");
+        toast.error("Please enter a valid numeric ticket code (numbers only, at least 4 digits)");
       }
     }
   };
@@ -211,13 +228,35 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
         <DialogHeader>
           <DialogTitle>Scan Handwritten Ticket Codes</DialogTitle>
           <DialogDescription>
-            Point your camera at handwritten ticket codes. The scanner will automatically detect alphanumeric codes.
+            Point your camera at handwritten numeric ticket codes. The scanner will automatically detect number sequences.
           </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">
           <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
-            {isScanning ? (
+            {cameraError ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <Camera className="h-12 w-12 text-red-400 mx-auto mb-2" />
+                  <p className="text-sm text-red-600">{cameraError}</p>
+                  <Button 
+                    onClick={startCamera} 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2"
+                  >
+                    Retry Camera
+                  </Button>
+                </div>
+              </div>
+            ) : !videoLoaded ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <Loader2 className="h-12 w-12 text-gray-400 mx-auto mb-2 animate-spin" />
+                  <p className="text-sm text-gray-600">Camera loading...</p>
+                </div>
+              </div>
+            ) : (
               <>
                 <video
                   ref={videoRef}
@@ -234,7 +273,7 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
                   <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-24 border-2 border-white rounded-lg">
                     <ScanText className="absolute top-2 left-1/2 transform -translate-x-1/2 w-6 h-6 text-white animate-pulse" />
                     <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-white text-xs bg-black bg-opacity-50 px-2 py-1 rounded">
-                      Position codes here
+                      Position numbers here
                     </div>
                   </div>
                 </div>
@@ -245,13 +284,6 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
                   </div>
                 )}
               </>
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <Camera className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-600">Camera loading...</p>
-                </div>
-              </div>
             )}
           </div>
           
@@ -259,7 +291,7 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
             <Button
               onClick={captureAndProcessImage}
               className="flex-1 bg-betting-green hover:bg-betting-green-dark"
-              disabled={!isScanning || isProcessing}
+              disabled={!videoLoaded || isProcessing}
             >
               {isProcessing ? (
                 <>

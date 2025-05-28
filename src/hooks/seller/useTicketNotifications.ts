@@ -62,21 +62,30 @@ export const useTicketNotifications = () => {
         // Create in-app notification
         try {
           console.log(`[ticket-notifications] Creating in-app notification for user ${buyerId}`);
-          const notification = await createNotification(
-            buyerId,
-            'New Ticket Published',
-            `${sellerUsername} has published a new ticket: "${ticketTitle}"`,
-            'ticket',
-            ticketId
-          );
           
-          if (notification) {
-            console.log(`[ticket-notifications] In-app notification created successfully for ${buyerUsername}:`, notification.id);
+          // Direct database insert to ensure notification is created
+          const { data: notification, error: notificationError } = await supabase
+            .from('notifications')
+            .insert({
+              user_id: buyerId,
+              title: 'New Ticket Published',
+              message: `${sellerUsername} has published a new ticket: "${ticketTitle}"`,
+              type: 'ticket',
+              related_id: ticketId,
+              is_read: false
+            })
+            .select()
+            .single();
+          
+          if (notificationError) {
+            console.error(`[ticket-notifications] Error creating notification for ${buyerUsername}:`, notificationError);
+            throw notificationError;
           } else {
-            console.error(`[ticket-notifications] Failed to create in-app notification for ${buyerUsername}`);
+            console.log(`[ticket-notifications] In-app notification created successfully for ${buyerUsername}:`, notification.id);
           }
         } catch (notifError) {
           console.error(`[ticket-notifications] Error creating in-app notification for ${buyerUsername}:`, notifError);
+          throw notifError;
         }
         
         // Send email notification via edge function
@@ -109,12 +118,21 @@ export const useTicketNotifications = () => {
       const results = await Promise.allSettled(notificationPromises);
       console.log(`[ticket-notifications] Completed notification process for ${subscribers.length} subscribers`);
       
-      // Log any failures
+      // Check results and report any failures
+      let successCount = 0;
+      let failureCount = 0;
+      
       results.forEach((result, index) => {
-        if (result.status === 'rejected') {
-          console.error(`[ticket-notifications] Failed to notify subscriber ${index}:`, result.reason);
+        if (result.status === 'fulfilled') {
+          successCount++;
+          console.log(`[ticket-notifications] Successfully notified subscriber ${index + 1}`);
+        } else {
+          failureCount++;
+          console.error(`[ticket-notifications] Failed to notify subscriber ${index + 1}:`, result.reason);
         }
       });
+      
+      console.log(`[ticket-notifications] Final results: ${successCount} successful, ${failureCount} failed out of ${subscribers.length} subscribers`);
       
     } catch (error) {
       console.error('[ticket-notifications] Error in notifySubscribersOfNewTicket:', error);

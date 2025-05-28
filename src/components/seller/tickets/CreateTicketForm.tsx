@@ -193,9 +193,9 @@ const CreateTicketForm: React.FC = () => {
         if (data && data.length > 0) {
           console.log('[CreateTicketForm] Starting notification process for multiple tickets');
           try {
-            const notificationPromises = data.map(ticket => {
+            const notificationPromises = data.map(async (ticket) => {
               console.log(`[CreateTicketForm] Queuing notification for ticket: ${ticket.id} - ${ticket.title}`);
-              return notifySubscribersOfNewTicket(currentUser.id, ticket.id, ticket.title);
+              return await notifySubscribersOfNewTicket(currentUser.id, ticket.id, ticket.title);
             });
             
             const results = await Promise.allSettled(notificationPromises);
@@ -247,7 +247,7 @@ const CreateTicketForm: React.FC = () => {
         const { data, error } = await supabase
           .from("tickets")
           .insert(ticketDataForDb)
-          .select('id')
+          .select('id, title')
           .single();
         
         if (error) {
@@ -261,7 +261,7 @@ const CreateTicketForm: React.FC = () => {
         if (data?.id) {
           console.log('[CreateTicketForm] Starting notification process for single ticket:', data.id);
           try {
-            await notifySubscribersOfNewTicket(currentUser.id, data.id, ticketData.title);
+            await notifySubscribersOfNewTicket(currentUser.id, data.id, data.title);
             console.log('[CreateTicketForm] Single ticket notification completed successfully');
           } catch (notificationError) {
             console.error('[CreateTicketForm] Error notifying subscribers for single ticket:', notificationError);
