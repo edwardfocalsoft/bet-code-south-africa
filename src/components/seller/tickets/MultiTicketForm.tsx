@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,9 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Camera, Plus, Trash2 } from "lucide-react";
+import { ScanText, Plus, Trash2 } from "lucide-react";
 import { BettingSite } from "@/types";
-import QRCodeScanner from "./QRCodeScanner";
+import OCRTicketScanner from "./OCRTicketScanner";
 
 interface SingleTicketData {
   id: string;
@@ -67,8 +68,8 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
             variant="outline"
             className="flex items-center gap-2"
           >
-            <Camera className="h-4 w-4" />
-            Scan Codes
+            <ScanText className="h-4 w-4" />
+            Scan Handwritten Codes
           </Button>
           <Button
             type="button"
@@ -86,7 +87,7 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
         <Card>
           <CardContent className="pt-6">
             <p className="text-center text-muted-foreground">
-              No tickets added yet. Click "Add Ticket" or "Scan Codes" to get started.
+              No tickets added yet. Click "Add Ticket" or "Scan Handwritten Codes" to get started.
             </p>
           </CardContent>
         </Card>
@@ -227,7 +228,7 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
         </Card>
       ))}
 
-      <QRCodeScanner
+      <OCRTicketScanner
         isOpen={isScanning}
         onClose={() => setIsScanning(false)}
         onCodeScanned={onCodeScanned}
