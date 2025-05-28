@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { BettingSite } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -32,6 +31,76 @@ export const useMultiTicketForm = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scannedCodes, setScannedCodes] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Clean up camera on unmount
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
+
+  const startCamera = async () => {
+    try {
+      // Check camera permissions first
+      const cameraAllowed = await checkCameraPermissions();
+      if (!cameraAllowed) return;
+
+      setIsScanning(true);
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(err => {
+          console.error("Error playing video stream:", err);
+          toast.error("Failed to start camera preview");
+          stopCamera();
+        });
+      }
+    } catch (err) {
+      console.error('Camera error:', err);
+      setIsScanning(false);
+      toast.error('Could not access camera');
+    }
+  };
+
+  const stopCamera = () => {
+    if (videoRef.current?.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setIsScanning(false);
+  };
+
+  const checkCameraPermissions = async (): Promise<boolean> => {
+    try {
+      // Check if browser supports permissions API
+      if (!navigator.permissions) {
+        return true; // Proceed anyway and let getUserMedia handle the permission
+      }
+
+      const permissionStatus = await navigator.permissions.query({
+        name: 'camera' as any
+      });
+
+      if (permissionStatus.state === 'denied') {
+        toast.error('Camera permission denied. Please enable it in your browser settings.');
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Permission check error:', error);
+      return true; // Proceed anyway as some browsers don't support permissions API
+    }
+  };
 
   const generateTicketId = () => {
     return Math.random().toString(36).substr(2, 9);
@@ -104,6 +173,7 @@ export const useMultiTicketForm = () => {
       return count === 0;
     } catch (error) {
       console.error("Error checking ticket code uniqueness:", error);
+      toast.error("Error verifying ticket code");
       return false;
     }
   };
@@ -249,5 +319,8 @@ export const useMultiTicketForm = () => {
     toggleMultiTicket,
     createEmptyTicket,
     submitMultipleTickets,
+    startCamera,
+    stopCamera,
+    videoRef,
   };
 };
