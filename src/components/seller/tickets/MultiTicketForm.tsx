@@ -71,10 +71,10 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
   const handleScanClick = async () => {
     try {
       if (isScanning) {
-        stopCamera();
+        stopCamera?.();
         setIsScanning(false);
       } else {
-        await startCamera();
+        await startCamera?.();
         setIsScanning(true);
       }
     } catch (error) {
@@ -87,10 +87,10 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
   useEffect(() => {
     return () => {
       if (isScanning) {
-        stopCamera();
+        stopCamera?.();
       }
     };
-  }, [isScanning, stopCamera]);
+  }, [isScanning]);
 
   return (
     <div className="space-y-6">
@@ -129,7 +129,7 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
 
       <Dialog open={isScanning} onOpenChange={(open) => {
         if (!open) {
-          stopCamera();
+          stopCamera?.();
           setIsScanning(false);
         }
       }}>
@@ -150,7 +150,7 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
             </div>
             <Button
               onClick={() => {
-                stopCamera();
+                stopCamera?.();
                 setIsScanning(false);
               }}
               variant="destructive"
