@@ -23,19 +23,6 @@ const CreateTicketForm: React.FC = () => {
   const [isMultiMode, setIsMultiMode] = useState(false);
   const { notifySubscribersOfNewTicket } = useTicketNotifications();
   
-  // Single ticket form
-  const { 
-    ticketData, 
-    setTicketData, 
-    errors, 
-    validateStep1, 
-    validateStep2, 
-    step, 
-    setStep, 
-    isCheckingTicketCode 
-  } = useTicketForm();
-  
-  // Multi ticket form
   const {
     formData: multiTicketData,
     addTicket,
@@ -50,16 +37,20 @@ const CreateTicketForm: React.FC = () => {
     videoRef
   } = useMultiTicketForm();
   
+  const { 
+    ticketData, 
+    setTicketData, 
+    errors, 
+    validateStep1, 
+    validateStep2, 
+    step, 
+    setStep, 
+    isCheckingTicketCode 
+  } = useTicketForm();
+  
   const [previewOpen, setPreviewOpen] = useState(false);
   const [validatingStep, setValidatingStep] = useState(false);
   
-  // Clean up camera when component unmounts
-  useEffect(() => {
-    return () => {
-      stopCamera();
-    };
-  }, [stopCamera]);
-
   const handleModeToggle = (checked: boolean) => {
     setIsMultiMode(checked);
     if (checked && multiTicketData.tickets.length === 0) {
@@ -131,14 +122,12 @@ const CreateTicketForm: React.FC = () => {
         return false;
       }
       
-      // Check ticket code uniqueness
       const isUnique = await validateTicketCodeUniqueness(ticket.ticketCode);
       if (!isUnique) {
         toast.error(`Ticket code ${ticket.ticketCode} is already in use`);
         return false;
       }
       
-      // Check if kickoff time is in the future
       const kickoffTime = new Date(ticket.date);
       const [hours, minutes] = ticket.time.split(':').map(Number);
       kickoffTime.setHours(hours, minutes);
@@ -163,11 +152,8 @@ const CreateTicketForm: React.FC = () => {
     setIsSubmitting(true);
     try {
       if (isMultiMode) {
-        // Handle multi-ticket submission
         const isValid = await validateMultiTickets();
         if (!isValid) return;
-        
-        console.log('[CreateTicketForm] Creating multiple tickets...');
         
         const ticketsToInsert = multiTicketData.tickets.map(ticket => {
           const kickoffTime = new Date(ticket.date);
@@ -192,50 +178,22 @@ const CreateTicketForm: React.FC = () => {
           .insert(ticketsToInsert)
           .select('id, title');
         
-        if (error) {
-          console.error('[CreateTicketForm] Error creating multiple tickets:', error);
-          throw error;
-        }
+        if (error) throw error;
         
-        console.log('[CreateTicketForm] Multiple tickets created successfully:', data);
-        
-        // Notify subscribers for each created ticket
         if (data && data.length > 0) {
-          console.log('[CreateTicketForm] Starting notification process for multiple tickets');
           try {
             const notificationPromises = data.map(async (ticket) => {
-              console.log(`[CreateTicketForm] Queuing notification for ticket: ${ticket.id} - ${ticket.title}`);
               return await notifySubscribersOfNewTicket(currentUser.id, ticket.id, ticket.title);
             });
             
-            const results = await Promise.allSettled(notificationPromises);
-            
-            let successCount = 0;
-            let errorCount = 0;
-            
-            results.forEach((result, index) => {
-              if (result.status === 'fulfilled') {
-                successCount++;
-                console.log(`[CreateTicketForm] Notification successful for ticket ${index + 1}`);
-              } else {
-                errorCount++;
-                console.error(`[CreateTicketForm] Notification failed for ticket ${index + 1}:`, result.reason);
-              }
-            });
-            
-            console.log(`[CreateTicketForm] Notification summary: ${successCount} successful, ${errorCount} failed`);
+            await Promise.allSettled(notificationPromises);
           } catch (notificationError) {
-            console.error('[CreateTicketForm] Error in batch notifications:', notificationError);
+            console.error('Error in batch notifications:', notificationError);
           }
         }
         
-        toast.success(`${multiTicketData.tickets.length} tickets created successfully!`, {
-          description: "Your tickets have been published and subscribers have been notified.",
-        });
+        toast.success(`${multiTicketData.tickets.length} tickets created successfully!`);
       } else {
-        // Handle single ticket submission
-        console.log('[CreateTicketForm] Creating single ticket...');
-        
         const kickoffTime = new Date(ticketData.date);
         const [hours, minutes] = ticketData.time.split(':').map(Number);
         kickoffTime.setHours(hours, minutes);
@@ -252,42 +210,27 @@ const CreateTicketForm: React.FC = () => {
           ticket_code: ticketData.ticketCode
         };
         
-        console.log('[CreateTicketForm] Inserting ticket data:', ticketDataForDb);
-        
         const { data, error } = await supabase
           .from("tickets")
           .insert(ticketDataForDb)
           .select('id, title')
           .single();
         
-        if (error) {
-          console.error('[CreateTicketForm] Error creating single ticket:', error);
-          throw error;
-        }
+        if (error) throw error;
         
-        console.log('[CreateTicketForm] Single ticket created successfully:', data);
-        
-        // Notify subscribers about the new ticket
         if (data?.id) {
-          console.log('[CreateTicketForm] Starting notification process for single ticket:', data.id);
           try {
             await notifySubscribersOfNewTicket(currentUser.id, data.id, data.title);
-            console.log('[CreateTicketForm] Single ticket notification completed successfully');
           } catch (notificationError) {
-            console.error('[CreateTicketForm] Error notifying subscribers for single ticket:', notificationError);
+            console.error('Error notifying subscribers:', notificationError);
           }
-        } else {
-          console.error('[CreateTicketForm] No ticket ID returned from single ticket creation');
         }
         
-        toast.success("Ticket created successfully!", {
-          description: "Your ticket has been published and subscribers have been notified.",
-        });
+        toast.success("Ticket created successfully!");
       }
       
       navigate(`/seller/tickets`);
     } catch (error: any) {
-      console.error('[CreateTicketForm] Error in ticket creation process:', error);
       toast.error("Error creating tickets", {
         description: error.message || "Failed to create tickets. Please try again.",
       });
@@ -296,7 +239,6 @@ const CreateTicketForm: React.FC = () => {
     }
   };
 
-  // Convert optional FormErrors to required string errors for step components
   const getStep1Errors = () => ({
     title: errors.title || "",
     description: errors.description || "",
