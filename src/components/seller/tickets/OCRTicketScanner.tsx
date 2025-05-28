@@ -56,25 +56,48 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
         videoRef.current.srcObject = mediaStream;
         setStream(mediaStream);
         
-        // Wait for video to load
-        videoRef.current.onloadedmetadata = () => {
+        // Set up event handlers before starting
+        const video = videoRef.current;
+        
+        const handleLoadedMetadata = () => {
           console.log('[OCRScanner] Video metadata loaded');
-          if (videoRef.current) {
-            videoRef.current.play().then(() => {
-              console.log('[OCRScanner] Video playing successfully');
-              setVideoLoaded(true);
-              setIsScanning(true);
-            }).catch((error) => {
-              console.error('[OCRScanner] Error playing video:', error);
-              setCameraError("Failed to start video playback");
-            });
+          video.play().then(() => {
+            console.log('[OCRScanner] Video playing successfully');
+            setVideoLoaded(true);
+            setIsScanning(true);
+          }).catch((error) => {
+            console.error('[OCRScanner] Error playing video:', error);
+            setCameraError("Failed to start video playback");
+          });
+        };
+
+        const handleCanPlay = () => {
+          console.log('[OCRScanner] Video can play');
+          if (!videoLoaded) {
+            setVideoLoaded(true);
+            setIsScanning(true);
           }
         };
 
-        videoRef.current.onerror = (error) => {
+        const handleError = (error: Event) => {
           console.error('[OCRScanner] Video error:', error);
           setCameraError("Video stream error");
         };
+
+        // Add event listeners
+        video.addEventListener('loadedmetadata', handleLoadedMetadata);
+        video.addEventListener('canplay', handleCanPlay);
+        video.addEventListener('error', handleError);
+        
+        // Cleanup function for event listeners
+        const cleanup = () => {
+          video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+          video.removeEventListener('canplay', handleCanPlay);
+          video.removeEventListener('error', handleError);
+        };
+        
+        // Store cleanup function for later use
+        (video as any)._cleanup = cleanup;
       }
     } catch (error) {
       console.error("Error accessing camera:", error);
@@ -85,6 +108,11 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
 
   const stopCamera = () => {
     console.log('[OCRScanner] Stopping camera...');
+    
+    // Clean up event listeners
+    if (videoRef.current && (videoRef.current as any)._cleanup) {
+      (videoRef.current as any)._cleanup();
+    }
     
     if (stream) {
       stream.getTracks().forEach(track => {
@@ -152,11 +180,11 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
           
           console.log('[OCRScanner] OCR result:', text);
           
-          // Extract numeric codes from the recognized text (only numbers)
-          const detectedCodes = extractNumericCodes(text);
+          // Extract alphanumeric codes from the recognized text
+          const detectedCodes = extractAlphanumericCodes(text);
           
           if (detectedCodes.length > 0) {
-            console.log('[OCRScanner] Numeric codes detected:', detectedCodes);
+            console.log('[OCRScanner] Alphanumeric codes detected:', detectedCodes);
             
             // For now, take the first detected code
             const firstCode = detectedCodes[0];
@@ -164,7 +192,7 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
             toast.success(`Ticket code "${firstCode}" scanned successfully!`);
             onClose();
           } else {
-            toast.error("No valid numeric ticket codes found. Please ensure the numbers are clearly visible.");
+            toast.error("No valid ticket codes found. Please ensure the codes are clearly visible.");
           }
         } catch (ocrError) {
           console.error('[OCRScanner] OCR processing error:', ocrError);
@@ -181,23 +209,23 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
     }
   };
 
-  // Extract only numeric codes from OCR text (as per user requirement)
-  const extractNumericCodes = (text: string): string[] => {
+  // Extract alphanumeric codes from OCR text (letters and numbers)
+  const extractAlphanumericCodes = (text: string): string[] => {
     const codes: string[] = [];
     
     // Clean up the text and split into lines
     const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
     
     for (const line of lines) {
-      // Look for numeric sequences that could be ticket codes
-      // Only numbers, typically 4-20 characters
-      const matches = line.match(/\b\d{4,20}\b/g);
+      // Look for alphanumeric sequences that could be ticket codes
+      // Letters and numbers, typically 4-20 characters
+      const matches = line.match(/\b[A-Za-z0-9]{4,20}\b/g);
       
       if (matches) {
         for (const match of matches) {
-          // Filter out sequences that are too short
+          // Filter out sequences that are too short or don't contain both letters and numbers
           if (match.length >= 4) {
-            codes.push(match);
+            codes.push(match.toUpperCase()); // Convert to uppercase for consistency
           }
         }
       }
@@ -208,16 +236,16 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
   };
 
   const handleManualInput = () => {
-    const code = prompt("Enter numeric ticket code manually:");
+    const code = prompt("Enter ticket code manually:");
     if (code && code.trim()) {
-      const cleanCode = code.trim();
-      // Validate that it's numeric
-      if (/^\d{4,}$/.test(cleanCode)) {
+      const cleanCode = code.trim().toUpperCase();
+      // Validate that it's alphanumeric
+      if (/^[A-Za-z0-9]{4,}$/.test(cleanCode)) {
         onCodeScanned(cleanCode);
         toast.success("Ticket code added successfully!");
         onClose();
       } else {
-        toast.error("Please enter a valid numeric ticket code (numbers only, at least 4 digits)");
+        toast.error("Please enter a valid alphanumeric ticket code (letters and numbers, at least 4 characters)");
       }
     }
   };
@@ -228,7 +256,7 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
         <DialogHeader>
           <DialogTitle>Scan Handwritten Ticket Codes</DialogTitle>
           <DialogDescription>
-            Point your camera at handwritten numeric ticket codes. The scanner will automatically detect number sequences.
+            Point your camera at handwritten alphanumeric ticket codes. The scanner will automatically detect letter and number sequences.
           </DialogDescription>
         </DialogHeader>
         
@@ -273,7 +301,7 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
                   <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-24 border-2 border-white rounded-lg">
                     <ScanText className="absolute top-2 left-1/2 transform -translate-x-1/2 w-6 h-6 text-white animate-pulse" />
                     <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-white text-xs bg-black bg-opacity-50 px-2 py-1 rounded">
-                      Position numbers here
+                      Position codes here
                     </div>
                   </div>
                 </div>
