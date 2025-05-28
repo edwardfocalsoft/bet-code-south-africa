@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -44,12 +44,22 @@ const CreateTicketForm: React.FC = () => {
     addScannedCode,
     validateTicketCodeUniqueness,
     isScanning,
-    setIsScanning
+    setIsScanning,
+    startCamera,
+    stopCamera,
+    videoRef
   } = useMultiTicketForm();
   
   const [previewOpen, setPreviewOpen] = useState(false);
   const [validatingStep, setValidatingStep] = useState(false);
   
+  // Clean up camera when component unmounts
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, [stopCamera]);
+
   const handleModeToggle = (checked: boolean) => {
     setIsMultiMode(checked);
     if (checked && multiTicketData.tickets.length === 0) {
@@ -327,6 +337,9 @@ const CreateTicketForm: React.FC = () => {
             onCodeScanned={addScannedCode}
             isScanning={isScanning}
             setIsScanning={setIsScanning}
+            startCamera={startCamera}
+            stopCamera={stopCamera}
+            videoRef={videoRef}
           />
           
           <div className="flex justify-end">
