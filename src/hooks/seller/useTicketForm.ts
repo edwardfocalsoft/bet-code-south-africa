@@ -151,24 +151,34 @@ export const useTicketForm = (initialData?: Partial<TicketFormData>) => {
         ticket_code: ticketData.ticketCode,
       };
 
+      console.log('[useTicketForm] Creating ticket with data:', ticketDataForDb);
+
       const { data, error } = await supabase
         .from('tickets')
         .insert(ticketDataForDb)
         .select('id')
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[useTicketForm] Error creating ticket:', error);
+        throw error;
+      }
+
+      console.log('[useTicketForm] Ticket created successfully:', data);
 
       // Notify subscribers about the new ticket
       if (data?.id) {
-        console.log('[useTicketForm] Notifying subscribers about new ticket:', data.id);
+        console.log('[useTicketForm] Starting notification process for ticket:', data.id);
         try {
           await notifySubscribersOfNewTicket(userId, data.id, ticketData.title);
-          console.log('[useTicketForm] Successfully notified subscribers');
+          console.log('[useTicketForm] Notification process completed successfully');
         } catch (notificationError) {
-          console.error('[useTicketForm] Error notifying subscribers:', notificationError);
+          console.error('[useTicketForm] Error in notification process:', notificationError);
           // Don't fail the ticket creation if notifications fail
+          toast.error("Ticket created but some notifications may have failed");
         }
+      } else {
+        console.error('[useTicketForm] No ticket ID returned from database');
       }
 
       toast.success("Ticket created successfully!");
