@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,12 @@ import { Switch } from "@/components/ui/switch";
 import { ScanText, Plus, Trash2, CameraOff } from "lucide-react";
 import { BettingSite } from "@/types";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface SingleTicketData {
   id: string;
@@ -78,7 +84,6 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
     }
   };
 
-  // Clean up camera when component unmounts
   useEffect(() => {
     return () => {
       if (isScanning) {
@@ -122,12 +127,17 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
         </div>
       </div>
 
-      {isScanning && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Scan Ticket Code</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center gap-4">
+      <Dialog open={isScanning} onOpenChange={(open) => {
+        if (!open) {
+          stopCamera();
+          setIsScanning(false);
+        }
+      }}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Scan Ticket Code</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4">
             <video
               ref={videoRef}
               autoPlay
@@ -138,9 +148,20 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
             <div className="text-sm text-muted-foreground text-center">
               Point your camera at the handwritten ticket code
             </div>
-          </CardContent>
-        </Card>
-      )}
+            <Button
+              onClick={() => {
+                stopCamera();
+                setIsScanning(false);
+              }}
+              variant="destructive"
+              className="mt-4"
+            >
+              <CameraOff className="h-4 w-4 mr-2" />
+              Close Camera
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {tickets.length === 0 && !isScanning && (
         <Card>
@@ -224,14 +245,12 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
 
               <div className="space-y-2">
                 <Label htmlFor={`ticket-code-${ticket.id}`}>Ticket Code *</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id={`ticket-code-${ticket.id}`}
-                    value={ticket.ticketCode}
-                    onChange={(e) => onUpdateTicket(ticket.id, { ticketCode: e.target.value })}
-                    placeholder="Enter or scan ticket code"
-                  />
-                </div>
+                <Input
+                  id={`ticket-code-${ticket.id}`}
+                  value={ticket.ticketCode}
+                  onChange={(e) => onUpdateTicket(ticket.id, { ticketCode: e.target.value })}
+                  placeholder="Enter or scan ticket code"
+                />
               </div>
 
               <div className="space-y-2">
