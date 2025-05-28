@@ -12,12 +12,15 @@ export const useTicketNotifications = () => {
    */
   const notifySubscribersOfNewTicket = async (sellerId: string, ticketId: string, ticketTitle: string) => {
     try {
-      console.log(`[ticket-notifications] Notifying subscribers of seller ${sellerId} about new ticket: ${ticketTitle}`);
+      console.log(`[ticket-notifications] Starting notification process for seller ${sellerId}, ticket: ${ticketTitle}`);
       
       // Get all subscribers of this seller
       const { data: subscribers, error: subscribersError } = await supabase
         .from('subscriptions')
-        .select('buyer_id, profiles!subscriptions_buyer_id_fkey(email, username)')
+        .select(`
+          buyer_id,
+          profiles!subscriptions_buyer_id_fkey(email, username)
+        `)
         .eq('seller_id', sellerId);
       
       if (subscribersError) {
@@ -29,6 +32,8 @@ export const useTicketNotifications = () => {
         console.log('[ticket-notifications] No subscribers found for this seller');
         return;
       }
+      
+      console.log(`[ticket-notifications] Found ${subscribers.length} subscribers`);
       
       // Get seller info
       const { data: sellerData, error: sellerError } = await supabase
@@ -43,6 +48,7 @@ export const useTicketNotifications = () => {
       }
       
       const sellerUsername = sellerData?.username || 'Unknown Seller';
+      console.log(`[ticket-notifications] Seller username: ${sellerUsername}`);
       
       // Create notifications for each subscriber
       const notificationPromises = subscribers.map(async (subscription: any) => {
@@ -50,19 +56,27 @@ export const useTicketNotifications = () => {
         const buyerEmail = subscription.profiles?.email;
         const buyerUsername = subscription.profiles?.username;
         
+        console.log(`[ticket-notifications] Processing subscriber: ${buyerUsername} (${buyerEmail})`);
+        
         // Create in-app notification
-        await createNotification(
-          buyerId,
-          'New Ticket Published',
-          `${sellerUsername} has published a new ticket: "${ticketTitle}"`,
-          'ticket',
-          ticketId
-        );
+        try {
+          const notification = await createNotification(
+            buyerId,
+            'New Ticket Published',
+            `${sellerUsername} has published a new ticket: "${ticketTitle}"`,
+            'ticket',
+            ticketId
+          );
+          console.log(`[ticket-notifications] In-app notification created for ${buyerUsername}:`, notification?.id);
+        } catch (notifError) {
+          console.error(`[ticket-notifications] Error creating in-app notification for ${buyerUsername}:`, notifError);
+        }
         
         // Send email notification via edge function
         if (buyerEmail) {
           try {
-            await supabase.functions.invoke('send-ticket-notification', {
+            console.log(`[ticket-notifications] Sending email to ${buyerEmail}`);
+            const emailResponse = await supabase.functions.invoke('send-ticket-notification', {
               body: {
                 buyerEmail,
                 buyerUsername: buyerUsername || 'Subscriber',
@@ -71,18 +85,26 @@ export const useTicketNotifications = () => {
                 ticketId
               }
             });
-            console.log(`[ticket-notifications] Email notification sent to ${buyerEmail}`);
+            
+            if (emailResponse.error) {
+              console.error(`[ticket-notifications] Email function error for ${buyerEmail}:`, emailResponse.error);
+            } else {
+              console.log(`[ticket-notifications] Email notification sent successfully to ${buyerEmail}`);
+            }
           } catch (emailError) {
             console.error(`[ticket-notifications] Error sending email to ${buyerEmail}:`, emailError);
           }
+        } else {
+          console.log(`[ticket-notifications] No email address for subscriber ${buyerUsername}`);
         }
       });
       
-      await Promise.all(notificationPromises);
-      console.log(`[ticket-notifications] Successfully notified ${subscribers.length} subscribers`);
+      await Promise.allSettled(notificationPromises);
+      console.log(`[ticket-notifications] Completed notification process for ${subscribers.length} subscribers`);
       
     } catch (error) {
       console.error('[ticket-notifications] Error in notifySubscribersOfNewTicket:', error);
+      throw error; // Re-throw to let caller handle
     }
   };
   

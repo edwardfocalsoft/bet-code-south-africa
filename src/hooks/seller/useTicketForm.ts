@@ -161,14 +161,21 @@ export const useTicketForm = (initialData?: Partial<TicketFormData>) => {
 
       // Notify subscribers about the new ticket
       if (data?.id) {
-        console.log('Notifying subscribers about new ticket:', data.id);
-        await notifySubscribersOfNewTicket(userId, data.id, ticketData.title);
+        console.log('[useTicketForm] Notifying subscribers about new ticket:', data.id);
+        try {
+          await notifySubscribersOfNewTicket(userId, data.id, ticketData.title);
+          console.log('[useTicketForm] Successfully notified subscribers');
+        } catch (notificationError) {
+          console.error('[useTicketForm] Error notifying subscribers:', notificationError);
+          // Don't fail the ticket creation if notifications fail
+        }
       }
 
       toast.success("Ticket created successfully!");
       navigate('/seller/tickets');
       return true;
     } catch (error: any) {
+      console.error('[useTicketForm] Error creating ticket:', error);
       toast.error(`Error creating ticket: ${error.message}`);
       return false;
     } finally {

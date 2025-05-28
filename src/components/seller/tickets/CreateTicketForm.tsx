@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -184,15 +185,20 @@ const CreateTicketForm: React.FC = () => {
         
         // Notify subscribers for each created ticket
         if (data && data.length > 0) {
-          console.log('Notifying subscribers about multiple new tickets');
-          const notificationPromises = data.map(ticket => 
-            notifySubscribersOfNewTicket(currentUser.id, ticket.id, ticket.title)
-          );
-          await Promise.all(notificationPromises);
+          console.log('[CreateTicketForm] Notifying subscribers about multiple new tickets');
+          try {
+            const notificationPromises = data.map(ticket => 
+              notifySubscribersOfNewTicket(currentUser.id, ticket.id, ticket.title)
+            );
+            await Promise.allSettled(notificationPromises);
+            console.log('[CreateTicketForm] All ticket notifications processed');
+          } catch (notificationError) {
+            console.error('[CreateTicketForm] Error in batch notifications:', notificationError);
+          }
         }
         
         toast.success(`${multiTicketData.tickets.length} tickets created successfully!`, {
-          description: "Your tickets have been published and are now available for purchase.",
+          description: "Your tickets have been published and subscribers have been notified.",
         });
       } else {
         // Handle single ticket submission
@@ -220,17 +226,23 @@ const CreateTicketForm: React.FC = () => {
         
         // Notify subscribers about the new ticket
         if (data?.id) {
-          console.log('Notifying subscribers about new ticket:', data.id);
-          await notifySubscribersOfNewTicket(currentUser.id, data.id, ticketData.title);
+          console.log('[CreateTicketForm] Notifying subscribers about new ticket:', data.id);
+          try {
+            await notifySubscribersOfNewTicket(currentUser.id, data.id, ticketData.title);
+            console.log('[CreateTicketForm] Subscribers notified successfully');
+          } catch (notificationError) {
+            console.error('[CreateTicketForm] Error notifying subscribers:', notificationError);
+          }
         }
         
         toast.success("Ticket created successfully!", {
-          description: "Your ticket has been published and is now available for purchase.",
+          description: "Your ticket has been published and subscribers have been notified.",
         });
       }
       
       navigate(`/seller/tickets`);
     } catch (error: any) {
+      console.error('[CreateTicketForm] Error creating tickets:', error);
       toast.error("Error creating tickets", {
         description: error.message || "Failed to create tickets. Please try again.",
       });
