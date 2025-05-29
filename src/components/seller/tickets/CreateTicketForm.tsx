@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -256,7 +257,7 @@ const CreateTicketForm: React.FC = () => {
 
   return (
     <>
-      <div className="mb-8 bg-betting-dark-gray p-4 rounded-lg space-y-4">
+      <div className="mb-6 sm:mb-8 bg-betting-dark-gray sm:bg-betting-dark-gray p-0 sm:p-4 rounded-none sm:rounded-lg space-y-4">
         <div className="flex items-center space-x-2">
           <Switch
             id="multi-mode"
@@ -270,7 +271,7 @@ const CreateTicketForm: React.FC = () => {
       </div>
       
       {isMultiMode ? (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <MultiTicketForm
             tickets={multiTicketData.tickets}
             onAddTicket={addTicket}
@@ -288,7 +289,7 @@ const CreateTicketForm: React.FC = () => {
             <Button 
               onClick={handleSubmit}
               disabled={isSubmitting || multiTicketData.tickets.length === 0}
-              className="bg-betting-green hover:bg-betting-green-dark"
+              className="w-full sm:w-auto bg-betting-green hover:bg-betting-green-dark"
             >
               {isSubmitting ? (
                 <>

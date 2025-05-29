@@ -103,6 +103,28 @@
   .betting-badge-paid {
     @apply bg-betting-accent/20 text-betting-accent;
   }
+
+  /* Mobile-first responsive design */
+  @media (max-width: 767px) {
+    .betting-card {
+      @apply border-0 shadow-none p-0 bg-transparent;
+    }
+    
+    /* Full width buttons on mobile */
+    .mobile-full-width {
+      @apply w-full;
+    }
+    
+    /* Stack buttons vertically on mobile */
+    .mobile-stack {
+      @apply flex-col;
+    }
+    
+    /* Reduce padding on mobile */
+    .mobile-compact {
+      @apply px-2 py-1;
+    }
+  }
 }
 
 #root {

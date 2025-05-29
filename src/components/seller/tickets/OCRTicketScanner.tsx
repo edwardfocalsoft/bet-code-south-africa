@@ -22,7 +22,6 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
   const [isScanning, setIsScanning] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [videoLoaded, setVideoLoaded] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [detectedText, setDetectedText] = useState<string>('');
   const [detectedCodes, setDetectedCodes] = useState<string[]>([]);
@@ -43,7 +42,7 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
 
   // Auto-scan every 3 seconds when enabled and camera is ready
   useEffect(() => {
-    if (autoScanEnabled && videoLoaded && !isProcessing) {
+    if (autoScanEnabled && isScanning && !isProcessing) {
       autoScanTimeoutRef.current = setTimeout(() => {
         captureAndProcessImage();
       }, 3000);
@@ -54,13 +53,12 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
         clearTimeout(autoScanTimeoutRef.current);
       }
     };
-  }, [autoScanEnabled, videoLoaded, isProcessing]);
+  }, [autoScanEnabled, isScanning, isProcessing]);
 
   const startCamera = async () => {
     try {
       console.log('[OCRScanner] Starting camera...');
       setCameraError(null);
-      setVideoLoaded(false);
       setDetectedText('');
       setDetectedCodes([]);
       
@@ -75,45 +73,14 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
         setStream(mediaStream);
+        setIsScanning(true);
         
-        const video = videoRef.current;
-        
-        const handleLoadedMetadata = () => {
-          console.log('[OCRScanner] Video metadata loaded');
-          video.play().then(() => {
-            console.log('[OCRScanner] Video playing successfully');
-            setVideoLoaded(true);
-            setIsScanning(true);
-          }).catch((error) => {
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play().catch((error) => {
             console.error('[OCRScanner] Error playing video:', error);
             setCameraError("Failed to start video playback");
           });
         };
-
-        const handleCanPlay = () => {
-          console.log('[OCRScanner] Video can play');
-          if (!videoLoaded) {
-            setVideoLoaded(true);
-            setIsScanning(true);
-          }
-        };
-
-        const handleError = (error: Event) => {
-          console.error('[OCRScanner] Video error:', error);
-          setCameraError("Video stream error");
-        };
-
-        video.addEventListener('loadedmetadata', handleLoadedMetadata);
-        video.addEventListener('canplay', handleCanPlay);
-        video.addEventListener('error', handleError);
-        
-        const cleanup = () => {
-          video.removeEventListener('loadedmetadata', handleLoadedMetadata);
-          video.removeEventListener('canplay', handleCanPlay);
-          video.removeEventListener('error', handleError);
-        };
-        
-        (video as any)._cleanup = cleanup;
       }
     } catch (error) {
       console.error("Error accessing camera:", error);
@@ -129,10 +96,6 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
       clearTimeout(autoScanTimeoutRef.current);
     }
     
-    if (videoRef.current && (videoRef.current as any)._cleanup) {
-      (videoRef.current as any)._cleanup();
-    }
-    
     if (stream) {
       stream.getTracks().forEach(track => {
         track.stop();
@@ -142,14 +105,13 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
     }
     setIsScanning(false);
     setIsProcessing(false);
-    setVideoLoaded(false);
     setCameraError(null);
     setDetectedText('');
     setDetectedCodes([]);
   };
 
   const captureAndProcessImage = async () => {
-    if (!videoRef.current || !canvasRef.current || isProcessing || !videoLoaded) {
+    if (!videoRef.current || !canvasRef.current || isProcessing || !isScanning) {
       return;
     }
 
@@ -238,36 +200,29 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Scan Ticket Codes</DialogTitle>
-          <DialogDescription>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto p-3 sm:p-6">
+        <DialogHeader className="space-y-2">
+          <DialogTitle className="text-lg sm:text-xl">Scan Ticket Codes</DialogTitle>
+          <DialogDescription className="text-sm">
             Point your camera at handwritten or printed ticket codes. The scanner will automatically detect text.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
             {cameraError ? (
-              <div className="flex items-center justify-center h-full">
+              <div className="flex items-center justify-center h-full p-4">
                 <div className="text-center">
-                  <Camera className="h-12 w-12 text-red-400 mx-auto mb-2" />
-                  <p className="text-sm text-red-600">{cameraError}</p>
+                  <Camera className="h-8 w-8 sm:h-12 sm:w-12 text-red-400 mx-auto mb-2" />
+                  <p className="text-xs sm:text-sm text-red-600 mb-3">{cameraError}</p>
                   <Button 
                     onClick={startCamera} 
                     variant="outline" 
                     size="sm" 
-                    className="mt-2"
+                    className="w-full"
                   >
                     Retry Camera
                   </Button>
-                </div>
-              </div>
-            ) : !videoLoaded ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <Loader2 className="h-12 w-12 text-gray-400 mx-auto mb-2 animate-spin" />
-                  <p className="text-sm text-gray-600">Camera loading...</p>
                 </div>
               </div>
             ) : (
@@ -284,22 +239,22 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
                   className="hidden"
                 />
                 <div className="absolute inset-0 border-2 border-betting-green rounded-lg pointer-events-none">
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-24 border-2 border-white rounded-lg">
-                    <ScanText className="absolute top-2 left-1/2 transform -translate-x-1/2 w-6 h-6 text-white animate-pulse" />
-                    <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-white text-xs bg-black bg-opacity-50 px-2 py-1 rounded">
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-16 sm:w-48 sm:h-24 border-2 border-white rounded-lg">
+                    <ScanText className="absolute top-1 left-1/2 transform -translate-x-1/2 w-4 h-4 sm:w-6 sm:h-6 text-white animate-pulse" />
+                    <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 text-white text-xs bg-black bg-opacity-50 px-2 py-1 rounded">
                       Position codes here
                     </div>
                   </div>
                 </div>
                 {isProcessing && (
-                  <div className="absolute top-2 right-2 bg-betting-green text-white px-3 py-2 rounded text-sm flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                  <div className="absolute top-2 right-2 bg-betting-green text-white px-2 py-1 sm:px-3 sm:py-2 rounded text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
+                    <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
                     Processing...
                   </div>
                 )}
                 {detectedCodes.length > 0 && (
-                  <div className="absolute top-2 left-2 bg-green-600 text-white px-3 py-2 rounded text-sm flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4" />
+                  <div className="absolute top-2 left-2 bg-green-600 text-white px-2 py-1 sm:px-3 sm:py-2 rounded text-xs sm:text-sm flex items-center gap-1 sm:gap-2">
+                    <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4" />
                     {detectedCodes.length} code(s) found
                   </div>
                 )}
@@ -308,7 +263,7 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
           </div>
 
           {/* Auto-scan toggle */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between text-sm">
             <label className="flex items-center space-x-2">
               <input
                 type="checkbox"
@@ -316,7 +271,7 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
                 onChange={(e) => setAutoScanEnabled(e.target.checked)}
                 className="rounded"
               />
-              <span className="text-sm">Auto-scan every 3 seconds</span>
+              <span>Auto-scan every 3 seconds</span>
             </label>
           </div>
 
@@ -324,15 +279,15 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
           {detectedCodes.length > 0 && (
             <div className="space-y-2">
               <h4 className="text-sm font-medium">Detected Ticket Codes:</h4>
-              <div className="grid gap-2">
+              <div className="space-y-2">
                 {detectedCodes.map((code, index) => (
                   <Button
                     key={index}
                     onClick={() => handleCodeSelect(code)}
                     variant="outline"
-                    className="justify-start text-left"
+                    className="w-full justify-start text-left text-sm"
                   >
-                    <CheckCircle className="h-4 w-4 mr-2 text-green-600" />
+                    <CheckCircle className="h-4 w-4 mr-2 text-green-600 flex-shrink-0" />
                     {code}
                   </Button>
                 ))}
@@ -344,17 +299,17 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
           {detectedText && (
             <div className="space-y-2">
               <h4 className="text-sm font-medium">Detected Text:</h4>
-              <div className="bg-gray-50 p-2 rounded text-xs max-h-20 overflow-y-auto">
+              <div className="bg-gray-50 p-2 rounded text-xs max-h-16 sm:max-h-20 overflow-y-auto">
                 {detectedText}
               </div>
             </div>
           )}
           
-          <div className="flex gap-2">
+          <div className="space-y-2">
             <Button
               onClick={captureAndProcessImage}
-              className="flex-1 bg-betting-green hover:bg-betting-green-dark"
-              disabled={!videoLoaded || isProcessing}
+              className="w-full bg-betting-green hover:bg-betting-green-dark"
+              disabled={!isScanning || isProcessing}
             >
               {isProcessing ? (
                 <>
@@ -371,22 +326,21 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
             <Button
               onClick={handleManualInput}
               variant="outline"
-              className="flex-1"
+              className="w-full"
               disabled={isProcessing}
             >
               Manual Input
             </Button>
+            <Button
+              onClick={onClose}
+              variant="outline"
+              className="w-full"
+              disabled={isProcessing}
+            >
+              <X className="h-4 w-4 mr-2" />
+              Close Scanner
+            </Button>
           </div>
-          
-          <Button
-            onClick={onClose}
-            variant="outline"
-            className="w-full"
-            disabled={isProcessing}
-          >
-            <X className="h-4 w-4 mr-2" />
-            Close Scanner
-          </Button>
         </div>
       </DialogContent>
     </Dialog>
