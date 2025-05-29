@@ -6,15 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ScanText, Plus, Trash2, CameraOff } from "lucide-react";
+import { ScanText, Plus, Trash2 } from "lucide-react";
 import { BettingSite } from "@/types";
-import { toast } from "sonner";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import OCRTicketScanner from "./OCRTicketScanner";
 
 interface SingleTicketData {
   id: string;
@@ -68,20 +62,12 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
     onUpdateTicket(ticketId, { date: newDate });
   };
 
-  const handleScanClick = async () => {
-    try {
-      if (isScanning) {
-        stopCamera?.();
-        setIsScanning(false);
-      } else {
-        await startCamera?.();
-        setIsScanning(true);
-      }
-    } catch (error) {
-      console.error('Camera error:', error);
-      toast.error('Failed to access camera');
-      setIsScanning(false);
-    }
+  const handleScanClick = () => {
+    setIsScanning(true);
+  };
+
+  const handleScanClose = () => {
+    setIsScanning(false);
   };
 
   useEffect(() => {
@@ -100,20 +86,11 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
           <Button
             type="button"
             onClick={handleScanClick}
-            variant={isScanning ? "destructive" : "outline"}
+            variant="outline"
             className="flex items-center gap-2"
           >
-            {isScanning ? (
-              <>
-                <CameraOff className="h-4 w-4" />
-                Stop Scanning
-              </>
-            ) : (
-              <>
-                <ScanText className="h-4 w-4" />
-                Scan Handwritten Codes
-              </>
-            )}
+            <ScanText className="h-4 w-4" />
+            Scan Ticket Codes
           </Button>
           <Button
             type="button"
@@ -127,47 +104,17 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
         </div>
       </div>
 
-      <Dialog open={isScanning} onOpenChange={(open) => {
-        if (!open) {
-          stopCamera?.();
-          setIsScanning(false);
-        }
-      }}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Scan Ticket Code</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center gap-4">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-auto max-h-64 rounded-lg border border-gray-300"
-            />
-            <div className="text-sm text-muted-foreground text-center">
-              Point your camera at the handwritten ticket code
-            </div>
-            <Button
-              onClick={() => {
-                stopCamera?.();
-                setIsScanning(false);
-              }}
-              variant="destructive"
-              className="mt-4"
-            >
-              <CameraOff className="h-4 w-4 mr-2" />
-              Close Camera
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <OCRTicketScanner
+        isOpen={isScanning}
+        onClose={handleScanClose}
+        onCodeScanned={onCodeScanned}
+      />
 
       {tickets.length === 0 && !isScanning && (
         <Card>
           <CardContent className="pt-6">
             <p className="text-center text-muted-foreground">
-              No tickets added yet. Click "Add Ticket" or "Scan Handwritten Codes" to get started.
+              No tickets added yet. Click "Add Ticket" or "Scan Ticket Codes" to get started.
             </p>
           </CardContent>
         </Card>
