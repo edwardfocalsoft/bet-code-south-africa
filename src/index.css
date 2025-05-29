@@ -110,9 +110,14 @@
       @apply border-0 shadow-none p-0 bg-transparent;
     }
     
-    /* Full width buttons on mobile */
-    .mobile-full-width {
+    /* Full width buttons on mobile - global */
+    .btn, button, .button {
       @apply w-full;
+    }
+    
+    /* Exception for navigation buttons */
+    nav button, .nav-button, .navbar button {
+      @apply w-auto;
     }
     
     /* Stack buttons vertically on mobile */

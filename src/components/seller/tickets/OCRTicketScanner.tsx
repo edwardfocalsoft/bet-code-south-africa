@@ -123,6 +123,7 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
       const ctx = canvas.getContext('2d');
       
       if (!ctx || video.videoWidth === 0 || video.videoHeight === 0) {
+        console.log('[OCRScanner] Video not ready yet');
         setIsProcessing(false);
         return;
       }
@@ -135,7 +136,7 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       
       // Convert canvas to base64
-      const imageData = canvas.toDataURL('image/png');
+      const imageData = canvas.toDataURL('image/jpeg', 0.8);
       
       console.log('[OCRScanner] Calling OCR edge function...');
       
@@ -239,9 +240,9 @@ const OCRTicketScanner: React.FC<OCRTicketScannerProps> = ({
                   className="hidden"
                 />
                 <div className="absolute inset-0 border-2 border-betting-green rounded-lg pointer-events-none">
-                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-16 sm:w-48 sm:h-24 border-2 border-white rounded-lg">
-                    <ScanText className="absolute top-1 left-1/2 transform -translate-x-1/2 w-4 h-4 sm:w-6 sm:h-6 text-white animate-pulse" />
-                    <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 text-white text-xs bg-black bg-opacity-50 px-2 py-1 rounded">
+                  <div className="absolute inset-4 border-2 border-white rounded-lg">
+                    <ScanText className="absolute top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 sm:w-6 sm:h-6 text-white animate-pulse" />
+                    <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-white text-xs bg-black bg-opacity-50 px-2 py-1 rounded">
                       Position codes here
                     </div>
                   </div>

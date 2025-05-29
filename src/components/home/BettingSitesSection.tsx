@@ -58,7 +58,7 @@ const BettingSitesSection: React.FC = () => {
           Compatible with All Major South African Betting Sites
         </h2>
         {isLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
             {[1, 2, 3, 4, 5, 6].map((skeleton) => (
               <div 
                 key={skeleton} 
@@ -67,7 +67,7 @@ const BettingSitesSection: React.FC = () => {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
             {bettingSites.map((site) => (
               <BettingSiteLogo key={site} site={site} />
             ))}

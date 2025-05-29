@@ -31,6 +31,11 @@ serve(async (req) => {
       );
     }
 
+    // Extract base64 image data
+    const base64Data = imageData.includes(',') ? imageData.split(',')[1] : imageData;
+
+    console.log('Calling Google Vision API...');
+
     // Call Google Vision API
     const visionResponse = await fetch(
       `https://vision.googleapis.com/v1/images:annotate?key=${googleApiKey}`,
@@ -43,7 +48,7 @@ serve(async (req) => {
           requests: [
             {
               image: {
-                content: imageData.split(',')[1], // Remove data:image/png;base64, prefix
+                content: base64Data,
               },
               features: [
                 {
@@ -61,13 +66,13 @@ serve(async (req) => {
       const errorText = await visionResponse.text();
       console.error('Google Vision API error:', errorText);
       return new Response(
-        JSON.stringify({ error: 'OCR processing failed' }),
+        JSON.stringify({ error: 'OCR processing failed', details: errorText }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const visionData = await visionResponse.json();
-    console.log('Vision API response:', visionData);
+    console.log('Vision API response received');
 
     if (!visionData.responses || !visionData.responses[0]) {
       return new Response(
@@ -87,7 +92,7 @@ serve(async (req) => {
 
     // Full detected text
     const fullText = textAnnotations[0].description || '';
-    console.log('Full detected text:', fullText);
+    console.log('Detected text length:', fullText.length);
 
     // Extract potential ticket codes
     const detectedCodes = extractTicketCodes(fullText);
@@ -114,35 +119,55 @@ serve(async (req) => {
 function extractTicketCodes(text: string): string[] {
   const codes: string[] = [];
   
-  // Clean up the text and split into lines
+  // Clean up the text and split into lines and words
   const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  const words = text.split(/\s+/).map(word => word.trim()).filter(word => word.length > 0);
   
-  for (const line of lines) {
-    // Look for alphanumeric sequences that could be ticket codes
-    // Updated patterns to be more flexible for handwritten text
+  // Combine lines and words for processing
+  const allTextSegments = [...lines, ...words];
+  
+  for (const segment of allTextSegments) {
+    // Enhanced patterns for ticket codes
     const patterns = [
-      /\b[A-Za-z0-9]{4,20}\b/g, // Basic alphanumeric 4-20 chars
-      /\b[A-Z]{1,3}[0-9]{3,10}\b/g, // Letters followed by numbers
-      /\b[0-9]{3,10}[A-Z]{1,3}\b/g, // Numbers followed by letters
-      /\b[A-Z0-9]{6,15}\b/g, // Mixed uppercase and numbers
+      // Basic alphanumeric patterns
+      /\b[A-Z0-9]{4,20}\b/g,
+      /\b[A-Za-z0-9]{4,20}\b/g,
+      
+      // Common ticket code patterns
+      /\b[A-Z]{1,4}[0-9]{3,12}\b/g,  // Letters followed by numbers (e.g., ABC123456)
+      /\b[0-9]{3,12}[A-Z]{1,4}\b/g,  // Numbers followed by letters (e.g., 123456ABC)
+      /\b[A-Z0-9]{6,15}\b/g,         // Mixed uppercase and numbers
+      
+      // Handle common OCR errors (0/O, 1/l/I confusion)
+      /\b[A-Z0-9lI]{4,20}\b/g,
+      
+      // Sequences with possible separators that should be removed
+      /\b[A-Z0-9]{2,}[-_\s]*[A-Z0-9]{2,}\b/g,
     ];
     
     for (const pattern of patterns) {
-      const matches = line.match(pattern);
+      const matches = segment.match(pattern);
       if (matches) {
-        for (const match of matches) {
-          const cleanCode = match.toUpperCase().trim();
-          // Filter out codes that are too short or too long
+        for (let match of matches) {
+          // Clean the match - remove separators and normalize
+          let cleanCode = match.replace(/[-_\s]/g, '').toUpperCase();
+          
+          // Replace common OCR confusion characters
+          cleanCode = cleanCode.replace(/[lI]/g, '1');
+          cleanCode = cleanCode.replace(/O/g, '0');
+          
+          // Validate code length and format
           if (cleanCode.length >= 4 && cleanCode.length <= 20) {
-            // Check if it contains both letters and numbers (typical ticket code pattern)
+            // Must contain both letters and numbers for most ticket codes
             const hasLetters = /[A-Z]/.test(cleanCode);
             const hasNumbers = /[0-9]/.test(cleanCode);
             
-            if (hasLetters && hasNumbers) {
-              codes.push(cleanCode);
-            } else if (cleanCode.length >= 6) {
-              // Include longer codes even if they're all numbers or all letters
-              codes.push(cleanCode);
+            // Accept if it has both letters and numbers, or if it's longer (could be all numeric)
+            if ((hasLetters && hasNumbers) || cleanCode.length >= 6) {
+              // Avoid obvious non-codes (like dates, common words)
+              if (!isCommonWord(cleanCode) && !isDate(cleanCode)) {
+                codes.push(cleanCode);
+              }
             }
           }
         }
@@ -152,4 +177,24 @@ function extractTicketCodes(text: string): string[] {
   
   // Remove duplicates and return
   return [...new Set(codes)];
+}
+
+function isCommonWord(code: string): boolean {
+  const commonWords = [
+    'TICKET', 'CODE', 'BETWAY', 'HOLLYWOODBETS', 'SUPABETS', 
+    'SPORT', 'BET', 'WIN', 'DRAW', 'SOCCER', 'FOOTBALL',
+    'TOTAL', 'ODDS', 'STAKE', 'RETURN', 'DATE', 'TIME'
+  ];
+  return commonWords.includes(code.toUpperCase());
+}
+
+function isDate(code: string): boolean {
+  // Check for date-like patterns (DDMMYYYY, YYYYMMDD, etc.)
+  const datePatterns = [
+    /^[0-3][0-9][0-1][0-9][2][0-9][0-9][0-9]$/, // DDMMYYYY
+    /^[2][0-9][0-9][0-9][0-1][0-9][0-3][0-9]$/, // YYYYMMDD
+    /^[0-1][0-9][0-3][0-9][2][0-9]$/, // MMDDYY
+  ];
+  
+  return datePatterns.some(pattern => pattern.test(code));
 }
