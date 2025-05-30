@@ -148,30 +148,32 @@ const AdminDashboard: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start" asChild>
-                <Link to="/admin/sellers">
-                  <Users className="h-4 w-4 mr-2" />
-                  Manage Sellers
-                </Link>
-              </Button>
-              <Button variant="outline" className="w-full justify-start" asChild>
-                <Link to="/admin/buyers">
-                  <Users className="h-4 w-4 mr-2" />
-                  View Buyers
-                </Link>
-              </Button>
-              <Button variant="outline" className="w-full justify-start" asChild>
-                <Link to="/admin/tickets">
-                  <Ticket className="h-4 w-4 mr-2" />
-                  Monitor Tickets
-                </Link>
-              </Button>
-              <Button variant="outline" className="w-full justify-start" asChild>
-                <Link to="/admin/payment-settings">
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  Payment Settings
-                </Link>
-              </Button>
+              <div className="grid grid-cols-2 gap-3">
+                <Button variant="outline" className="w-full justify-start" asChild>
+                  <Link to="/admin/sellers">
+                    <Users className="h-4 w-4 mr-2" />
+                    Manage Sellers
+                  </Link>
+                </Button>
+                <Button variant="outline" className="w-full justify-start" asChild>
+                  <Link to="/admin/buyers">
+                    <Users className="h-4 w-4 mr-2" />
+                    View Buyers
+                  </Link>
+                </Button>
+                <Button variant="outline" className="w-full justify-start" asChild>
+                  <Link to="/admin/tickets">
+                    <Ticket className="h-4 w-4 mr-2" />
+                    Monitor Tickets
+                  </Link>
+                </Button>
+                <Button variant="outline" className="w-full justify-start" asChild>
+                  <Link to="/admin/payment-settings">
+                    <DollarSign className="h-4 w-4 mr-2" />
+                    Payment Settings
+                  </Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
