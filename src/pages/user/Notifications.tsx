@@ -46,19 +46,6 @@ const Notifications: React.FC = () => {
                 Mark all as read
               </Button>
             )}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" onClick={() => cleanupOldNotifications()}>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Clean up
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Remove notifications older than 60 days</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
           </div>
         </div>
 
