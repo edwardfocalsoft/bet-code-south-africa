@@ -3,10 +3,10 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Award } from "lucide-react";
 import SellerCard from "@/components/sellers/SellerCard";
-import { Seller } from "@/types";
+import { User } from "@/types";
 
 interface TopSellersSectionProps {
-  sellers: Seller[];
+  sellers: User[];
   loading: boolean;
 }
 
