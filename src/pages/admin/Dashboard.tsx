@@ -7,8 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Users, Ticket, DollarSign, TrendingUp, AlertTriangle, ArrowRight } from "lucide-react";
+import { useAdminDashboard } from "@/hooks/admin/useAdminDashboard";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const AdminDashboard: React.FC = () => {
+  const { stats } = useAdminDashboard();
+
   return (
     <Layout requireAuth={true} allowedRoles={["admin"]}>
       <div className="container mx-auto py-8">
@@ -18,26 +22,65 @@ const AdminDashboard: React.FC = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <StatCard
-            title="Total Users"
-            value="1,234"
-            icon={Users}
-          />
-          <StatCard
-            title="Total Tickets"
-            value="567"
-            icon={Ticket}
-          />
-          <StatCard
-            title="Revenue"
-            value="R89,456"
-            icon={DollarSign}
-          />
-          <StatCard
-            title="Growth"
-            value="23.4%"
-            icon={TrendingUp}
-          />
+          {stats.loading ? (
+            <>
+              <Card className="betting-card">
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-4 w-20" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-10 w-16" />
+                </CardContent>
+              </Card>
+              <Card className="betting-card">
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-4 w-20" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-10 w-16" />
+                </CardContent>
+              </Card>
+              <Card className="betting-card">
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-4 w-20" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-10 w-16" />
+                </CardContent>
+              </Card>
+              <Card className="betting-card">
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-4 w-20" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-10 w-16" />
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <>
+              <StatCard
+                title="Total Users"
+                value={stats.totalUsers.toLocaleString()}
+                icon={Users}
+              />
+              <StatCard
+                title="Total Tickets"
+                value={stats.totalTickets.toLocaleString()}
+                icon={Ticket}
+              />
+              <StatCard
+                title="Revenue"
+                value={`R${stats.totalRevenue.toLocaleString()}`}
+                icon={DollarSign}
+              />
+              <StatCard
+                title="Monthly Growth"
+                value={`${stats.monthlyGrowth}%`}
+                icon={TrendingUp}
+              />
+            </>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -55,7 +98,9 @@ const AdminDashboard: React.FC = () => {
               <div className="flex items-center justify-between">
                 <span>Pending Seller Approvals</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-amber-500 font-medium">5</span>
+                  <span className="text-amber-500 font-medium">
+                    {stats.loading ? <Skeleton className="h-4 w-4" /> : stats.pendingSellerApprovals}
+                  </span>
                   <Button variant="outline" size="sm" asChild>
                     <Link to="/admin/sellers">
                       Review
@@ -67,7 +112,9 @@ const AdminDashboard: React.FC = () => {
               <div className="flex items-center justify-between">
                 <span>Open Support Cases</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-amber-500 font-medium">12</span>
+                  <span className="text-amber-500 font-medium">
+                    {stats.loading ? <Skeleton className="h-4 w-4" /> : stats.openSupportCases}
+                  </span>
                   <Button variant="outline" size="sm" asChild>
                     <Link to="/admin/cases">
                       Review
@@ -79,7 +126,9 @@ const AdminDashboard: React.FC = () => {
               <div className="flex items-center justify-between">
                 <span>Withdrawal Requests</span>
                 <div className="flex items-center gap-2">
-                  <span className="text-amber-500 font-medium">3</span>
+                  <span className="text-amber-500 font-medium">
+                    {stats.loading ? <Skeleton className="h-4 w-4" /> : stats.pendingWithdrawals}
+                  </span>
                   <Button variant="outline" size="sm" asChild>
                     <Link to="/admin/withdrawals">
                       Review
