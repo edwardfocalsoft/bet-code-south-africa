@@ -1,19 +1,15 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { Mail } from "lucide-react";
-
 const Footer: React.FC = () => {
-  return (
-    <footer className="mt-auto bg-betting-black border-t border-betting-light-gray py-6">
+  return <footer className="mt-auto bg-betting-black border-t border-betting-light-gray py-6">
       <div className="container px-4 mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-4">
-            <img 
-              src="/lovable-uploads/97acf725-8078-49e3-907a-5029e50b1175.png" 
-              alt="Payment Methods - Visa, Mastercard, Maestro, InstantEFT, SCode" 
-              className="h-8 object-contain"
-            />
+          <div>
+            <Link to="/" className="text-betting-green text-xl font-bold flex items-center">
+              <span className="text-betting-accent">Bet</span>Code<span className="text-xs text-muted-foreground ml-1">South Africa</span>
+            </Link>
+            
           </div>
           
           <div className="flex items-center gap-6">
@@ -41,8 +37,6 @@ const Footer: React.FC = () => {
           <p>© {new Date().getFullYear()} BetCode South Africa. All Rights Reserved.</p>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
-
 export default Footer;

@@ -29,7 +29,7 @@ const UserDropdown: React.FC = () => {
         <Button
           variant="ghost"
           size="icon"
-          className="h-10 w-10 rounded-full hover:bg-betting-accent transition-colors duration-200"
+          className="rounded-full"
           aria-label="User menu"
         >
           <User className="h-5 w-5" />
