@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Award } from "lucide-react";
 import SellerCard from "@/components/sellers/SellerCard";
 import { User } from "@/types";
+import { Button } from "@/components/ui/button";
 
 interface TopSellersSectionProps {
   sellers: User[];
@@ -37,17 +38,27 @@ const TopSellersSection: React.FC<TopSellersSectionProps> = ({
             <p className="text-muted-foreground">No top sellers available at the moment.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sellers.slice(0, 3).map((seller, index) => (
-              <SellerCard 
-                key={seller.id} 
-                seller={{
-                  ...seller,
-                  ranking: index + 1
-                }} 
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {sellers.slice(0, 3).map((seller, index) => (
+                <SellerCard 
+                  key={seller.id} 
+                  seller={{
+                    ...seller,
+                    ranking: index + 1
+                  }} 
+                />
+              ))}
+            </div>
+            
+            <div className="text-center mt-8">
+              <Link to="/sellers/leaderboard">
+                <Button className="bg-betting-green hover:bg-betting-green-dark text-white px-8 py-3">
+                  View Full Leaderboard
+                </Button>
+              </Link>
+            </div>
+          </>
         )}
       </div>
     </section>
