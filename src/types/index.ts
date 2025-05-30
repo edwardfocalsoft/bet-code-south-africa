@@ -1,3 +1,4 @@
+
 export type UserRole = "buyer" | "seller" | "admin";
 
 export type BettingSite = 
@@ -145,7 +146,7 @@ export interface CaseReply {
   profiles: CaseReplyProfile;
 }
 
-// Add the Notification interface
+// Add the Notification interface with updated types
 export interface Notification {
   id: string;
   userId: string;
@@ -153,6 +154,6 @@ export interface Notification {
   message: string;
   isRead: boolean;
   createdAt: Date;
-  type: "subscription" | "ticket" | "system" | "free_ticket" | "case";
+  type: "subscription" | "ticket" | "system" | "free_ticket" | "case" | "seller_notification" | "admin_notification";
   relatedId?: string;
 }

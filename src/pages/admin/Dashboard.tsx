@@ -22,25 +22,21 @@ const AdminDashboard: React.FC = () => {
             title="Total Users"
             value="1,234"
             icon={Users}
-            trend={{ value: 12, isPositive: true }}
           />
           <StatCard
             title="Total Tickets"
             value="567"
             icon={Ticket}
-            trend={{ value: 8, isPositive: true }}
           />
           <StatCard
             title="Revenue"
             value="R89,456"
             icon={DollarSign}
-            trend={{ value: 15, isPositive: true }}
           />
           <StatCard
             title="Growth"
             value="23.4%"
             icon={TrendingUp}
-            trend={{ value: 5, isPositive: true }}
           />
         </div>
 
