@@ -97,7 +97,10 @@ export const useLoginForm = () => {
         error.message?.includes("NULL to string") ||
         error.code === "unexpected_failure";
       
-      if (isAdminCredentials) {
+      // Check if account is suspended
+      if (error.message?.includes("suspended") || error.message?.includes("account has been suspended")) {
+        setErrorMessage("Your account has been suspended. Please contact support for assistance.");
+      } else if (isAdminCredentials) {
         console.log("Admin login attempt failed, redirecting to seeding page");
         setNeedsSeeding(true);
         setErrorMessage("Admin account not found or incorrectly set up. The database might need seeding.");

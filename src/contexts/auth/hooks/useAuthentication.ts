@@ -92,6 +92,20 @@ export const useAuthentication = (
           if (userProfile) {
             console.log("Login profile found:", userProfile);
             
+            // Check if the user is suspended
+            if (userProfile.suspended === true) {
+              console.log("Suspended user attempted login:", userProfile.id);
+              toast.error("Your account has been suspended. Please contact support for assistance.");
+              
+              // Sign out the suspended user
+              await supabase.auth.signOut({ scope: 'global' });
+              cleanupAuthState();
+              
+              // Stay on login page
+              navigate('/auth/login');
+              throw new Error("Your account has been suspended. Please contact support for assistance.");
+            }
+            
             // Check if the user is a seller and not approved
             if (userProfile.role === 'seller' && userProfile.approved === false) {
               console.log("Unapproved seller attempted login:", userProfile.id);
@@ -178,11 +192,14 @@ export const useAuthentication = (
         }
       }
       
-      uiToast({
-        title: "Login Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      // Don't show toast for suspension messages as they're already shown above
+      if (!errorMessage.includes("suspended")) {
+        uiToast({
+          title: "Login Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
       
       throw error;
     } finally {
