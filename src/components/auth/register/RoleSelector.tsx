@@ -32,7 +32,7 @@ const RoleSelector: React.FC<RoleSelectorProps> = ({ role, onChange }) => {
             <Button
               type="button"
               variant={role === "buyer" ? "default" : "outline"}
-              className={`w-full ${
+              className={`w-full sm:w-full ${
                 role === "buyer" 
                   ? "bg-betting-green hover:bg-betting-green-dark" 
                   : "hover:bg-betting-green hover:text-white"
@@ -59,7 +59,7 @@ const RoleSelector: React.FC<RoleSelectorProps> = ({ role, onChange }) => {
             <Button
               type="button"
               variant={role === "seller" ? "default" : "outline"}
-              className={`w-full ${
+              className={`w-full sm:w-full ${
                 role === "seller" 
                   ? "bg-betting-green hover:bg-betting-green-dark" 
                   : "hover:bg-betting-green hover:text-white"
