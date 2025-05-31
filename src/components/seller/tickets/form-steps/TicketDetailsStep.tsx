@@ -132,7 +132,7 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
               <Button
                 variant="outline"
                 className={cn(
-                  "w-full justify-start text-left font-normal bg-betting-black border-betting-light-gray h-10",
+                  "w-full justify-start text-left font-normal bg-betting-black border-betting-light-gray",
                   !ticketData.date && "text-muted-foreground"
                 )}
               >
@@ -163,7 +163,7 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
               type="time"
               value={ticketData.time}
               onChange={(e) => setTicketData({...ticketData, time: e.target.value})}
-              className="bg-betting-black border-betting-light-gray pl-10 h-10"
+              className="bg-betting-black border-betting-light-gray pl-10"
             />
           </div>
           {errors.time && <p className="text-red-500 text-xs mt-1">{errors.time}</p>}

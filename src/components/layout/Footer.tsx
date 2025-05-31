@@ -10,7 +10,7 @@ const Footer: React.FC = () => {
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-4">
             <img 
-              src="/lovable-uploads/97acf725-8078-49e3-907a-5029e50b1175.png" 
+              src="/lovable-uploads/de1f9b9b-0333-4b98-8bf2-4304968cbc04.png" 
               alt="Payment Methods - Visa, Mastercard, Maestro, InstantEFT, SCode" 
               className="h-8 object-contain"
             />
