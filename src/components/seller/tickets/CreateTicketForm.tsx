@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -174,6 +173,8 @@ const CreateTicketForm: React.FC = () => {
           };
         });
         
+        console.log('[CreateTicketForm] Creating multiple tickets:', ticketsToInsert.length);
+        
         const { data, error } = await supabase
           .from("tickets")
           .insert(ticketsToInsert)
@@ -181,15 +182,22 @@ const CreateTicketForm: React.FC = () => {
         
         if (error) throw error;
         
+        console.log('[CreateTicketForm] Multiple tickets created successfully:', data);
+        
+        // Notify subscribers for each ticket created
         if (data && data.length > 0) {
+          console.log('[CreateTicketForm] Starting notification process for multiple tickets');
           try {
             const notificationPromises = data.map(async (ticket) => {
+              console.log(`[CreateTicketForm] Notifying subscribers for ticket: ${ticket.title} (ID: ${ticket.id})`);
               return await notifySubscribersOfNewTicket(currentUser.id, ticket.id, ticket.title);
             });
             
             await Promise.allSettled(notificationPromises);
+            console.log('[CreateTicketForm] Notification process completed for all tickets');
           } catch (notificationError) {
-            console.error('Error in batch notifications:', notificationError);
+            console.error('[CreateTicketForm] Error in batch notifications:', notificationError);
+            toast.error("Tickets created but some notifications may have failed");
           }
         }
         
@@ -211,6 +219,8 @@ const CreateTicketForm: React.FC = () => {
           ticket_code: ticketData.ticketCode
         };
         
+        console.log('[CreateTicketForm] Creating single ticket:', ticketDataForDb);
+        
         const { data, error } = await supabase
           .from("tickets")
           .insert(ticketDataForDb)
@@ -219,11 +229,17 @@ const CreateTicketForm: React.FC = () => {
         
         if (error) throw error;
         
+        console.log('[CreateTicketForm] Single ticket created successfully:', data);
+        
+        // Notify subscribers for the new ticket
         if (data?.id) {
+          console.log(`[CreateTicketForm] Starting notification process for ticket: ${data.title} (ID: ${data.id})`);
           try {
             await notifySubscribersOfNewTicket(currentUser.id, data.id, data.title);
+            console.log('[CreateTicketForm] Notification process completed successfully');
           } catch (notificationError) {
-            console.error('Error notifying subscribers:', notificationError);
+            console.error('[CreateTicketForm] Error notifying subscribers:', notificationError);
+            toast.error("Ticket created but some notifications may have failed");
           }
         }
         
@@ -232,6 +248,7 @@ const CreateTicketForm: React.FC = () => {
       
       navigate(`/seller/tickets`);
     } catch (error: any) {
+      console.error('[CreateTicketForm] Error creating tickets:', error);
       toast.error("Error creating tickets", {
         description: error.message || "Failed to create tickets. Please try again.",
       });

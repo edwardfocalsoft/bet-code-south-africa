@@ -59,11 +59,10 @@ export const useTicketNotifications = () => {
         
         console.log(`[ticket-notifications] Processing subscriber: ${buyerUsername} (${buyerEmail}) - ID: ${buyerId}`);
         
-        // Create in-app notification
+        // Create in-app notification using direct database insert to ensure it's created
         try {
           console.log(`[ticket-notifications] Creating in-app notification for user ${buyerId}`);
           
-          // Direct database insert to ensure notification is created
           const { data: notification, error: notificationError } = await supabase
             .from('notifications')
             .insert({

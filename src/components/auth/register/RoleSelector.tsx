@@ -1,69 +1,79 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { UserCircle, Store } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { UserRole } from "@/types";
 
-// Only allow 'buyer' or 'seller' roles for registration form
-type RegisterFormRole = Extract<UserRole, 'buyer' | 'seller'>;
-
 interface RoleSelectorProps {
-  role: RegisterFormRole;
-  onChange: (role: RegisterFormRole) => void;
+  role: UserRole;
+  onChange: (role: UserRole) => void;
 }
 
 const RoleSelector: React.FC<RoleSelectorProps> = ({ role, onChange }) => {
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
-        <Button
-          type="button"
-          variant={role === "buyer" ? "default" : "outline"}
-          className={`flex-1 ${
-            role === "buyer" ? "bg-betting-green hover:bg-betting-green-dark" : "bg-betting-light-gray border-betting-light-gray"
+      <div className="text-center">
+        <h3 className="text-lg font-medium mb-2">Choose your account type</h3>
+        <p className="text-sm text-muted-foreground">
+          Select whether you want to buy or sell betting predictions
+        </p>
+      </div>
+      
+      <div className="grid grid-cols-1 gap-3">
+        <Card 
+          className={`cursor-pointer transition-all duration-200 ${
+            role === "buyer" 
+              ? "border-betting-green bg-betting-green/5" 
+              : "border-betting-light-gray hover:border-betting-green/50"
           }`}
           onClick={() => onChange("buyer")}
         >
-          <UserCircle className="mr-2 h-4 w-4" />
-          Sign up as Buyer
-        </Button>
-        <Button
-          type="button"
-          variant={role === "seller" ? "default" : "outline"}
-          className={`flex-1 ${
-            role === "seller" ? "bg-betting-green hover:bg-betting-green-dark" : "bg-betting-light-gray border-betting-light-gray"
+          <CardContent className="p-4">
+            <Button
+              type="button"
+              variant={role === "buyer" ? "default" : "outline"}
+              className={`w-full ${
+                role === "buyer" 
+                  ? "bg-betting-green hover:bg-betting-green-dark" 
+                  : "hover:bg-betting-green hover:text-white"
+              }`}
+              onClick={() => onChange("buyer")}
+            >
+              Sign up as Buyer
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              Purchase betting predictions from verified sellers
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card 
+          className={`cursor-pointer transition-all duration-200 ${
+            role === "seller" 
+              ? "border-betting-green bg-betting-green/5" 
+              : "border-betting-light-gray hover:border-betting-green/50"
           }`}
           onClick={() => onChange("seller")}
         >
-          <Store className="mr-2 h-4 w-4" />
-          Sign up as Seller
-        </Button>
+          <CardContent className="p-4">
+            <Button
+              type="button"
+              variant={role === "seller" ? "default" : "outline"}
+              className={`w-full ${
+                role === "seller" 
+                  ? "bg-betting-green hover:bg-betting-green-dark" 
+                  : "hover:bg-betting-green hover:text-white"
+              }`}
+              onClick={() => onChange("seller")}
+            >
+              Sign up as Seller
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              Sell your betting predictions and earn money
+            </p>
+          </CardContent>
+        </Card>
       </div>
-      
-      {role === 'buyer' && (
-        <div className="text-sm space-y-1">
-          <p className="text-sm mb-1">As a buyer, you can:</p>
-          <ul className="list-disc list-inside space-y-1 text-muted-foreground pl-1">
-            <li>Browse all available betting codes</li>
-            <li>Purchase premium predictions</li>
-            <li>Rate sellers and their tickets</li>
-            <li>Earn loyalty points for future discounts</li>
-          </ul>
-        </div>
-      )}
-      
-      {role === 'seller' && (
-        <div className="text-sm space-y-1">
-          <p className="text-sm mb-1">As a seller, you can:</p>
-          <ul className="list-disc list-inside space-y-1 text-muted-foreground pl-1">
-            <li>Share free and paid betting codes</li>
-            <li>Build your reputation with good predictions</li>
-            <li>Earn commission from your betting knowledge</li>
-            <li>Gain followers and visibility on the platform</li>
-          </ul>
-          <p className="text-amber-500 font-medium mt-2">Note: Seller accounts require admin approval before activation.</p>
-        </div>
-      )}
     </div>
   );
 };
