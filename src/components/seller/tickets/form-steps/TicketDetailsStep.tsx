@@ -132,7 +132,7 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-full justify-start text-left mt-2 font-normal bg-betting-black border-betting-light-gray",
+                    "w-full justify-start text-left mt-1 font-normal bg-betting-black border-betting-light-gray",
                     !ticketData.date && "text-muted-foreground"
                   )}
                 >
