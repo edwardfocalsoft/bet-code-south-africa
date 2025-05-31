@@ -124,31 +124,33 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2 w-full"> {/* This ensures full width and vertical layout */}
-  <Label>First Game Kick-Off Date</Label>
-  <Popover>
-    <PopoverTrigger asChild>
-      <Button
-        variant="outline"
-        className={cn(
-          "w-full justify-start text-left font-normal bg-betting-black border-betting-light-gray",
-          !ticketData.date && "text-muted-foreground"
-        )}
-      >
-        <CalendarIcon className="mr-2 h-4 w-4" />
-        {ticketData.date ? format(ticketData.date, "PPP") : "Pick a date"}
-      </Button>
-    </PopoverTrigger>
-    <PopoverContent className="w-auto p-0">
-      <Calendar
-        mode="single"
-        selected={ticketData.date}
-        onSelect={(date) => date && setTicketData({...ticketData, date})}
-        disabled={(date) => date < today}
-        initialFocus
-      />
-    </PopoverContent>
-  </Popover>
+        <div className="w-full space-y-2">
+  <Label className="block">First Game Kick-Off Date</Label>
+  <div className="w-full">
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className={cn(
+            "w-full justify-start text-left font-normal bg-betting-black border-betting-light-gray",
+            !ticketData.date && "text-muted-foreground"
+          )}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {ticketData.date ? format(ticketData.date, "PPP") : "Pick a date"}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0">
+        <Calendar
+          mode="single"
+          selected={ticketData.date}
+          onSelect={(date) => date && setTicketData({...ticketData, date})}
+          disabled={(date) => date < today}
+          initialFocus
+        />
+      </PopoverContent>
+    </Popover>
+  </div>
   {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
 </div>
         
