@@ -14,61 +14,41 @@ export const useTicketNotifications = () => {
     try {
       console.log(`[ticket-notifications] Starting notification process for seller ${sellerId}, ticket: ${ticketTitle}`);
       
-      // Get all subscribers of this seller with their profile information
+      // Get all subscribers of this seller
       const { data: subscribers, error: subscribersError } = await supabase
         .from('subscriptions')
-        .select(`
-          buyer_id,
-          profiles!subscriptions_buyer_id_fkey(email, username)
-        `)
+        .select('buyer_id')
         .eq('seller_id', sellerId);
       
       if (subscribersError) {
         console.error('[ticket-notifications] Error fetching subscribers:', subscribersError);
-        
-        // Try alternative query approach if the foreign key reference fails
-        const { data: alternativeSubscribers, error: altError } = await supabase
-          .from('subscriptions')
-          .select('buyer_id')
-          .eq('seller_id', sellerId);
-        
-        if (altError) {
-          console.error('[ticket-notifications] Alternative query also failed:', altError);
-          throw altError;
-        }
-        
-        if (!alternativeSubscribers || alternativeSubscribers.length === 0) {
-          console.log('[ticket-notifications] No subscribers found for this seller');
-          return { success: true, count: 0 };
-        }
-        
-        // Get profile information separately
-        const buyerIds = alternativeSubscribers.map(sub => sub.buyer_id);
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, email, username')
-          .in('id', buyerIds);
-        
-        if (profilesError) {
-          console.error('[ticket-notifications] Error fetching profiles:', profilesError);
-          throw profilesError;
-        }
-        
-        // Combine the data
-        const combinedSubscribers = alternativeSubscribers.map(sub => ({
-          buyer_id: sub.buyer_id,
-          profiles: profiles?.find(p => p.id === sub.buyer_id) || null
-        }));
-        
-        return await processNotifications(combinedSubscribers, sellerId, ticketId, ticketTitle);
+        throw subscribersError;
       }
       
       if (!subscribers || subscribers.length === 0) {
         console.log('[ticket-notifications] No subscribers found for this seller');
-        return { success: true, count: 0 };
+        return { success: true, count: 0, subscriberCount: 0 };
       }
       
-      return await processNotifications(subscribers, sellerId, ticketId, ticketTitle);
+      // Get buyer profiles separately
+      const buyerIds = subscribers.map(sub => sub.buyer_id);
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, email, username')
+        .in('id', buyerIds);
+      
+      if (profilesError) {
+        console.error('[ticket-notifications] Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
+      
+      // Combine the data
+      const combinedSubscribers = subscribers.map(sub => ({
+        buyer_id: sub.buyer_id,
+        profiles: profiles?.find(p => p.id === sub.buyer_id) || null
+      }));
+      
+      return await processNotifications(combinedSubscribers, sellerId, ticketId, ticketTitle);
       
     } catch (error) {
       console.error('[ticket-notifications] Error in notifySubscribersOfNewTicket:', error);

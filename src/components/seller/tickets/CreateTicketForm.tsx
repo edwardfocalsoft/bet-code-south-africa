@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -238,7 +239,7 @@ const CreateTicketForm: React.FC = () => {
           try {
             console.log('[CreateTicketForm] Starting notification process for single ticket');
             const result = await notifySubscribersOfNewTicket(currentUser.id, data.id, data.title);
-            console.log(`[CreateTicketForm] Notifications sent: ${result.count} out of ${result.subscriberCount} subscribers`);
+            console.log(`[CreateTicketForm] Notifications sent: ${result.count} out of ${result.subscriberCount || 0} subscribers`);
           } catch (notificationError) {
             console.error('[CreateTicketForm] Failed to notify subscribers:', notificationError);
             // Don't fail the entire process if notifications fail
