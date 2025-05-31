@@ -132,11 +132,11 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
                 <Button
                   variant="outline"
                   className={cn(
-                    "w-full justify-start text-left font-normal bg-betting-black border-betting-light-gray",
+                    "w-full justify-start text-left mt-2 font-normal bg-betting-black border-betting-light-gray",
                     !ticketData.date && "text-muted-foreground"
                   )}
                 >
-                  <CalendarIcon className="mr-2 mt-2 h-4 w-4" />
+                  <CalendarIcon className="mr-2 h-4 w-4" />
                   {ticketData.date ? format(ticketData.date, "PPP") : "Pick a date"}
                 </Button>
               </PopoverTrigger>
