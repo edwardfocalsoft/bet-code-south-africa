@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -33,6 +34,7 @@ export const useTicketNotifications = () => {
       
       if (!subscribers || subscribers.length === 0) {
         console.log('[ticket-notifications] No subscribers found for this seller');
+        toast.success("Ticket created successfully! No subscribers to notify at this time.");
         return { success: true, count: 0, subscriberCount: 0 };
       }
       
@@ -90,14 +92,14 @@ export const useTicketNotifications = () => {
             try {
               console.log(`[ticket-notifications] Sending email to ${profile.email}`);
               const { error } = await supabase.functions.invoke('send-ticket-notification', {
-                body: JSON.stringify({
+                body: {
                   buyerEmail: profile.email,
                   buyerUsername: profile.username || 'Subscriber',
                   sellerUsername,
                   ticketTitle,
                   ticketId,
                   ticketDescription
-                })
+                }
               });
               
               if (error) {
@@ -116,10 +118,12 @@ export const useTicketNotifications = () => {
         }
       } catch (emailError) {
         console.error('[ticket-notifications] Error sending email notifications:', emailError);
-        throw new Error(`Email notifications partially failed: ${emailError instanceof Error ? emailError.message : 'Unknown error'}`);
+        // Don't throw here - we still want to show success for the ticket creation
+        console.log('[ticket-notifications] Continuing despite email notification errors');
       }
       
       console.log('[ticket-notifications] Notification process completed successfully');
+      toast.success(`Ticket created and ${insertedNotifications?.length || 0} subscribers notified!`);
       return { 
         success: true, 
         count: insertedNotifications?.length || 0,
