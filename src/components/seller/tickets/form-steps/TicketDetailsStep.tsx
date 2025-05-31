@@ -126,14 +126,14 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Kick-Off Date</Label>
+          <Label>First Game Kick-Off Date</Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
                 className={cn(
                   "w-full justify-start text-left font-normal bg-betting-black border-betting-light-gray",
-                  !ticketData.date && "text-muted-foreground"
+                  !ticketData.date && "text-muted-foreground  h-4 w-4"
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
