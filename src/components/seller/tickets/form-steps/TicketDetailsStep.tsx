@@ -45,6 +45,10 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
   showPreview,
   isCheckingTicketCode = false
 }) => {
+  // Get today's date for minimum date validation
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -128,7 +132,7 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
               <Button
                 variant="outline"
                 className={cn(
-                  "w-full justify-start text-left font-normal bg-betting-black border-betting-light-gray",
+                  "w-full justify-start text-left font-normal bg-betting-black border-betting-light-gray h-10",
                   !ticketData.date && "text-muted-foreground"
                 )}
               >
@@ -141,6 +145,7 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
                 mode="single"
                 selected={ticketData.date}
                 onSelect={(date) => date && setTicketData({...ticketData, date})}
+                disabled={(date) => date < today}
                 initialFocus
                 className="pointer-events-auto"
               />
@@ -158,7 +163,7 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
               type="time"
               value={ticketData.time}
               onChange={(e) => setTicketData({...ticketData, time: e.target.value})}
-              className="bg-betting-black border-betting-light-gray pl-10"
+              className="bg-betting-black border-betting-light-gray pl-10 h-10"
             />
           </div>
           {errors.time && <p className="text-red-500 text-xs mt-1">{errors.time}</p>}

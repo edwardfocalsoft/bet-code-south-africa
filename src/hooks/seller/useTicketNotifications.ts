@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { createNotification } from "@/utils/notificationUtils";
+import { toast } from "sonner";
 
 /**
  * Hook for handling ticket-related notifications
@@ -30,7 +30,7 @@ export const useTicketNotifications = () => {
       
       if (!subscribers || subscribers.length === 0) {
         console.log('[ticket-notifications] No subscribers found for this seller');
-        return;
+        return { success: true, count: 0 };
       }
       
       console.log(`[ticket-notifications] Found ${subscribers.length} subscribers for seller ${sellerId}`);
@@ -50,47 +50,39 @@ export const useTicketNotifications = () => {
       const sellerUsername = sellerData?.username || 'Unknown Seller';
       console.log(`[ticket-notifications] Seller username: ${sellerUsername}`);
       
-      // Create notifications for each subscriber
-      const notificationPromises = subscribers.map(async (subscription: any) => {
-        const buyerId = subscription.buyer_id;
-        const buyerProfile = subscription.profiles;
-        const buyerEmail = buyerProfile?.email;
-        const buyerUsername = buyerProfile?.username;
-        
-        console.log(`[ticket-notifications] Processing subscriber: ${buyerUsername} (${buyerEmail}) - ID: ${buyerId}`);
-        
-        // Create in-app notification
-        try {
-          console.log(`[ticket-notifications] Creating in-app notification for user ${buyerId}`);
+      // Prepare notifications for batch insert
+      const notificationsToInsert = subscribers.map((subscription: any) => ({
+        user_id: subscription.buyer_id,
+        title: 'New Ticket Published',
+        message: `${sellerUsername} has published a new ticket: "${ticketTitle}"`,
+        type: 'ticket',
+        related_id: ticketId,
+        is_read: false
+      }));
+      
+      console.log(`[ticket-notifications] Inserting ${notificationsToInsert.length} notifications`);
+      
+      // Batch insert notifications
+      const { data: insertedNotifications, error: insertError } = await supabase
+        .from('notifications')
+        .insert(notificationsToInsert)
+        .select('id, user_id');
+      
+      if (insertError) {
+        console.error('[ticket-notifications] Error inserting notifications:', insertError);
+        throw insertError;
+      }
+      
+      console.log(`[ticket-notifications] Successfully inserted ${insertedNotifications?.length || 0} notifications`);
+      
+      // Send email notifications via edge function (optional, won't block if it fails)
+      try {
+        for (const subscription of subscribers) {
+          const buyerProfile = subscription.profiles;
+          const buyerEmail = buyerProfile?.email;
+          const buyerUsername = buyerProfile?.username;
           
-          // Direct database insert to ensure notification is created
-          const { data: notification, error: notificationError } = await supabase
-            .from('notifications')
-            .insert({
-              user_id: buyerId,
-              title: 'New Ticket Published',
-              message: `${sellerUsername} has published a new ticket: "${ticketTitle}"`,
-              type: 'ticket',
-              related_id: ticketId,
-              is_read: false
-            })
-            .select()
-            .single();
-          
-          if (notificationError) {
-            console.error(`[ticket-notifications] Error creating notification for ${buyerUsername}:`, notificationError);
-            throw notificationError;
-          } else {
-            console.log(`[ticket-notifications] In-app notification created successfully for ${buyerUsername}:`, notification.id);
-          }
-        } catch (notifError) {
-          console.error(`[ticket-notifications] Error creating in-app notification for ${buyerUsername}:`, notifError);
-          throw notifError;
-        }
-        
-        // Send email notification via edge function
-        if (buyerEmail) {
-          try {
+          if (buyerEmail) {
             console.log(`[ticket-notifications] Sending email notification to ${buyerEmail}`);
             const emailResponse = await supabase.functions.invoke('send-ticket-notification', {
               body: {
@@ -105,37 +97,29 @@ export const useTicketNotifications = () => {
             if (emailResponse.error) {
               console.error(`[ticket-notifications] Email function error for ${buyerEmail}:`, emailResponse.error);
             } else {
-              console.log(`[ticket-notifications] Email notification sent successfully to ${buyerEmail}`, emailResponse.data);
+              console.log(`[ticket-notifications] Email notification sent successfully to ${buyerEmail}`);
             }
-          } catch (emailError) {
-            console.error(`[ticket-notifications] Error sending email to ${buyerEmail}:`, emailError);
           }
-        } else {
-          console.log(`[ticket-notifications] No email address found for subscriber ${buyerUsername}`);
         }
-      });
+      } catch (emailError) {
+        console.error('[ticket-notifications] Error sending email notifications (non-blocking):', emailError);
+        // Don't throw here as we don't want email failures to block the notification process
+      }
       
-      const results = await Promise.allSettled(notificationPromises);
-      console.log(`[ticket-notifications] Completed notification process for ${subscribers.length} subscribers`);
+      console.log(`[ticket-notifications] Notification process completed successfully for ${subscribers.length} subscribers`);
       
-      // Check results and report any failures
-      let successCount = 0;
-      let failureCount = 0;
-      
-      results.forEach((result, index) => {
-        if (result.status === 'fulfilled') {
-          successCount++;
-          console.log(`[ticket-notifications] Successfully notified subscriber ${index + 1}`);
-        } else {
-          failureCount++;
-          console.error(`[ticket-notifications] Failed to notify subscriber ${index + 1}:`, result.reason);
-        }
-      });
-      
-      console.log(`[ticket-notifications] Final results: ${successCount} successful, ${failureCount} failed out of ${subscribers.length} subscribers`);
+      return { 
+        success: true, 
+        count: insertedNotifications?.length || 0,
+        subscriberCount: subscribers.length 
+      };
       
     } catch (error) {
       console.error('[ticket-notifications] Error in notifySubscribersOfNewTicket:', error);
+      // Show user-friendly error message
+      toast.error("Failed to notify subscribers", {
+        description: "The ticket was created but some subscribers may not have been notified."
+      });
       throw error;
     }
   };
