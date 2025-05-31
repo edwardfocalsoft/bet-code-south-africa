@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -125,7 +124,7 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
+        <div className="space-y-2 w-full"> {/* Added w-full here */}
           <Label>First Game Kick-Off Date</Label>
           <Popover>
             <PopoverTrigger asChild>
@@ -133,7 +132,7 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
                 variant="outline"
                 className={cn(
                   "w-full justify-start text-left font-normal bg-betting-black border-betting-light-gray",
-                  !ticketData.date && "text-muted-foreground  h-4 w-4"
+                  !ticketData.date && "text-muted-foreground"
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
