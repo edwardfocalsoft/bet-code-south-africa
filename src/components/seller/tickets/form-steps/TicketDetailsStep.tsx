@@ -123,51 +123,52 @@ const TicketDetailsStep: React.FC<TicketDetailsStepProps> = ({
         {errors.odds && <p className="text-red-500 text-xs mt-1">{errors.odds}</p>}
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2 w-full"> {/* Added w-full here */}
-          <Label>First Game Kick-Off Date</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal bg-betting-black border-betting-light-gray",
-                  !ticketData.date && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {ticketData.date ? format(ticketData.date, "PPP") : "Pick a date"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={ticketData.date}
-                onSelect={(date) => date && setTicketData({...ticketData, date})}
-                disabled={(date) => date < today}
-                initialFocus
-                className="pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
-          {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="time">Kick-Off Time</Label>
-          <div className="relative">
-            <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="time"
-              type="time"
-              value={ticketData.time}
-              onChange={(e) => setTicketData({...ticketData, time: e.target.value})}
-              className="bg-betting-black border-betting-light-gray pl-10"
-            />
-          </div>
-          {errors.time && <p className="text-red-500 text-xs mt-1">{errors.time}</p>}
-        </div>
-      </div>
+      <div className="space-y-4"> {/* Vertical spacing between date and time fields */}
+  {/* Date Field */}
+  <div className="space-y-2 w-full">
+    <Label>First Game Kick-Off Date</Label>
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className={cn(
+            "w-full justify-start text-left font-normal bg-betting-black border-betting-light-gray",
+            !ticketData.date && "text-muted-foreground"
+          )}
+        >
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          {ticketData.date ? format(ticketData.date, "PPP") : "Pick a date"}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0">
+        <Calendar
+          mode="single"
+          selected={ticketData.date}
+          onSelect={(date) => date && setTicketData({...ticketData, date})}
+          disabled={(date) => date < today}
+          initialFocus
+        />
+      </PopoverContent>
+    </Popover>
+    {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
+  </div>
+
+  {/* Time Field */}
+  <div className="space-y-2 w-full">
+    <Label htmlFor="time">Kick-Off Time</Label>
+    <div className="relative">
+      <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+      <Input
+        id="time"
+        type="time"
+        value={ticketData.time}
+        onChange={(e) => setTicketData({...ticketData, time: e.target.value})}
+        className="bg-betting-black border-betting-light-gray pl-10 w-full"
+      />
+    </div>
+    {errors.time && <p className="text-red-500 text-xs mt-1">{errors.time}</p>}
+  </div>
+</div>
       
       <div className="pt-4 flex justify-between">
         <Button
