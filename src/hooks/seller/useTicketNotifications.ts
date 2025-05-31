@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -96,14 +97,14 @@ export const useTicketNotifications = () => {
           try {
             console.log(`[ticket-notifications] Sending email to ${profile.email}`);
             const { error } = await supabase.functions.invoke('send-ticket-notification', {
-              body: JSON.stringify({
+              body: {
                 recipient_email: profile.email,
                 recipient_name: profile.username || 'Subscriber',
                 seller_name: sellerUsername,
                 ticket_title: ticketTitle,
                 ticket_id: ticketId,
                 ticket_description: ticketDescription
-              })
+              }
             });
             
             if (error) {
