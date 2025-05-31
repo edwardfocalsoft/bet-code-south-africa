@@ -97,13 +97,11 @@ export const useTicketNotifications = () => {
           try {
             console.log(`[ticket-notifications] Sending email to ${profile.email}`);
             const { error } = await supabase.functions.invoke('send-ticket-notification', {
-              body: {
-                buyerEmail: profile.email,
-                buyerUsername: profile.username || 'Subscriber',
-                sellerUsername: sellerUsername,
-                ticketTitle: ticketTitle,
-                ticketId: ticketId
-              }
+              buyerEmail: profile.email,
+              buyerUsername: profile.username || 'Subscriber',
+              sellerUsername: sellerUsername,
+              ticketTitle: ticketTitle,
+              ticketId: ticketId
             });
             
             if (error) {
