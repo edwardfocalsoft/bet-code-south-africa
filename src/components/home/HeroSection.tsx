@@ -110,7 +110,7 @@ const HeroSection: React.FC = () => {
           </Link>
           <Link to="/sellers/leaderboard">
             <Button variant="outline" className="border-betting-green text-betting-green hover:bg-betting-green/10 px-8 py-6 text-lg">
-              Seller Leaderboard
+              Weekly Leaderboard
             </Button>
           </Link>
         </div>
