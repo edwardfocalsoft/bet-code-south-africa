@@ -71,11 +71,31 @@ const SellersLeaderboard: React.FC = () => {
           return;
         }
         
-        setLeaderboard(fallbackData);
+        // Filter out sellers with 0 sales
+        const filteredFallbackData = fallbackData.filter(seller => seller.sales > 0);
+        
+        if (filteredFallbackData.length === 0) {
+          setError("No sellers with sales found for the last 30 days.");
+          setLeaderboard([]);
+          setLoading(false);
+          return;
+        }
+        
+        setLeaderboard(filteredFallbackData);
         // Update date range to reflect the 30-day period
         setWeekStart(thirtyDaysAgo);
       } else {
-        setLeaderboard(data);
+        // Filter out sellers with 0 sales
+        const filteredData = data.filter(seller => seller.sales > 0);
+        
+        if (filteredData.length === 0) {
+          setError("No sellers with sales found for the current week.");
+          setLeaderboard([]);
+          setLoading(false);
+          return;
+        }
+        
+        setLeaderboard(filteredData);
       }
       
       setLoading(false);
