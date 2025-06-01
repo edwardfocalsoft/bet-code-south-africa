@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { useCases } from "@/hooks/useCases";
@@ -39,7 +38,11 @@ export function useCaseDetailsView() {
   );
 
   // Helper function to transform database response to CaseDetails format
-  const transformCaseData = (rawData: any): CaseDetails => {
+  const transformCaseData = useCallback((rawData: any): CaseDetails => {
+    if (!rawData) {
+      throw new Error("No data provided for transformation");
+    }
+
     return {
       id: rawData.id,
       case_number: rawData.case_number,
@@ -51,18 +54,20 @@ export function useCaseDetailsView() {
       user_id: rawData.user_id,
       ticket_id: rawData.ticket_id,
       purchase_id: rawData.purchase_id,
-      replies: rawData.replies || [],
-      // Transform arrays to single objects if they exist
-      tickets: Array.isArray(rawData.tickets) ? rawData.tickets[0] : rawData.tickets,
-      purchases: Array.isArray(rawData.purchases) ? rawData.purchases[0] : rawData.purchases,
-      user: rawData.user
+      replies: Array.isArray(rawData.replies) ? rawData.replies : [],
+      tickets: Array.isArray(rawData.tickets) ? rawData.tickets[0] : rawData.tickets || null,
+      purchases: Array.isArray(rawData.purchases) ? rawData.purchases[0] : rawData.purchases || null,
+      user: rawData.user || null
     };
-  };
+  }, []);
 
   const loadCaseDetails = useCallback(async () => {
     try {
       // Don't load if no caseId or user
-      if (!caseId || !currentUser) return;
+      if (!caseId || !currentUser) {
+        setLoading(false);
+        return;
+      }
 
       setLoading(true);
       setError(null);
@@ -71,33 +76,55 @@ export function useCaseDetailsView() {
       
       if (!details) {
         setError("Case not found");
+        setCaseDetails(null);
       } else {
-        const transformedDetails = transformCaseData(details);
-        setCaseDetails(transformedDetails);
+        try {
+          const transformedDetails = transformCaseData(details);
+          setCaseDetails(transformedDetails);
+        } catch (transformError) {
+          console.error("Data transformation error:", transformError);
+          setError("Failed to process case data");
+          setCaseDetails(null);
+        }
       }
     } catch (err: any) {
       console.error("Case details error:", err);
       setError(err.message || "Failed to load case details");
+      setCaseDetails(null);
     } finally {
       setLoading(false);
     }
-  }, [caseId, currentUser, fetchCaseDetails]);
+  }, [caseId, currentUser, fetchCaseDetails, transformCaseData]);
 
   // Initial load and auth check
   useEffect(() => {
-    if (!currentUser) {
-      navigate("/login");
-      return;
+    let isMounted = true;
+
+    const initialize = async () => {
+      if (!currentUser) {
+        navigate("/login");
+        return;
+      }
+
+      if (!caseId) {
+        if (isMounted) {
+          setError("No case ID provided");
+          setLoading(false);
+        }
+        navigate("/cases");
+        return;
+      }
+
+      await loadCaseDetails();
+    };
+
+    if (isMounted) {
+      initialize();
     }
 
-    if (!caseId) {
-      setError("No case ID provided");
-      setLoading(false);
-      navigate("/cases");
-      return;
-    }
-
-    loadCaseDetails();
+    return () => {
+      isMounted = false;
+    };
   }, [caseId, currentUser, navigate, loadCaseDetails]);
 
   // Handle refund dialog from URL param
