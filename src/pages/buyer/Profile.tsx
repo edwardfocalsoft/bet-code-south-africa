@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,7 +31,7 @@ const BuyerProfile: React.FC = () => {
 
   const loadProfile = async () => {
     if (!currentUser?.id) return;
-    
+
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -42,13 +41,11 @@ const BuyerProfile: React.FC = () => {
         .maybeSingle();
 
       if (error) throw error;
-      
-      if (data) {
-        setProfileData({
-          username: data.username || "",
-          avatarUrl: data.avatar_url || "",
-        });
-      }
+
+      setProfileData({
+        username: data?.username || "",
+        avatarUrl: data?.avatar_url || "",
+      });
     } catch (error: any) {
       toast.error(`Error loading profile: ${error.message}`);
     } finally {
@@ -59,6 +56,15 @@ const BuyerProfile: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (!["image/jpeg", "image/png", "image/gif"].includes(file.type)) {
+        uiToast({
+          title: "Invalid file type",
+          description: "Please upload a JPEG, PNG, or GIF image",
+          variant: "destructive",
+        });
+        return;
+      }
+
       if (file.size > 2 * 1024 * 1024) {
         uiToast({
           title: "File too large",
@@ -67,10 +73,8 @@ const BuyerProfile: React.FC = () => {
         });
         return;
       }
-      
+
       setSelectedFile(file);
-      
-      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setFilePreview(reader.result as string);
@@ -81,54 +85,85 @@ const BuyerProfile: React.FC = () => {
 
   const uploadAvatar = async (): Promise<string | null> => {
     if (!selectedFile || !currentUser?.id) return null;
-    
-    const fileExt = selectedFile.name.split('.').pop();
-    const filePath = `avatars/${currentUser.id}/${Date.now()}.${fileExt}`;
-    
-    const { error: uploadError } = await supabase.storage
-      .from("profiles")
-      .upload(filePath, selectedFile);
-      
-    if (uploadError) {
-      throw uploadError;
+
+    try {
+      const fileExt = selectedFile.name.split(".").pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${currentUser.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("profiles")
+        .upload(filePath, selectedFile, {
+          cacheControl: "3600",
+          upsert: true,
+        });
+
+      if (uploadError) {
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      const { data } = supabase.storage.from("profiles").getPublicUrl(filePath);
+
+      if (!data?.publicUrl) {
+        throw new Error("Failed to get public URL");
+      }
+
+      return data.publicUrl;
+    } catch (error: any) {
+      uiToast({
+        title: "Upload Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      return null;
     }
-    
-    const { data } = supabase.storage.from("profiles").getPublicUrl(filePath);
-    return data.publicUrl;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser?.id) return;
-    
+
     setIsSaving(true);
     try {
       let avatarUrl = profileData.avatarUrl;
-      
+
       if (selectedFile) {
-        avatarUrl = await uploadAvatar() || avatarUrl;
+        const uploadedUrl = await uploadAvatar();
+        if (uploadedUrl) {
+          avatarUrl = uploadedUrl;
+        } else {
+          throw new Error("Failed to upload avatar");
+        }
       }
-      
+
       const { error } = await supabase
         .from("profiles")
-        .update({ 
+        .upsert({
+          id: currentUser.id,
           username: profileData.username,
           avatar_url: avatarUrl,
-        })
-        .eq("id", currentUser.id);
-      
+          updated_at: new Date().toISOString(),
+        });
+
       if (error) throw error;
-      
-      setProfileData(prev => ({
+
+      setProfileData((prev) => ({
         ...prev,
-        avatarUrl
+        avatarUrl,
       }));
-      
-      toast.success("Profile updated successfully");
+
+      uiToast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
       setSelectedFile(null);
       setFilePreview(null);
     } catch (error: any) {
-      toast.error(`Error updating profile: ${error.message}`);
+      uiToast({
+        title: "Error",
+        description: `Error updating profile: ${error.message}`,
+        variant: "destructive",
+      });
     } finally {
       setIsSaving(false);
     }
@@ -150,40 +185,41 @@ const BuyerProfile: React.FC = () => {
     <Layout requireAuth={true} allowedRoles={["buyer", "admin"]}>
       <div className="container mx-auto py-8">
         <h1 className="text-3xl font-bold mb-6">My Profile</h1>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-1">
             <Card className="betting-card h-full">
               <CardContent className="pt-6 flex flex-col items-center">
                 <div className="relative mb-4 group">
                   <Avatar className="h-32 w-32">
-                    <AvatarImage 
-                      src={filePreview || profileData.avatarUrl || undefined} 
-                      alt={profileData.username || "User"} 
+                    <AvatarImage
+                      src={filePreview || profileData.avatarUrl}
+                      alt={profileData.username || "User"}
+                      onError={() => setProfileData((prev) => ({ ...prev, avatarUrl: "" }))}
                     />
                     <AvatarFallback className="text-3xl">
                       {profileData.username ? profileData.username[0]?.toUpperCase() : <User className="h-10 w-10" />}
                     </AvatarFallback>
                   </Avatar>
-                  <label 
-                    htmlFor="avatar-upload" 
+                  <label
+                    htmlFor="avatar-upload"
                     className="absolute inset-0 rounded-full flex items-center justify-center bg-betting-black/50 opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity"
                   >
                     <span className="text-white text-xs">Change</span>
                   </label>
-                  <input 
-                    id="avatar-upload" 
-                    type="file" 
-                    accept="image/*" 
-                    className="hidden" 
+                  <input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif"
+                    className="hidden"
                     onChange={handleFileChange}
                     disabled={isSaving}
                   />
                 </div>
-                
+
                 <h2 className="text-xl font-medium mt-2">{profileData.username || "Set your username"}</h2>
                 <p className="text-sm text-muted-foreground">{currentUser?.email}</p>
-                
+
                 <div className="mt-6 w-full">
                   <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
                     <User className="h-4 w-4" />
@@ -197,7 +233,7 @@ const BuyerProfile: React.FC = () => {
               </CardContent>
             </Card>
           </div>
-          
+
           <div className="md:col-span-2">
             <Card className="betting-card">
               <CardHeader>
@@ -211,27 +247,27 @@ const BuyerProfile: React.FC = () => {
                     <Input
                       id="username"
                       value={profileData.username}
-                      onChange={(e) => setProfileData({...profileData, username: e.target.value})}
+                      onChange={(e) => setProfileData({ ...prev, username: e.target.value })}
                       placeholder="Choose a username"
                       className="bg-betting-black border-betting-light-gray"
                       disabled={isSaving}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
                       id="email"
-                      value={currentUser?.email}
+                      value={currentUser?.email || ""}
                       disabled
                       className="bg-betting-black/50 border-betting-light-gray text-muted-foreground"
                     />
                     <p className="text-xs text-muted-foreground">Contact support to change your email</p>
                   </div>
-                  
+
                   <div className="pt-2">
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       className="bg-betting-green hover:bg-betting-green-dark"
                       disabled={isSaving}
                     >
@@ -248,7 +284,7 @@ const BuyerProfile: React.FC = () => {
                 </form>
               </CardContent>
             </Card>
-            
+
             <Card className="betting-card mt-6 border-yellow-500/20">
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
