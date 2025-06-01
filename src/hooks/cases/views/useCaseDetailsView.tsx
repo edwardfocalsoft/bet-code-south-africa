@@ -31,10 +31,10 @@ export function useCaseDetailsView() {
 
   const canProcessRefund = Boolean(
     isAdmin &&
-    purchaseData &&
-    purchaseData.price > 0 &&
-    ticketData &&
-    (caseDetails?.status === "open" || caseDetails?.status === "in_progress")
+      purchaseData &&
+      purchaseData.price > 0 &&
+      ticketData &&
+      (caseDetails?.status === "open" || caseDetails?.status === "in_progress")
   );
 
   const transformCaseData = (rawData: any): CaseDetails => {
@@ -50,58 +50,60 @@ export function useCaseDetailsView() {
       ticket_id: rawData.ticket_id,
       purchase_id: rawData.purchase_id,
       replies: rawData.replies || [],
-      tickets: Array.isArray(rawData.tickets) ? rawData.tickets[0] : rawData.tickets,
-      purchases: Array.isArray(rawData.purchases) ? rawData.purchases[0] : rawData.purchases,
-      user: rawData.user
+      tickets: Array.isArray(rawData.tickets)
+        ? rawData.tickets[0] || null
+        : rawData.tickets || null,
+      purchases: Array.isArray(rawData.purchases)
+        ? rawData.purchases[0] || null
+        : rawData.purchases || null,
+      user: rawData.user || null,
     };
   };
 
   const loadCaseDetails = useCallback(async () => {
+    if (!caseId || !currentUser) return;
+
+    setLoading(true);
+    setError(null);
+
     try {
-      if (!caseId || !currentUser) return;
-
-      setLoading(true);
-      setError(null);
-
       const details = await fetchCaseDetails(caseId);
+      console.log("Fetched raw case details:", details);
 
       if (!details) {
         setError("Case not found");
-      } else {
-        const transformedDetails = transformCaseData(details);
-        setCaseDetails(transformedDetails);
+        setCaseDetails(null);
+        return;
       }
+
+      const transformed = transformCaseData(details);
+      console.log("Transformed case details:", transformed);
+      setCaseDetails(transformed);
     } catch (err: any) {
-      console.error("Case details error:", err);
+      console.error("Error loading case:", err);
       setError(err.message || "Failed to load case details");
+      setCaseDetails(null);
     } finally {
       setLoading(false);
     }
   }, [caseId, currentUser, fetchCaseDetails]);
 
-  // Redirect if user not logged in or no case ID
   useEffect(() => {
     if (!currentUser) {
-      navigate("/login", { replace: true });
+      navigate("/login");
       return;
     }
 
     if (!caseId) {
       setError("No case ID provided");
       setLoading(false);
-      navigate("/cases", { replace: true });
+      navigate("/cases");
       return;
     }
-  }, [caseId, currentUser, navigate]);
 
-  // Load case data once valid
-  useEffect(() => {
-    if (caseId && currentUser) {
-      loadCaseDetails();
-    }
-  }, [caseId, currentUser, loadCaseDetails]);
+    loadCaseDetails();
+  }, [caseId, currentUser, navigate, loadCaseDetails]);
 
-  // Show refund dialog based on URL param
   useEffect(() => {
     if (showRefundDialog && caseDetails) {
       setRefundDialogOpen(true);
