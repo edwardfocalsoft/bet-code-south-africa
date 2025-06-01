@@ -73,6 +73,45 @@ interface UseCaseDetailsViewReturn {
   refreshCaseDetails: () => Promise<void>;
 }
 
+// Helper function to transform database response to CaseDetails interface
+const transformCaseData = (data: any): CaseDetails => {
+  return {
+    id: data.id,
+    user_id: data.user_id,
+    ticket_id: data.ticket_id,
+    purchase_id: data.purchase_id,
+    title: data.title,
+    description: data.description,
+    status: data.status,
+    created_at: data.created_at,
+    updated_at: data.updated_at,
+    case_number: data.case_number || '',
+    user: {
+      id: data.user_id,
+      email: '', // Will be populated if needed
+      name: ''   // Will be populated if needed
+    },
+    ticket: data.tickets || {
+      id: data.ticket_id,
+      event_id: '',
+      ticket_type: '',
+      price: 0,
+      status: 'available',
+      created_at: ''
+    },
+    purchase: data.purchases || {
+      id: data.purchase_id,
+      buyer_id: '',
+      seller_id: '',
+      ticket_id: data.ticket_id,
+      price: 0,
+      payment_status: 'pending',
+      transaction_date: ''
+    },
+    replies: data.replies || []
+  };
+};
+
 export function useCaseDetailsView(caseId: string): UseCaseDetailsViewReturn {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -114,7 +153,8 @@ export function useCaseDetailsView(caseId: string): UseCaseDetailsViewReturn {
     try {
       const details = await fetchCaseDetails(caseId);
       if (details) {
-        setCaseDetails(details);
+        const transformedDetails = transformCaseData(details);
+        setCaseDetails(transformedDetails);
       }
     } catch (err) {
       console.error("Failed to refresh case details:", err);
@@ -143,7 +183,8 @@ export function useCaseDetailsView(caseId: string): UseCaseDetailsViewReturn {
         if (!details) {
           handleError("Case not found or you don't have permission to view it", "/user/cases");
         } else {
-          setCaseDetails(details);
+          const transformedDetails = transformCaseData(details);
+          setCaseDetails(transformedDetails);
           if (showRefundDialog) {
             setRefundDialogOpen(true);
           }
