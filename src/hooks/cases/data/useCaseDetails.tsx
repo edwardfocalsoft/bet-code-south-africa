@@ -29,21 +29,27 @@ export function useCaseDetails() {
 
   // Get case details including replies
   const fetchCaseDetails = async (caseId: string) => {
-    if (!currentUser && !isAdmin) return null;
+    if (!currentUser) return null;
     
     setIsLoading(true);
     
     try {
-      // Get the case
-      const { data: caseData, error: caseError } = await supabase
+      // Get the case with appropriate filtering based on user role
+      let caseQuery = supabase
         .from('cases')
         .select(`
           *,
           purchases(*),
           tickets(*)
         `)
-        .eq('id', caseId)
-        .single();
+        .eq('id', caseId);
+      
+      // If not admin, only allow viewing own cases
+      if (!isAdmin) {
+        caseQuery = caseQuery.eq('user_id', currentUser.id);
+      }
+      
+      const { data: caseData, error: caseError } = await caseQuery.single();
       
       if (caseError) {
         console.error("Error fetching case:", caseError);
