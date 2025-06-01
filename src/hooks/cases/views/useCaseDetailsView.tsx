@@ -31,10 +31,10 @@ export function useCaseDetailsView() {
 
   const canProcessRefund = Boolean(
     isAdmin &&
-      purchaseData &&
-      purchaseData.price > 0 &&
-      ticketData &&
-      (caseDetails?.status === "open" || caseDetails?.status === "in_progress")
+    purchaseData &&
+    purchaseData.price > 0 &&
+    ticketData &&
+    (caseDetails?.status === "open" || caseDetails?.status === "in_progress")
   );
 
   const transformCaseData = (rawData: any): CaseDetails => {
@@ -51,58 +51,55 @@ export function useCaseDetailsView() {
       purchase_id: rawData.purchase_id,
       replies: rawData.replies || [],
       tickets: Array.isArray(rawData.tickets)
-        ? rawData.tickets[0] || null
-        : rawData.tickets || null,
+        ? rawData.tickets[0]
+        : rawData.tickets,
       purchases: Array.isArray(rawData.purchases)
-        ? rawData.purchases[0] || null
-        : rawData.purchases || null,
-      user: rawData.user || null,
+        ? rawData.purchases[0]
+        : rawData.purchases,
+      user: rawData.user,
     };
   };
 
   const loadCaseDetails = useCallback(async () => {
-    if (!caseId || !currentUser) return;
-
-    setLoading(true);
-    setError(null);
-
     try {
+      if (!caseId || !currentUser) return;
+
+      setLoading(true);
+      setError(null);
+
       const details = await fetchCaseDetails(caseId);
-      console.log("Fetched raw case details:", details);
 
       if (!details) {
         setError("Case not found");
-        setCaseDetails(null);
-        return;
+      } else {
+        const transformedDetails = transformCaseData(details);
+        setCaseDetails(transformedDetails);
       }
-
-      const transformed = transformCaseData(details);
-      console.log("Transformed case details:", transformed);
-      setCaseDetails(transformed);
     } catch (err: any) {
-      console.error("Error loading case:", err);
+      console.error("Case details error:", err);
       setError(err.message || "Failed to load case details");
-      setCaseDetails(null);
     } finally {
       setLoading(false);
     }
   }, [caseId, currentUser, fetchCaseDetails]);
 
+  // Load details once auth is available
   useEffect(() => {
+    if (currentUser === undefined) return; // avoid running on initial undefined state
+
     if (!currentUser) {
-      navigate("/login");
+      navigate("/login", { replace: true });
       return;
     }
 
     if (!caseId) {
-      setError("No case ID provided");
-      setLoading(false);
-      navigate("/cases");
+      toast.error("No case ID provided");
+      navigate("/cases", { replace: true });
       return;
     }
 
     loadCaseDetails();
-  }, [caseId, currentUser, navigate, loadCaseDetails]);
+  }, [caseId, currentUser]);
 
   useEffect(() => {
     if (showRefundDialog && caseDetails) {
