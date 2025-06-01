@@ -101,7 +101,7 @@ const FeaturedTicketsTable: React.FC<FeaturedTicketsTableProps> = ({
                   {format(ticket.kickoffTime, "MMM dd, HH:mm")}
                 </TableCell>
                 <TableCell className="text-gray-300">
-                  {ticket.odds ? `${ticket.odds}%` : "N/A"}
+                  {ticket.odds ? `${ticket.odds}` : "N/A"}
                 </TableCell>
               </TableRow>
             ))}
