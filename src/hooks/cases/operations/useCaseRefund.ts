@@ -43,26 +43,22 @@ export const useCaseRefund = () => {
         throw purchaseError;
       }
 
-      // Add refund amount back to buyer's balance
-      const { error: buyerBalanceError } = await supabase
-        .from('profiles')
-        .update({
-          credit_balance: supabase.sql`credit_balance + ${amount}`
-        })
-        .eq('id', buyerId);
+      // Add refund amount back to buyer's balance using raw SQL string
+      const { error: buyerBalanceError } = await supabase.rpc('add_credits', {
+        user_id: buyerId,
+        amount_to_add: amount
+      });
 
       if (buyerBalanceError) {
         console.error("[case-refund] Error updating buyer balance:", buyerBalanceError);
         throw buyerBalanceError;
       }
 
-      // Deduct refund amount from seller's balance
-      const { error: sellerBalanceError } = await supabase
-        .from('profiles')
-        .update({
-          credit_balance: supabase.sql`credit_balance - ${amount}`
-        })
-        .eq('id', sellerId);
+      // Deduct refund amount from seller's balance using raw SQL string  
+      const { error: sellerBalanceError } = await supabase.rpc('add_credits', {
+        user_id: sellerId,
+        amount_to_add: -amount
+      });
 
       if (sellerBalanceError) {
         console.error("[case-refund] Error updating seller balance:", sellerBalanceError);
@@ -110,7 +106,7 @@ export const useCaseRefund = () => {
       queryClient.invalidateQueries({ queryKey: ['user-cases'] });
       queryClient.invalidateQueries({ queryKey: ['case-details', caseId] });
       
-      // Notify buyer about refund
+      // Notify buyer about refund using "case" type instead of "refund"
       try {
         console.log(`[case-refund] Creating refund notification for buyer ${buyerId}`);
         
@@ -118,7 +114,7 @@ export const useCaseRefund = () => {
           buyerId,
           "Refund Processed",
           `Your refund of R${amount.toFixed(2)} has been processed and added to your wallet.`,
-          "refund",
+          "case",
           caseId
         );
         
