@@ -89,9 +89,9 @@ function App() {
                 <Suspense fallback={<div>Loading...</div>}>
                   <Routes>
                     <Route path="/" element={<Index />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
-                    <Route path="/register/confirmation" element={<RegisterConfirmation />} />
+                    <Route path="/auth/login" element={<Login />} />
+                    <Route path="/auth/register" element={<Register />} />
+                    <Route path="/auth/register/confirmation" element={<RegisterConfirmation />} />
                     <Route path="/profile-setup" element={<ProfileSetup />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/terms" element={<Terms />} />
@@ -101,7 +101,7 @@ function App() {
                     <Route path="/maintenance" element={<Maintenance />} />
 
                     {/* User routes */}
-                    <Route path="/wallet" element={<Wallet />} />
+                    <Route path="/user/wallet" element={<Wallet />} />
                     <Route path="/notifications" element={<Notifications />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/cases" element={<Cases />} />
