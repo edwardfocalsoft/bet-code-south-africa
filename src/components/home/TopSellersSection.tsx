@@ -131,7 +131,7 @@ const TopSellersSection: React.FC<TopSellersSectionProps> = ({
                     className="bg-betting-green hover:bg-betting-green-dark text-white px-8 py-3 text-lg"
                   >
                     <Trophy className="mr-2 h-5 w-5" />
-                    View Full Leaderboard
+                    Weekly Leaderboard
                   </Button>
                 </Link>
               </div>
