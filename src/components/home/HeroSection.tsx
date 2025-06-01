@@ -125,7 +125,8 @@ const HeroSection: React.FC = () => {
             ) : (
               <>
                 <div className="text-3xl font-bold text-betting-green mb-2">
-                  {stats.activeBettors > 999 ? `${(stats.activeBettors/1000).toFixed(0)}k+` : `${stats.activeBettors}+`}
+                  15k+{//stats.activeBettors > 999 ? `${(stats.activeBettors/1000).toFixed(0)}k+` : `${stats.activeBettors}+`} 
+                  }
                 </div>
                 <div className="text-sm text-muted-foreground">Active Bettors</div>
               </>
