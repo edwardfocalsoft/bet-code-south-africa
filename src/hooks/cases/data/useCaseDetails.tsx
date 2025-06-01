@@ -29,12 +29,16 @@ export function useCaseDetails() {
 
   // Get case details including replies
   const fetchCaseDetails = async (caseId: string) => {
-    if (!currentUser) return null;
+    if (!currentUser) {
+      console.log("[case-details] No current user, cannot fetch case details");
+      return null;
+    }
     
     setIsLoading(true);
+    console.log(`[case-details] Fetching case details for case ${caseId}, user ${currentUser.id}, isAdmin: ${isAdmin}`);
     
     try {
-      // Get the case with appropriate filtering based on user role
+      // Build the query step by step for better debugging
       let caseQuery = supabase
         .from('cases')
         .select(`
@@ -44,17 +48,27 @@ export function useCaseDetails() {
         `)
         .eq('id', caseId);
       
-      // If not admin, only allow viewing own cases
+      // Apply user filtering only for non-admin users
       if (!isAdmin) {
+        console.log(`[case-details] Non-admin user, filtering by user_id: ${currentUser.id}`);
         caseQuery = caseQuery.eq('user_id', currentUser.id);
+      } else {
+        console.log(`[case-details] Admin user, no user_id filtering applied`);
       }
       
-      const { data: caseData, error: caseError } = await caseQuery.single();
+      const { data: caseData, error: caseError } = await caseQuery.maybeSingle();
       
       if (caseError) {
-        console.error("Error fetching case:", caseError);
+        console.error("[case-details] Error fetching case:", caseError);
         return null;
       }
+      
+      if (!caseData) {
+        console.log(`[case-details] No case found with ID ${caseId} for user ${currentUser.id}`);
+        return null;
+      }
+      
+      console.log(`[case-details] Case found:`, caseData);
       
       // Get case replies
       const { data: repliesData, error: repliesError } = await supabase
@@ -64,11 +78,12 @@ export function useCaseDetails() {
         .order('created_at', { ascending: true });
       
       if (repliesError) {
-        console.error("Error fetching case replies:", repliesError);
+        console.error("[case-details] Error fetching case replies:", repliesError);
         return { ...caseData, replies: [] };
       }
       
-      if (!repliesData) {
+      if (!repliesData || repliesData.length === 0) {
+        console.log(`[case-details] No replies found for case ${caseId}`);
         return { ...caseData, replies: [] };
       }
       
@@ -76,12 +91,15 @@ export function useCaseDetails() {
       const processedReplies = await enrichRepliesWithProfiles(repliesData);
       
       // Return the combined data
-      return { 
+      const result = { 
         ...caseData, 
         replies: processedReplies
       };
+      
+      console.log(`[case-details] Successfully fetched case details with ${processedReplies.length} replies`);
+      return result;
     } catch (error) {
-      console.error("Error in fetchCaseDetails:", error);
+      console.error("[case-details] Error in fetchCaseDetails:", error);
       return null;
     } finally {
       setIsLoading(false);
@@ -91,22 +109,28 @@ export function useCaseDetails() {
   // Helper function to enrich replies with profiles
   const enrichRepliesWithProfiles = async (repliesData: any[]) => {
     // Get user profiles for the replies in a separate query
-    const userIds = Array.from(new Set(repliesData.map(reply => reply.user_id) || []));
+    const userIds = Array.from(new Set(repliesData.map(reply => reply.user_id).filter(Boolean)));
     
     // Only fetch profiles if there are user IDs
     let profilesMap: Record<string, any> = {};
     
     if (userIds.length > 0) {
-      const { data: profilesData } = await supabase
+      console.log(`[case-details] Fetching profiles for users:`, userIds);
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, username, role, avatar_url')
         .in('id', userIds);
         
-      // Create a map of user_id to profile data
-      profilesMap = (profilesData || []).reduce((map: Record<string, any>, profile) => {
-        map[profile.id] = profile;
-        return map;
-      }, {});
+      if (profilesError) {
+        console.error("[case-details] Error fetching user profiles:", profilesError);
+      } else {
+        // Create a map of user_id to profile data
+        profilesMap = (profilesData || []).reduce((map: Record<string, any>, profile) => {
+          map[profile.id] = profile;
+          return map;
+        }, {});
+        console.log(`[case-details] Fetched ${Object.keys(profilesMap).length} user profiles`);
+      }
     }
     
     // Process replies to ensure profile data is safe

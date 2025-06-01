@@ -47,7 +47,16 @@ export function useCaseDetailsView(caseId?: string) {
 
   useEffect(() => {
     const loadCaseDetails = async () => {
-      if (!caseId || !currentUser) {
+      if (!caseId) {
+        console.log("[case-details-view] No case ID provided");
+        setError("No case ID provided");
+        setLoading(false);
+        return;
+      }
+
+      if (!currentUser) {
+        console.log("[case-details-view] No current user");
+        setError("You must be logged in to view case details");
         setLoading(false);
         return;
       }
@@ -56,15 +65,18 @@ export function useCaseDetailsView(caseId?: string) {
         setLoading(true);
         setError(null);
         
+        console.log(`[case-details-view] Loading case details for case ${caseId}`);
         const details = await fetchCaseDetails(caseId);
         
         if (!details) {
+          console.log(`[case-details-view] No case details returned for case ${caseId}`);
           setError("Case not found or you don't have permission to view it");
         } else {
+          console.log(`[case-details-view] Successfully loaded case details:`, details);
           setCaseDetails(details);
         }
       } catch (err: any) {
-        console.error("Error loading case details:", err);
+        console.error("[case-details-view] Error loading case details:", err);
         setError(err.message || "Failed to load case details");
       } finally {
         setLoading(false);
