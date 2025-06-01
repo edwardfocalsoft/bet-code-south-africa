@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,10 +17,21 @@ const SellersLeaderboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Set the specific week of May 19-25, 2025
-    const getSpecificWeek = () => {
-      const start = new Date(2025, 4, 19); // May 19, 2025 (month is 0-indexed)
-      const end = new Date(2025, 4, 25, 23, 59, 59, 999); // May 25, 2025, end of day
+    // Calculate the current week's start (Monday 00:00:00) and end (Sunday 23:59:59.999)
+    const getCurrentWeek = () => {
+      const now = new Date();
+      const dayOfWeek = now.getDay(); // 0 (Sunday) to 6 (Saturday)
+      const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      
+      // Calculate Monday 00:00:00
+      const start = new Date(now);
+      start.setDate(now.getDate() - daysSinceMonday);
+      start.setHours(0, 0, 0, 0);
+      
+      // Calculate Sunday 23:59:59.999
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      end.setHours(23, 59, 59, 999);
       
       console.log("Week start:", start.toISOString());
       console.log("Week end:", end.toISOString());
@@ -32,7 +42,7 @@ const SellersLeaderboard: React.FC = () => {
       return { start, end };
     };
     
-    const { start, end } = getSpecificWeek();
+    const { start, end } = getCurrentWeek();
     fetchLeaderboard(start, end);
   }, []);
 
