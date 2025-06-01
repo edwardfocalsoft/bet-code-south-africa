@@ -125,7 +125,7 @@ const HeroSection: React.FC = () => {
             ) : (
               <>
                 <div className="text-3xl font-bold text-betting-green mb-2">
-                  15k+{//stats.activeBettors > 999 ? `${(stats.activeBettors/1000).toFixed(0)}k+` : `${stats.activeBettors}+`} 
+                  15K+{//stats.activeBettors > 999 ? `${(stats.activeBettors/1000).toFixed(0)}k+` : `${stats.activeBettors}+`} 
                   }
                 </div>
                 <div className="text-sm text-muted-foreground">Active Bettors</div>
@@ -154,9 +154,10 @@ const HeroSection: React.FC = () => {
             ) : (
               <>
                 <div className="text-3xl font-bold text-betting-green mb-2">
-                  R{stats.totalPayout > 999999 
-                    ? `${(stats.totalPayout/1000000).toFixed(1)}M+` 
-                    : `${(stats.totalPayout/1000).toFixed(0)}K+`}
+                  R75K+{//{stats.totalPayout > 999999 
+                    //? `${(stats.totalPayout/1000000).toFixed(1)}M+` 
+                    //: `${(stats.totalPayout/1000).toFixed(0)}K+`}
+                  }
                 </div>
                 <div className="text-sm text-muted-foreground">Payouts</div>
               </>
