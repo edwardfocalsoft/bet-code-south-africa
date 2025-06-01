@@ -15,11 +15,11 @@ interface RoleSelectorProps {
 const RoleSelector: React.FC<RoleSelectorProps> = ({ role, onChange }) => {
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <Button
           type="button"
           variant={role === "buyer" ? "default" : "outline"}
-          className={`flex-1 ${
+          className={`w-full sm:flex-1 ${
             role === "buyer" ? "bg-betting-green hover:bg-betting-green-dark" : "bg-betting-light-gray border-betting-light-gray"
           }`}
           onClick={() => onChange("buyer")}
@@ -30,7 +30,7 @@ const RoleSelector: React.FC<RoleSelectorProps> = ({ role, onChange }) => {
         <Button
           type="button"
           variant={role === "seller" ? "default" : "outline"}
-          className={`flex-1 ${
+          className={`w-full sm:flex-1 ${
             role === "seller" ? "bg-betting-green hover:bg-betting-green-dark" : "bg-betting-light-gray border-betting-light-gray"
           }`}
           onClick={() => onChange("seller")}

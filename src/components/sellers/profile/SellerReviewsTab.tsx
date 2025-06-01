@@ -11,7 +11,7 @@ interface SellerReviewsTabProps {
 
 const SellerReviewsTab: React.FC<SellerReviewsTabProps> = ({ reviews }) => {
   const [currentPage, setCurrentPage] = useState(1);
-  const reviewsPerPage = 5;
+  const reviewsPerPage = 5; // Set to 5 items per page
 
   // Calculate pagination
   const { paginatedReviews, totalPages } = useMemo(() => {
@@ -35,7 +35,7 @@ const SellerReviewsTab: React.FC<SellerReviewsTabProps> = ({ reviews }) => {
         <h2 className="text-xl font-bold">Customer Reviews</h2>
         {reviews.length > 0 && (
           <div className="text-sm text-muted-foreground">
-            Showing {Math.min(reviewsPerPage, reviews.length)} of {reviews.length} reviews
+            Showing {Math.min(reviewsPerPage, paginatedReviews.length)} of {reviews.length} reviews
           </div>
         )}
       </div>

@@ -46,19 +46,6 @@ const Notifications: React.FC = () => {
                 Mark all as read
               </Button>
             )}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" onClick={() => cleanupOldNotifications()}>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Clean up
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Remove notifications older than 60 days</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
           </div>
         </div>
 
@@ -103,6 +90,13 @@ const Notifications: React.FC = () => {
                         linkTo = `/user/cases/${notification.relatedId}`;
                         buttonText = "View Case";
                       }
+                    } else if (notification.type === "seller_notification" && notification.relatedId) {
+                      linkTo = `/sellers/${notification.relatedId}`;
+                      buttonText = "View Seller";
+                    } else if (notification.type === "admin_notification") {
+                      // Admin notifications don't have specific links
+                      linkTo = "#";
+                      buttonText = "";
                     }
                     
                     return (
@@ -116,6 +110,16 @@ const Notifications: React.FC = () => {
                               <h3 className="font-medium">{notification.title}</h3>
                               {!notification.isRead && (
                                 <span className="h-2 w-2 rounded-full bg-betting-green"></span>
+                              )}
+                              {notification.type === "admin_notification" && (
+                                <span className="text-xs bg-red-600 text-white px-2 py-1 rounded-full">
+                                  Admin
+                                </span>
+                              )}
+                              {notification.type === "seller_notification" && (
+                                <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded-full">
+                                  Seller
+                                </span>
                               )}
                             </div>
                             <p className="text-muted-foreground mt-1">{notification.message}</p>
@@ -135,7 +139,7 @@ const Notifications: React.FC = () => {
                               </Button>
                             )}
                             
-                            {linkTo !== "#" && (
+                            {linkTo !== "#" && buttonText && (
                               <Button 
                                 variant="outline"
                                 size="sm"

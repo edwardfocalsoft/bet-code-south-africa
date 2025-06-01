@@ -134,15 +134,6 @@ const TopSellersSection: React.FC<TopSellersSectionProps> = ({
                     View Full Leaderboard
                   </Button>
                 </Link>
-                <Link to="/tickets">
-                  <Button 
-                    variant="outline" 
-                    size="lg" 
-                    className="border-betting-green text-betting-green hover:bg-betting-green/10 px-8 py-3 text-lg"
-                  >
-                    Browse All Tickets
-                  </Button>
-                </Link>
               </div>
             </div>
           </>

@@ -1,31 +1,105 @@
-
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { useCases } from "@/hooks/useCases";
 import { useAuth } from "@/contexts/auth";
+import { toast } from "sonner";
+import { CaseDetails } from "@/types";
 
-export function useCaseDetailsView(caseId?: string) {
+export function useCaseDetailsView() {
+  const { id: caseId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { userRole, currentUser } = useAuth();
   const {
     fetchCaseDetails,
     addReply,
     updateCaseStatus,
     processRefund,
-    isLoading,
+    isLoading: isCasesLoading,
   } = useCases();
 
-  const [caseDetails, setCaseDetails] = useState<any>(null);
+  const [caseDetails, setCaseDetails] = useState<CaseDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
-  const isAdmin = userRole === 'admin';
-  
-  // Check if the refund parameter is in the URL
-  const urlParams = new URLSearchParams(window.location.search);
-  const showRefundDialog = urlParams.get('refund') === 'true';
+  const isAdmin = userRole === "admin";
+  const showRefundDialog = searchParams.get("refund") === "true";
+
+  const ticketData = caseDetails?.tickets;
+  const purchaseData = caseDetails?.purchases;
+
+  const canProcessRefund = Boolean(
+    isAdmin &&
+    purchaseData &&
+    purchaseData.price > 0 &&
+    ticketData &&
+    (caseDetails?.status === "open" || caseDetails?.status === "in_progress")
+  );
+
+  const transformCaseData = (rawData: any): CaseDetails => {
+    return {
+      id: rawData.id,
+      case_number: rawData.case_number,
+      title: rawData.title,
+      description: rawData.description,
+      status: rawData.status,
+      created_at: rawData.created_at,
+      updated_at: rawData.updated_at,
+      user_id: rawData.user_id,
+      ticket_id: rawData.ticket_id,
+      purchase_id: rawData.purchase_id,
+      replies: rawData.replies || [],
+      tickets: Array.isArray(rawData.tickets)
+        ? rawData.tickets[0]
+        : rawData.tickets,
+      purchases: Array.isArray(rawData.purchases)
+        ? rawData.purchases[0]
+        : rawData.purchases,
+      user: rawData.user,
+    };
+  };
+
+  const loadCaseDetails = useCallback(async () => {
+    try {
+      if (!caseId || !currentUser) return;
+
+      setLoading(true);
+      setError(null);
+
+      const details = await fetchCaseDetails(caseId);
+
+      if (!details) {
+        setError("Case not found");
+      } else {
+        const transformedDetails = transformCaseData(details);
+        setCaseDetails(transformedDetails);
+      }
+    } catch (err: any) {
+      console.error("Case details error:", err);
+      setError(err.message || "Failed to load case details");
+    } finally {
+      setLoading(false);
+    }
+  }, [caseId, currentUser, fetchCaseDetails]);
+
+  // Load details once auth is available
+  useEffect(() => {
+    if (currentUser === undefined) return; // avoid running on initial undefined state
+
+    if (!currentUser) {
+      navigate("/login", { replace: true });
+      return;
+    }
+
+    if (!caseId) {
+      toast.error("No case ID provided");
+      navigate("/cases", { replace: true });
+      return;
+    }
+
+    loadCaseDetails();
+  }, [caseId, currentUser]);
 
   useEffect(() => {
     if (showRefundDialog && caseDetails) {
@@ -33,120 +107,59 @@ export function useCaseDetailsView(caseId?: string) {
     }
   }, [showRefundDialog, caseDetails]);
 
-  // Extract ticket and purchase data
-  const ticketData = caseDetails?.tickets && caseDetails.tickets[0];
-  const purchaseData = caseDetails?.purchases && caseDetails.purchases[0];
-
-  // Check if this is a refund situation with necessary data
-  const canProcessRefund =
-    isAdmin &&
-    purchaseData &&
-    purchaseData.price > 0 &&
-    ticketData &&
-    (caseDetails?.status === "open" || caseDetails?.status === "in_progress");
-
-  useEffect(() => {
-    const loadCaseDetails = async () => {
-      if (!caseId || !currentUser || initialLoadComplete) return;
-
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const details = await fetchCaseDetails(caseId);
-        
-        if (!details) {
-          setError("Case not found or you don't have permission to view it");
-        } else {
-          setCaseDetails(details);
-        }
-        
-        setInitialLoadComplete(true);
-      } catch (err: any) {
-        console.error("Error loading case details:", err);
-        setError(err.message || "Failed to load case details");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadCaseDetails();
-  }, [caseId, fetchCaseDetails, currentUser, initialLoadComplete]);
-
   const handleSubmitReply = async (content: string) => {
-    if (!caseId || !content.trim()) return;
-    
+    if (!caseId || !content.trim()) {
+      toast.error("Please enter a reply");
+      return;
+    }
+
     try {
-      const result = await addReply(caseId, content);
-      if (result) {
-        // Refresh case details to show the new reply
-        setInitialLoadComplete(false);
-        const updatedDetails = await fetchCaseDetails(caseId);
-        
-        if (updatedDetails) {
-          setCaseDetails(updatedDetails);
-        }
-      }
+      await addReply(caseId, content);
+      toast.success("Reply added successfully!");
+      await loadCaseDetails();
     } catch (err: any) {
-      console.error("Error submitting reply:", err);
+      toast.error(err.message || "Failed to add reply");
     }
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    if (!caseId || !newStatus) return;
-    
+    if (!caseId) return;
+
     try {
-      const success = await updateCaseStatus(caseId, newStatus);
-      
-      if (success) {
-        // Refresh case details to show the new status
-        setInitialLoadComplete(false);
-        const updatedDetails = await fetchCaseDetails(caseId);
-        
-        if (updatedDetails) {
-          setCaseDetails(updatedDetails);
-        }
-      }
+      await updateCaseStatus(caseId, newStatus);
+      toast.success(`Status updated to ${newStatus}`);
+      await loadCaseDetails();
     } catch (err: any) {
-      console.error("Error updating status:", err);
+      toast.error(err.message || "Failed to update status");
     }
   };
 
   const handleRefund = async () => {
     if (!caseId || !purchaseData || !ticketData) return;
-    
+
     try {
-      const success = await processRefund(
+      await processRefund(
         caseId,
         purchaseData.id,
         purchaseData.buyer_id,
         purchaseData.seller_id,
-        Number(purchaseData.price)
+        purchaseData.price
       );
-      
-      if (success) {
-        // Reload case details
-        setInitialLoadComplete(false);
-        const updatedDetails = await fetchCaseDetails(caseId);
-        
-        if (updatedDetails) {
-          setCaseDetails(updatedDetails);
-          setRefundDialogOpen(false);
-          
-          // Remove the refund param from URL
-          if (showRefundDialog) {
-            navigate(`/user/cases/${caseId}`, { replace: true });
-          }
-        }
+      toast.success("Refund processed successfully!");
+      setRefundDialogOpen(false);
+      await loadCaseDetails();
+
+      if (showRefundDialog) {
+        navigate(`/cases/${caseId}`, { replace: true });
       }
     } catch (err: any) {
-      console.error("Error processing refund:", err);
+      toast.error(err.message || "Failed to process refund");
     }
   };
-  
+
   return {
     caseDetails,
-    loading,
+    loading: loading || isCasesLoading,
     error,
     refundDialogOpen,
     setRefundDialogOpen,
@@ -157,6 +170,7 @@ export function useCaseDetailsView(caseId?: string) {
     handleStatusChange,
     handleRefund,
     showRefundDialog,
-    isAdmin
+    isAdmin,
+    refreshCaseDetails: loadCaseDetails,
   };
 }

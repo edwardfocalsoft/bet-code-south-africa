@@ -47,6 +47,23 @@ export const useAuthState = () => {
               if (userProfile) {
                 console.log("Profile found:", userProfile);
                 
+                // Check if seller is suspended
+                if (userProfile.suspended === true) {
+                  console.log("Suspended user detected in auth state change");
+                  // Sign out suspended users immediately
+                  setCurrentUser(null);
+                  setUserRole(null);
+                  setIsAdmin(false);
+                  
+                  try {
+                    await supabase.auth.signOut();
+                  } catch (err) {
+                    console.error("Error signing out suspended user:", err);
+                  }
+                  setLoading(false);
+                  return;
+                }
+                
                 // Check if seller is approved
                 if (userProfile.role === 'seller' && userProfile.approved === false) {
                   console.log("Unapproved seller detected in auth state change");
@@ -62,7 +79,7 @@ export const useAuthState = () => {
                     console.error("Error signing out unapproved seller:", err);
                   }
                 } else {
-                  // User is either not a seller or is an approved seller
+                  // User is either not a seller or is an approved seller and not suspended
                   setCurrentUser(userProfile);
                   setUserRole(userProfile.role);
                   setIsAdmin(userProfile.role === 'admin');
@@ -124,6 +141,23 @@ export const useAuthState = () => {
           if (userProfile) {
             console.log("Initial profile found:", userProfile);
             
+            // Check if user is suspended
+            if (userProfile.suspended === true) {
+              console.log("Suspended user detected in initial session");
+              // Sign out suspended users immediately
+              setCurrentUser(null);
+              setUserRole(null);
+              setIsAdmin(false);
+              
+              try {
+                await supabase.auth.signOut();
+              } catch (err) {
+                console.error("Error signing out suspended user:", err);
+              }
+              setLoading(false);
+              return;
+            }
+            
             // Check if seller is approved
             if (userProfile.role === 'seller' && userProfile.approved === false) {
               console.log("Unapproved seller detected in initial session");
@@ -139,7 +173,7 @@ export const useAuthState = () => {
                 console.error("Error signing out unapproved seller:", err);
               }
             } else {
-              // User is either not a seller or is an approved seller
+              // User is either not a seller or is an approved seller and not suspended
               setCurrentUser(userProfile);
               setUserRole(userProfile.role);
               setIsAdmin(userProfile.role === 'admin');

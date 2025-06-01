@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -7,6 +8,7 @@ import RecentSalesCard from "@/components/seller/dashboard/RecentSalesCard";
 import SalesTipsCard from "@/components/seller/dashboard/SalesTipsCard";
 import ProfileIncompleteAlert from "@/components/seller/dashboard/ProfileIncompleteAlert";
 import TransactionsTable from "@/components/seller/dashboard/TransactionsTable";
+import NotifySubscribersDialog from "@/components/seller/dashboard/NotifySubscribersDialog";
 import { Button } from "@/components/ui/button";
 import { useSellerDashboard } from "@/hooks/useSellerDashboard";
 import { useAuth } from "@/contexts/auth";
@@ -52,7 +54,10 @@ const SellerDashboard: React.FC = () => {
   return (
     <Layout requireAuth={true} allowedRoles={["seller", "admin"]}>
       <div className="container mx-auto py-8">
-        <h1 className="text-3xl font-bold mb-6">Seller Dashboard</h1>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <h1 className="text-3xl font-bold">Seller Dashboard</h1>
+          <NotifySubscribersDialog subscribersCount={subscribersCount} />
+        </div>
         
         <ProfileIncompleteAlert visible={!profileComplete} />
         

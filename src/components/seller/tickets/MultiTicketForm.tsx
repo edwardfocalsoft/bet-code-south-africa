@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,9 @@ interface MultiTicketFormProps {
   onCodeScanned: (code: string) => void;
   isScanning: boolean;
   setIsScanning: (scanning: boolean) => void;
+  startCamera: () => Promise<void>;
+  stopCamera: () => void;
+  videoRef: React.RefObject<HTMLVideoElement>;
 }
 
 const BETTING_SITES: BettingSite[] = [
@@ -47,6 +50,9 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
   onCodeScanned,
   isScanning,
   setIsScanning,
+  startCamera,
+  stopCamera,
+  videoRef,
 }) => {
   const formatDate = (date: Date) => {
     return date.toISOString().split('T')[0];
@@ -57,25 +63,41 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
     onUpdateTicket(ticketId, { date: newDate });
   };
 
+  const handleScanClick = () => {
+    setIsScanning(true);
+  };
+
+  const handleScanClose = () => {
+    setIsScanning(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (isScanning) {
+        stopCamera?.();
+      }
+    };
+  }, [isScanning]);
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-2">
         <h3 className="text-lg font-semibold">Multiple Tickets</h3>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <Button
             type="button"
-            onClick={() => setIsScanning(true)}
+            onClick={handleScanClick}
             variant="outline"
-            className="flex items-center gap-2"
+            className="w-full sm:w-auto flex items-center justify-center gap-2"
           >
             <ScanText className="h-4 w-4" />
-            Scan Handwritten Codes
+            Scan Ticket Codes
           </Button>
           <Button
             type="button"
             onClick={onAddTicket}
             variant="outline"
-            className="flex items-center gap-2"
+            className="w-full sm:w-auto flex items-center justify-center gap-2"
           >
             <Plus className="h-4 w-4" />
             Add Ticket
@@ -83,19 +105,25 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
         </div>
       </div>
 
-      {tickets.length === 0 && (
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">
-              No tickets added yet. Click "Add Ticket" or "Scan Handwritten Codes" to get started.
+      <OCRTicketScanner
+        isOpen={isScanning}
+        onClose={handleScanClose}
+        onCodeScanned={onCodeScanned}
+      />
+
+      {tickets.length === 0 && !isScanning && (
+        <Card className="border-0 sm:border shadow-none sm:shadow-sm">
+          <CardContent className="pt-6 px-0 sm:px-6">
+            <p className="text-center text-muted-foreground text-sm">
+              No tickets added yet. Click "Add Ticket" or "Scan Ticket Codes" to get started.
             </p>
           </CardContent>
         </Card>
       )}
 
       {tickets.map((ticket, index) => (
-        <Card key={ticket.id}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+        <Card key={ticket.id} className="border-0 sm:border shadow-none sm:shadow-sm">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 pb-4 px-0 sm:px-6 pt-0 sm:pt-6">
             <CardTitle className="text-base">Ticket {index + 1}</CardTitle>
             {tickets.length > 1 && (
               <Button
@@ -103,14 +131,15 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
                 onClick={() => onRemoveTicket(ticket.id)}
                 variant="outline"
                 size="sm"
-                className="text-red-500 hover:text-red-700"
+                className="w-full sm:w-auto text-red-500 hover:text-red-700"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-4 w-4 mr-2 sm:mr-0" />
+                <span className="sm:hidden">Remove Ticket</span>
               </Button>
             )}
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="space-y-4 px-0 sm:px-6">
+            <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
                 <Label htmlFor={`legs-${ticket.id}`}>Number of Legs *</Label>
                 <Input
@@ -133,7 +162,7 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
                 />
               </div>
 
-              <div className="space-y-2 md:col-span-2">
+              <div className="space-y-2">
                 <Label htmlFor={`description-${ticket.id}`}>Description *</Label>
                 <Textarea
                   id={`description-${ticket.id}`}
@@ -227,12 +256,6 @@ const MultiTicketForm: React.FC<MultiTicketFormProps> = ({
           </CardContent>
         </Card>
       ))}
-
-      <OCRTicketScanner
-        isOpen={isScanning}
-        onClose={() => setIsScanning(false)}
-        onCodeScanned={onCodeScanned}
-      />
     </div>
   );
 };
