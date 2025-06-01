@@ -38,6 +38,7 @@ export function useCaseDetailsView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
   const isAdmin = userRole === 'admin';
   const showRefundDialog = searchParams.get('refund') === 'true';
@@ -54,45 +55,48 @@ export function useCaseDetailsView() {
   );
 
   const loadCaseDetails = useCallback(async () => {
-    if (!caseId) {
-      setLoading(false);
-      setError("No case ID provided");
-      navigate("/cases"); // Redirect to cases list
-      return;
-    }
-
-    if (!currentUser) {
-      setLoading(false);
-      setError("You must be logged in to view cases");
-      navigate("/login");
-      return;
-    }
-
     try {
+      if (!caseId) {
+        setError("No case ID provided");
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError(null);
       
       const details = await fetchCaseDetails(caseId);
       
       if (!details) {
-        setError("The case you're looking for doesn't exist or has been removed");
-        navigate("/cases");
+        setError("Case not found");
       } else {
         setCaseDetails(details);
       }
     } catch (err: any) {
       console.error("Case details error:", err);
       setError(err.message || "Failed to load case details");
-      navigate("/cases");
     } finally {
       setLoading(false);
     }
-  }, [caseId, fetchCaseDetails, currentUser, navigate]);
+  }, [caseId, fetchCaseDetails]);
 
+  // Check auth status first
   useEffect(() => {
-    loadCaseDetails();
-  }, [loadCaseDetails]);
+    if (!currentUser) {
+      navigate("/login");
+      return;
+    }
+    setHasCheckedAuth(true);
+  }, [currentUser, navigate]);
 
+  // Load case details after auth check
+  useEffect(() => {
+    if (hasCheckedAuth && caseId) {
+      loadCaseDetails();
+    }
+  }, [hasCheckedAuth, caseId, loadCaseDetails]);
+
+  // Handle refund dialog from URL param
   useEffect(() => {
     if (showRefundDialog && caseDetails) {
       setRefundDialogOpen(true);
