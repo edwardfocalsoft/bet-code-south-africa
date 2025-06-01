@@ -4,18 +4,21 @@ import { useCases } from "@/hooks/useCases";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
 
-// Simplified type definitions
 interface CaseDetails {
   id: string;
   title: string;
   description: string;
   status: string;
   created_at: string;
+  updated_at: string;
   case_number?: string;
   tickets?: any[];
   purchases?: any[];
   replies?: any[];
-  // Add other fields as needed
+  user?: {
+    id: string;
+    email: string;
+  };
 }
 
 export function useCaseDetailsView(caseId: string | undefined) {
@@ -38,7 +41,6 @@ export function useCaseDetailsView(caseId: string | undefined) {
   const isAdmin = userRole === 'admin';
   const showRefundDialog = searchParams.get('refund') === 'true';
 
-  // Data extraction
   const ticketData = caseDetails?.tickets?.[0];
   const purchaseData = caseDetails?.purchases?.[0];
 
@@ -53,17 +55,24 @@ export function useCaseDetailsView(caseId: string | undefined) {
   const loadCaseDetails = useCallback(async () => {
     if (!caseId) {
       setLoading(false);
+      setError("No case ID provided");
       return;
     }
 
     try {
       setLoading(true);
-      const details = await fetchCaseDetails(caseId);
-      setCaseDetails(details);
       setError(null);
+      
+      const details = await fetchCaseDetails(caseId);
+      
+      if (!details) {
+        setError("The case you're looking for doesn't exist or has been removed");
+      } else {
+        setCaseDetails(details);
+      }
     } catch (err: any) {
+      console.error("Case details error:", err);
       setError(err.message || "Failed to load case details");
-      console.error("Error loading case:", err);
     } finally {
       setLoading(false);
     }
@@ -114,7 +123,7 @@ export function useCaseDetailsView(caseId: string | undefined) {
         purchaseData.seller_id,
         purchaseData.price
       );
-      toast.success("Refund processed!");
+      toast.success("Refund processed successfully!");
       setRefundDialogOpen(false);
       await loadCaseDetails();
       
