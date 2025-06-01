@@ -38,7 +38,6 @@ export function useCaseDetailsView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
-  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
   const isAdmin = userRole === 'admin';
   const showRefundDialog = searchParams.get('refund') === 'true';
@@ -56,11 +55,8 @@ export function useCaseDetailsView() {
 
   const loadCaseDetails = useCallback(async () => {
     try {
-      if (!caseId) {
-        setError("No case ID provided");
-        setLoading(false);
-        return;
-      }
+      // Don't load if no caseId or user
+      if (!caseId || !currentUser) return;
 
       setLoading(true);
       setError(null);
@@ -78,23 +74,24 @@ export function useCaseDetailsView() {
     } finally {
       setLoading(false);
     }
-  }, [caseId, fetchCaseDetails]);
+  }, [caseId, currentUser, fetchCaseDetails]);
 
-  // Check auth status first
+  // Initial load and auth check
   useEffect(() => {
     if (!currentUser) {
       navigate("/login");
       return;
     }
-    setHasCheckedAuth(true);
-  }, [currentUser, navigate]);
 
-  // Load case details after auth check
-  useEffect(() => {
-    if (hasCheckedAuth && caseId) {
-      loadCaseDetails();
+    if (!caseId) {
+      setError("No case ID provided");
+      setLoading(false);
+      navigate("/cases");
+      return;
     }
-  }, [hasCheckedAuth, caseId, loadCaseDetails]);
+
+    loadCaseDetails();
+  }, [caseId, currentUser, navigate, loadCaseDetails]);
 
   // Handle refund dialog from URL param
   useEffect(() => {
