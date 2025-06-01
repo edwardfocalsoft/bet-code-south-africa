@@ -1,4 +1,3 @@
-
 export type UserRole = "buyer" | "seller" | "admin";
 
 export type BettingSite = 
@@ -120,28 +119,6 @@ export interface CaseReplyProfile {
   error?: boolean;
 }
 
-// Updated CaseDetails interface to match the actual data structure
-export interface CaseDetails {
-  id: string;
-  case_number?: string;
-  title: string;
-  description: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  user_id: string;
-  ticket_id: string;
-  purchase_id: string;
-  replies?: CaseReply[];
-  // These match the database structure - single objects, not arrays
-  tickets?: any;
-  purchases?: any;
-  user?: {
-    id: string;
-    email: string;
-  };
-}
-
 // Define types for case details
 export interface CaseDetail {
   id: string;
@@ -168,7 +145,7 @@ export interface CaseReply {
   profiles: CaseReplyProfile;
 }
 
-// Add the Notification interface with updated types
+// Add the Notification interface
 export interface Notification {
   id: string;
   userId: string;
@@ -176,6 +153,6 @@ export interface Notification {
   message: string;
   isRead: boolean;
   createdAt: Date;
-  type: "subscription" | "ticket" | "system" | "free_ticket" | "case" | "seller_notification" | "admin_notification";
+  type: "subscription" | "ticket" | "system" | "free_ticket" | "case";
   relatedId?: string;
 }

@@ -55,8 +55,8 @@ const ReportIssue: React.FC = () => {
     }
 
     const result = await createCase({
-      ticket_id: ticketId,
-      purchase_id: purchaseId,
+      ticketId,
+      purchaseId,
       title: data.title,
       description: data.description,
     });

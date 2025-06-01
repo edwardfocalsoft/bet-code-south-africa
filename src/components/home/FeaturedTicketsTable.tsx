@@ -25,7 +25,7 @@ const FeaturedTicketsTable: React.FC<FeaturedTicketsTableProps> = ({
   loading,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
-  const ticketsPerPage = 5; // Changed to 5 items per page
+  const ticketsPerPage = 6;
   
   const totalPages = Math.ceil(tickets.length / ticketsPerPage);
   const startIndex = (currentPage - 1) * ticketsPerPage;

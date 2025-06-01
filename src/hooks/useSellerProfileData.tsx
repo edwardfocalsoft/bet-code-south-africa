@@ -10,8 +10,7 @@ export const useSellerProfileData = (userId: string | undefined) => {
     isSaving: isSavingProfile,
     profileData,
     setProfileData,
-    saveProfile,
-    refreshProfile
+    saveProfile
   } = useSellerProfile(userId);
   
   const {
@@ -38,26 +37,20 @@ export const useSellerProfileData = (userId: string | undefined) => {
     if (!userId) return;
     
     try {
-      let updatedProfileData = { ...profileData };
-      
       // First handle avatar upload if a file is selected
       if (selectedFile) {
         const newAvatarUrl = await uploadAvatar();
         if (newAvatarUrl) {
-          updatedProfileData = {
-            ...updatedProfileData,
+          setProfileData(prev => ({
+            ...prev,
             avatarUrl: newAvatarUrl
-          };
-          setProfileData(updatedProfileData);
+          }));
         }
       }
       
-      // Then save the profile data (including new avatar URL if uploaded)
+      // Then save the profile data
       await saveProfile(e);
       resetFileData();
-      
-      // Refresh profile to ensure we have the latest data
-      await refreshProfile();
     } catch (error: any) {
       toast.error(`Error updating profile: ${error.message}`);
     }

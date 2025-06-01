@@ -1,11 +1,11 @@
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ProfileData } from "@/types";
 
 export const useSellerProfile = (userId: string | undefined) => {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [profileData, setProfileData] = useState<ProfileData>({
     username: "",
@@ -14,21 +14,19 @@ export const useSellerProfile = (userId: string | undefined) => {
     whatsappNumber: "",
   });
 
-  const fetchProfile = useCallback(async () => {
-    if (!userId) {
-      setIsLoading(false);
-      return;
-    }
-
+  const loadProfile = async () => {
+    if (!userId) return;
+    
+    setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from("profiles")
         .select("username, avatar_url, display_whatsapp, whatsapp_number")
         .eq("id", userId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-
+      
       if (data) {
         setProfileData({
           username: data.username || "",
@@ -38,43 +36,46 @@ export const useSellerProfile = (userId: string | undefined) => {
         });
       }
     } catch (error: any) {
-      console.error("Error fetching profile:", error);
-      toast.error("Failed to load profile data");
+      console.error("Error loading profile:", error);
+      toast.error(`Error loading profile: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
-  }, [userId]);
-
-  useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+  };
 
   const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) return;
-
+    
     setIsSaving(true);
     try {
+      const updateData = { 
+        username: profileData.username,
+        avatar_url: profileData.avatarUrl,
+        display_whatsapp: profileData.displayWhatsapp,
+        whatsapp_number: profileData.displayWhatsapp ? profileData.whatsappNumber : null
+      };
+      
       const { error } = await supabase
         .from("profiles")
-        .update({
-          username: profileData.username,
-          avatar_url: profileData.avatarUrl,
-          display_whatsapp: profileData.displayWhatsapp,
-          whatsapp_number: profileData.whatsappNumber,
-        })
+        .update(updateData)
         .eq("id", userId);
-
+        
       if (error) throw error;
-
-      toast.success("Profile updated successfully!");
+      
+      toast.success("Profile updated successfully");
     } catch (error: any) {
-      console.error("Error updating profile:", error);
-      toast.error(`Failed to update profile: ${error.message}`);
+      toast.error(`Error updating profile: ${error.message}`);
     } finally {
       setIsSaving(false);
     }
   };
+
+  useEffect(() => {
+    if (userId) {
+      loadProfile();
+    }
+  }, [userId]);
 
   return {
     isLoading,
@@ -82,6 +83,5 @@ export const useSellerProfile = (userId: string | undefined) => {
     profileData,
     setProfileData,
     saveProfile,
-    refreshProfile: fetchProfile,
   };
 };

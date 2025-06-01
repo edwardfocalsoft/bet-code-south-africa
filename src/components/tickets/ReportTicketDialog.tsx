@@ -76,10 +76,10 @@ const ReportTicketDialog: React.FC<ReportTicketDialogProps> = ({
       const selectedReason = reportReasons.find(reason => reason.id === reportReason);
       const title = selectedReason ? selectedReason.title : reportReason;
       
-      // Create case - using ticket_id instead of ticketId
+      // Create case
       const result = await createCase({
-        ticket_id: ticketId,
-        purchase_id: purchaseId,
+        ticketId,
+        purchaseId,
         title: `Report: ${title}`,
         description
       });

@@ -120,10 +120,8 @@ export const useTicketForm = (initialData?: Partial<TicketFormData>) => {
     const [hours, minutes] = ticketData.time.split(':');
     kickoffTime.setHours(parseInt(hours), parseInt(minutes));
     
-    const now = new Date();
-    if (kickoffTime <= now) {
+    if (kickoffTime <= new Date()) {
       newErrors.date = "Kickoff time must be in the future";
-      newErrors.time = "Please select a future time";
     }
 
     setErrors(newErrors);
@@ -158,7 +156,7 @@ export const useTicketForm = (initialData?: Partial<TicketFormData>) => {
       const { data, error } = await supabase
         .from('tickets')
         .insert(ticketDataForDb)
-        .select('id, title')
+        .select('id')
         .single();
 
       if (error) {
@@ -172,8 +170,8 @@ export const useTicketForm = (initialData?: Partial<TicketFormData>) => {
       if (data?.id) {
         console.log('[useTicketForm] Starting notification process for ticket:', data.id);
         try {
-          const result = await notifySubscribersOfNewTicket(userId, data.id, data.title);
-          console.log('[useTicketForm] Notification process completed:', result);
+          await notifySubscribersOfNewTicket(userId, data.id, ticketData.title);
+          console.log('[useTicketForm] Notification process completed successfully');
         } catch (notificationError) {
           console.error('[useTicketForm] Error in notification process:', notificationError);
           // Don't fail the ticket creation if notifications fail

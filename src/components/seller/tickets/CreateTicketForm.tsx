@@ -1,5 +1,4 @@
-
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -24,20 +23,7 @@ const CreateTicketForm: React.FC = () => {
   const [isMultiMode, setIsMultiMode] = useState(false);
   const { notifySubscribersOfNewTicket } = useTicketNotifications();
   
-  const {
-    formData: multiTicketData,
-    addTicket,
-    removeTicket,
-    updateTicket,
-    addScannedCode,
-    validateTicketCodeUniqueness,
-    isScanning,
-    setIsScanning,
-    startCamera,
-    stopCamera,
-    videoRef
-  } = useMultiTicketForm();
-  
+  // Single ticket form
   const { 
     ticketData, 
     setTicketData, 
@@ -48,6 +34,18 @@ const CreateTicketForm: React.FC = () => {
     setStep, 
     isCheckingTicketCode 
   } = useTicketForm();
+  
+  // Multi ticket form
+  const {
+    formData: multiTicketData,
+    addTicket,
+    removeTicket,
+    updateTicket,
+    addScannedCode,
+    validateTicketCodeUniqueness,
+    isScanning,
+    setIsScanning
+  } = useMultiTicketForm();
   
   const [previewOpen, setPreviewOpen] = useState(false);
   const [validatingStep, setValidatingStep] = useState(false);
@@ -123,12 +121,14 @@ const CreateTicketForm: React.FC = () => {
         return false;
       }
       
+      // Check ticket code uniqueness
       const isUnique = await validateTicketCodeUniqueness(ticket.ticketCode);
       if (!isUnique) {
         toast.error(`Ticket code ${ticket.ticketCode} is already in use`);
         return false;
       }
       
+      // Check if kickoff time is in the future
       const kickoffTime = new Date(ticket.date);
       const [hours, minutes] = ticket.time.split(':').map(Number);
       kickoffTime.setHours(hours, minutes);
@@ -153,8 +153,11 @@ const CreateTicketForm: React.FC = () => {
     setIsSubmitting(true);
     try {
       if (isMultiMode) {
+        // Handle multi-ticket submission
         const isValid = await validateMultiTickets();
         if (!isValid) return;
+        
+        console.log('[CreateTicketForm] Creating multiple tickets...');
         
         const ticketsToInsert = multiTicketData.tickets.map(ticket => {
           const kickoffTime = new Date(ticket.date);
@@ -174,38 +177,55 @@ const CreateTicketForm: React.FC = () => {
           };
         });
         
-        console.log('[CreateTicketForm] Creating multiple tickets:', ticketsToInsert.length);
-        
         const { data, error } = await supabase
           .from("tickets")
           .insert(ticketsToInsert)
           .select('id, title');
         
-        if (error) throw error;
-        
-        console.log('[CreateTicketForm] Tickets created successfully:', data?.length);
-        
-        // Notify subscribers for each ticket
-        if (data && data.length > 0) {
-          console.log('[CreateTicketForm] Starting notification process for', data.length, 'tickets');
-          let totalNotifications = 0;
-          
-          for (const ticket of data) {
-            try {
-              const result = await notifySubscribersOfNewTicket(currentUser.id, ticket.id, ticket.title);
-              totalNotifications += result.count || 0;
-              console.log(`[CreateTicketForm] Notifications sent for ticket ${ticket.title}:`, result.count);
-            } catch (notificationError) {
-              console.error(`[CreateTicketForm] Failed to notify subscribers for ticket ${ticket.title}:`, notificationError);
-              // Continue with other notifications even if one fails
-            }
-          }
-          
-          console.log(`[CreateTicketForm] Total notifications sent: ${totalNotifications}`);
+        if (error) {
+          console.error('[CreateTicketForm] Error creating multiple tickets:', error);
+          throw error;
         }
         
-        toast.success(`${multiTicketData.tickets.length} tickets created successfully!`);
+        console.log('[CreateTicketForm] Multiple tickets created successfully:', data);
+        
+        // Notify subscribers for each created ticket
+        if (data && data.length > 0) {
+          console.log('[CreateTicketForm] Starting notification process for multiple tickets');
+          try {
+            const notificationPromises = data.map(ticket => {
+              console.log(`[CreateTicketForm] Queuing notification for ticket: ${ticket.id} - ${ticket.title}`);
+              return notifySubscribersOfNewTicket(currentUser.id, ticket.id, ticket.title);
+            });
+            
+            const results = await Promise.allSettled(notificationPromises);
+            
+            let successCount = 0;
+            let errorCount = 0;
+            
+            results.forEach((result, index) => {
+              if (result.status === 'fulfilled') {
+                successCount++;
+                console.log(`[CreateTicketForm] Notification successful for ticket ${index + 1}`);
+              } else {
+                errorCount++;
+                console.error(`[CreateTicketForm] Notification failed for ticket ${index + 1}:`, result.reason);
+              }
+            });
+            
+            console.log(`[CreateTicketForm] Notification summary: ${successCount} successful, ${errorCount} failed`);
+          } catch (notificationError) {
+            console.error('[CreateTicketForm] Error in batch notifications:', notificationError);
+          }
+        }
+        
+        toast.success(`${multiTicketData.tickets.length} tickets created successfully!`, {
+          description: "Your tickets have been published and subscribers have been notified.",
+        });
       } else {
+        // Handle single ticket submission
+        console.log('[CreateTicketForm] Creating single ticket...');
+        
         const kickoffTime = new Date(ticketData.date);
         const [hours, minutes] = ticketData.time.split(':').map(Number);
         kickoffTime.setHours(hours, minutes);
@@ -222,36 +242,42 @@ const CreateTicketForm: React.FC = () => {
           ticket_code: ticketData.ticketCode
         };
         
-        console.log('[CreateTicketForm] Creating single ticket');
+        console.log('[CreateTicketForm] Inserting ticket data:', ticketDataForDb);
         
         const { data, error } = await supabase
           .from("tickets")
           .insert(ticketDataForDb)
-          .select('id, title')
+          .select('id')
           .single();
         
-        if (error) throw error;
-        
-        console.log('[CreateTicketForm] Ticket created successfully:', data);
-        
-        // Notify subscribers
-        if (data?.id) {
-          try {
-            console.log('[CreateTicketForm] Starting notification process for single ticket');
-            const result = await notifySubscribersOfNewTicket(currentUser.id, data.id, data.title);
-            console.log(`[CreateTicketForm] Notifications sent: ${result.count} out of ${result.subscriberCount || 0} subscribers`);
-          } catch (notificationError) {
-            console.error('[CreateTicketForm] Failed to notify subscribers:', notificationError);
-            // Don't fail the entire process if notifications fail
-          }
+        if (error) {
+          console.error('[CreateTicketForm] Error creating single ticket:', error);
+          throw error;
         }
         
-        toast.success("Ticket created successfully!");
+        console.log('[CreateTicketForm] Single ticket created successfully:', data);
+        
+        // Notify subscribers about the new ticket
+        if (data?.id) {
+          console.log('[CreateTicketForm] Starting notification process for single ticket:', data.id);
+          try {
+            await notifySubscribersOfNewTicket(currentUser.id, data.id, ticketData.title);
+            console.log('[CreateTicketForm] Single ticket notification completed successfully');
+          } catch (notificationError) {
+            console.error('[CreateTicketForm] Error notifying subscribers for single ticket:', notificationError);
+          }
+        } else {
+          console.error('[CreateTicketForm] No ticket ID returned from single ticket creation');
+        }
+        
+        toast.success("Ticket created successfully!", {
+          description: "Your ticket has been published and subscribers have been notified.",
+        });
       }
       
       navigate(`/seller/tickets`);
     } catch (error: any) {
-      console.error('[CreateTicketForm] Error creating tickets:', error);
+      console.error('[CreateTicketForm] Error in ticket creation process:', error);
       toast.error("Error creating tickets", {
         description: error.message || "Failed to create tickets. Please try again.",
       });
@@ -260,6 +286,7 @@ const CreateTicketForm: React.FC = () => {
     }
   };
 
+  // Convert optional FormErrors to required string errors for step components
   const getStep1Errors = () => ({
     title: errors.title || "",
     description: errors.description || "",
@@ -277,7 +304,7 @@ const CreateTicketForm: React.FC = () => {
 
   return (
     <>
-      <div className="mb-6 sm:mb-8 bg-betting-dark-gray sm:bg-betting-dark-gray p-0 sm:p-4 rounded-none sm:rounded-lg space-y-4">
+      <div className="mb-8 bg-betting-dark-gray p-4 rounded-lg space-y-4">
         <div className="flex items-center space-x-2">
           <Switch
             id="multi-mode"
@@ -291,7 +318,7 @@ const CreateTicketForm: React.FC = () => {
       </div>
       
       {isMultiMode ? (
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-6">
           <MultiTicketForm
             tickets={multiTicketData.tickets}
             onAddTicket={addTicket}
@@ -300,16 +327,13 @@ const CreateTicketForm: React.FC = () => {
             onCodeScanned={addScannedCode}
             isScanning={isScanning}
             setIsScanning={setIsScanning}
-            startCamera={startCamera}
-            stopCamera={stopCamera}
-            videoRef={videoRef}
           />
           
           <div className="flex justify-end">
             <Button 
               onClick={handleSubmit}
               disabled={isSubmitting || multiTicketData.tickets.length === 0}
-              className="w-full sm:w-auto bg-betting-green hover:bg-betting-green-dark"
+              className="bg-betting-green hover:bg-betting-green-dark"
             >
               {isSubmitting ? (
                 <>

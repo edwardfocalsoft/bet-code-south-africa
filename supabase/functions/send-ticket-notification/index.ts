@@ -1,7 +1,14 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
 
 interface TicketNotificationRequest {
   buyerEmail: string;
@@ -9,51 +16,36 @@ interface TicketNotificationRequest {
   sellerUsername: string;
   ticketTitle: string;
   ticketId: string;
-  ticketDescription?: string;
 }
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS"
-};
-
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS
+  console.log("send-ticket-notification function called");
+
+  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    });
-  }
-
   try {
-    const body: TicketNotificationRequest = await req.json();
-    
-    if (!body.buyerEmail || !body.ticketId) {
-      throw new Error("Missing required fields");
-    }
+    const { buyerEmail, buyerUsername, sellerUsername, ticketTitle, ticketId }: TicketNotificationRequest = await req.json();
 
-    const ticketUrl = `https://lvcbgoatolxgyuyuqyyr.supabase.co/tickets/${body.ticketId}`;
+    console.log(`Sending ticket notification email to ${buyerEmail} about ticket: ${ticketTitle}`);
 
-    const { data, error } = await resend.emails.send({
+    const ticketUrl = `https://lvcbgoatolxgyuyuqyyr.supabase.co/tickets/${ticketId}`;
+
+    const emailResponse = await resend.emails.send({
       from: "BetCode SA <notifications@resend.dev>",
-      to: [body.buyerEmail],
-      subject: `New Ticket from ${body.sellerUsername}`,
+      to: [buyerEmail],
+      subject: `New Ticket from ${sellerUsername}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h1 style="color: #10b981;">New Betting Ticket Available!</h1>
-          <p>Hi ${body.buyerUsername},</p>
-          <p><strong>${body.sellerUsername}</strong> has just published a new betting ticket:</p>
+          <p>Hi ${buyerUsername},</p>
+          <p><strong>${sellerUsername}</strong> has just published a new betting ticket that might interest you:</p>
           
           <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h2 style="color: #374151; margin: 0 0 10px 0;">${body.ticketTitle}</h2>
-            ${body.ticketDescription ? `<p style="margin: 10px 0;">${body.ticketDescription}</p>` : ''}
-            <p style="margin: 0; color: #6b7280;">Published by ${body.sellerUsername}</p>
+            <h2 style="color: #374151; margin: 0 0 10px 0;">${ticketTitle}</h2>
+            <p style="margin: 0; color: #6b7280;">Published by ${sellerUsername}</p>
           </div>
           
           <p>
@@ -64,28 +56,34 @@ const handler = async (req: Request): Promise<Response> => {
           </p>
           
           <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
-            You're receiving this email because you're subscribed to ${body.sellerUsername}.
+            You're receiving this email because you're subscribed to ${sellerUsername}. 
+            If you no longer wish to receive these notifications, you can unsubscribe from your account settings.
+          </p>
+          
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+          <p style="color: #9ca3af; font-size: 12px;">
+            BetCode South Africa - Your trusted betting tips platform
           </p>
         </div>
       `,
     });
 
-    if (error) {
-      throw error;
-    }
+    console.log("Ticket notification email sent successfully:", emailResponse);
 
-    return new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify(emailResponse), {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...corsHeaders,
+      },
     });
-
-  } catch (error) {
-    console.error("Error:", error);
+  } catch (error: any) {
+    console.error("Error in send-ticket-notification function:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: error.message }),
       {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...corsHeaders },
       }
     );
   }

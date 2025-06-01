@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import CaseDetailsHeader from "@/components/cases/CaseDetailsHeader";
@@ -29,7 +29,7 @@ const CaseDetails = () => {
     handleStatusChange,
     handleRefund,
     isAdmin,
-  } = useCaseDetailsView(); // Remove the caseId parameter
+  } = useCaseDetailsView(caseId);
 
   const [currentPage, setCurrentPage] = useState(1);
   const repliesPerPage = 5;
