@@ -19,7 +19,7 @@ export function useCaseDetailsView() {
   } = useCases();
 
   const [caseDetails, setCaseDetails] = useState<CaseDetails | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
 
@@ -37,7 +37,6 @@ export function useCaseDetailsView() {
     (caseDetails?.status === "open" || caseDetails?.status === "in_progress")
   );
 
-  // Helper function to transform database response to CaseDetails format
   const transformCaseData = useCallback((rawData: any): CaseDetails => {
     if (!rawData) {
       throw new Error("No data provided for transformation");
@@ -61,71 +60,58 @@ export function useCaseDetailsView() {
     };
   }, []);
 
-  const loadCaseDetails = useCallback(async () => {
+  const loadCaseDetails = useCallback(async (abortSignal?: AbortSignal) => {
     try {
-      // Don't load if no caseId or user
-      if (!caseId || !currentUser) {
-        setLoading(false);
+      if (!caseId) {
+        setError("No case ID provided");
+        navigate("/cases", { replace: true });
         return;
       }
 
-      setLoading(true);
+      if (!currentUser) {
+        navigate("/login", { replace: true });
+        return;
+      }
+
       setError(null);
       
-      const details = await fetchCaseDetails(caseId);
+      const details = await fetchCaseDetails(caseId, abortSignal);
       
       if (!details) {
         setError("Case not found");
-        setCaseDetails(null);
-      } else {
-        try {
-          const transformedDetails = transformCaseData(details);
-          setCaseDetails(transformedDetails);
-        } catch (transformError) {
-          console.error("Data transformation error:", transformError);
-          setError("Failed to process case data");
-          setCaseDetails(null);
-        }
+        navigate("/cases", { replace: true });
+        return;
       }
+
+      const transformedDetails = transformCaseData(details);
+      setCaseDetails(transformedDetails);
+      setInitialLoadComplete(true);
+
     } catch (err: any) {
+      if (err.name === 'AbortError') return;
+      
       console.error("Case details error:", err);
       setError(err.message || "Failed to load case details");
-      setCaseDetails(null);
-    } finally {
-      setLoading(false);
+      
+      if (err.response?.status === 404) {
+        navigate("/cases", { replace: true });
+      }
     }
-  }, [caseId, currentUser, fetchCaseDetails, transformCaseData]);
+  }, [caseId, currentUser, fetchCaseDetails, navigate, transformCaseData]);
 
-  // Initial load and auth check
+  // Initial load
   useEffect(() => {
-    let isMounted = true;
-
-    const initialize = async () => {
-      if (!currentUser) {
-        navigate("/login");
-        return;
-      }
-
-      if (!caseId) {
-        if (isMounted) {
-          setError("No case ID provided");
-          setLoading(false);
-        }
-        navigate("/cases");
-        return;
-      }
-
-      await loadCaseDetails();
-    };
-
-    if (isMounted) {
-      initialize();
+    const abortController = new AbortController();
+    
+    // Only load if we haven't completed initial load or if caseId changes
+    if (!initialLoadComplete || caseId) {
+      loadCaseDetails(abortController.signal);
     }
 
     return () => {
-      isMounted = false;
+      abortController.abort();
     };
-  }, [caseId, currentUser, navigate, loadCaseDetails]);
+  }, [caseId, loadCaseDetails, initialLoadComplete]);
 
   // Handle refund dialog from URL param
   useEffect(() => {
@@ -186,7 +172,7 @@ export function useCaseDetailsView() {
 
   return {
     caseDetails,
-    loading: loading || isCasesLoading,
+    loading: !initialLoadComplete || isCasesLoading,
     error,
     refundDialogOpen,
     setRefundDialogOpen,
