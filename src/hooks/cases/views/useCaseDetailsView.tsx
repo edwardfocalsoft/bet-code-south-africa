@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { useCases } from "@/hooks/useCases";
@@ -19,15 +20,15 @@ export function useCaseDetailsView() {
   } = useCases();
 
   const [caseDetails, setCaseDetails] = useState<CaseDetails | null>(null);
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
 
   const isAdmin = userRole === 'admin';
   const showRefundDialog = searchParams.get('refund') === 'true';
 
-  const ticketData = caseDetails?.ticket;
-  const purchaseData = caseDetails?.purchase;
+  const ticketData = caseDetails?.tickets;
+  const purchaseData = caseDetails?.purchases;
 
   const canProcessRefund = Boolean(
     isAdmin &&
@@ -37,11 +38,8 @@ export function useCaseDetailsView() {
     (caseDetails?.status === "open" || caseDetails?.status === "in_progress")
   );
 
-  const transformCaseData = useCallback((rawData: any): CaseDetails => {
-    if (!rawData) {
-      throw new Error("No data provided for transformation");
-    }
-
+  // Helper function to transform database response to CaseDetails format
+  const transformCaseData = (rawData: any): CaseDetails => {
     return {
       id: rawData.id,
       case_number: rawData.case_number,
@@ -53,65 +51,54 @@ export function useCaseDetailsView() {
       user_id: rawData.user_id,
       ticket_id: rawData.ticket_id,
       purchase_id: rawData.purchase_id,
-      replies: Array.isArray(rawData.replies) ? rawData.replies : [],
-      ticket: Array.isArray(rawData.tickets) ? rawData.tickets[0] : rawData.tickets || null,
-      purchase: Array.isArray(rawData.purchases) ? rawData.purchases[0] : rawData.purchases || null,
-      user: rawData.user || null
+      replies: rawData.replies || [],
+      // Transform arrays to single objects if they exist
+      tickets: Array.isArray(rawData.tickets) ? rawData.tickets[0] : rawData.tickets,
+      purchases: Array.isArray(rawData.purchases) ? rawData.purchases[0] : rawData.purchases,
+      user: rawData.user
     };
-  }, []);
+  };
 
-  const loadCaseDetails = useCallback(async (abortSignal?: AbortSignal) => {
+  const loadCaseDetails = useCallback(async () => {
     try {
-      if (!caseId) {
-        setError("No case ID provided");
-        navigate("/cases", { replace: true });
-        return;
-      }
+      // Don't load if no caseId or user
+      if (!caseId || !currentUser) return;
 
-      if (!currentUser) {
-        navigate("/login", { replace: true });
-        return;
-      }
-
+      setLoading(true);
       setError(null);
       
-      const details = await fetchCaseDetails(caseId, abortSignal);
+      const details = await fetchCaseDetails(caseId);
       
       if (!details) {
         setError("Case not found");
-        navigate("/cases", { replace: true });
-        return;
+      } else {
+        const transformedDetails = transformCaseData(details);
+        setCaseDetails(transformedDetails);
       }
-
-      const transformedDetails = transformCaseData(details);
-      setCaseDetails(transformedDetails);
-      setInitialLoadComplete(true);
-
     } catch (err: any) {
-      if (err.name === 'AbortError') return;
-      
       console.error("Case details error:", err);
       setError(err.message || "Failed to load case details");
-      
-      if (err.response?.status === 404) {
-        navigate("/cases", { replace: true });
-      }
+    } finally {
+      setLoading(false);
     }
-  }, [caseId, currentUser, fetchCaseDetails, navigate, transformCaseData]);
+  }, [caseId, currentUser, fetchCaseDetails]);
 
-  // Initial load
+  // Initial load and auth check
   useEffect(() => {
-    const abortController = new AbortController();
-    
-    // Only load if we haven't completed initial load or if caseId changes
-    if (!initialLoadComplete || caseId) {
-      loadCaseDetails(abortController.signal);
+    if (!currentUser) {
+      navigate("/login");
+      return;
     }
 
-    return () => {
-      abortController.abort();
-    };
-  }, [caseId, loadCaseDetails, initialLoadComplete]);
+    if (!caseId) {
+      setError("No case ID provided");
+      setLoading(false);
+      navigate("/cases");
+      return;
+    }
+
+    loadCaseDetails();
+  }, [caseId, currentUser, navigate, loadCaseDetails]);
 
   // Handle refund dialog from URL param
   useEffect(() => {
@@ -172,7 +159,7 @@ export function useCaseDetailsView() {
 
   return {
     caseDetails,
-    loading: !initialLoadComplete || isCasesLoading,
+    loading: loading || isCasesLoading,
     error,
     refundDialogOpen,
     setRefundDialogOpen,
