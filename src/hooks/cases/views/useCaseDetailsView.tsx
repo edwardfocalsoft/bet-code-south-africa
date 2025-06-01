@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { useCases } from "@/hooks/useCases";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
@@ -21,7 +21,8 @@ interface CaseDetails {
   };
 }
 
-export function useCaseDetailsView(caseId: string | undefined) {
+export function useCaseDetailsView() {
+  const { id: caseId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { userRole, currentUser } = useAuth();
@@ -56,6 +57,14 @@ export function useCaseDetailsView(caseId: string | undefined) {
     if (!caseId) {
       setLoading(false);
       setError("No case ID provided");
+      navigate("/cases"); // Redirect to cases list
+      return;
+    }
+
+    if (!currentUser) {
+      setLoading(false);
+      setError("You must be logged in to view cases");
+      navigate("/login");
       return;
     }
 
@@ -67,16 +76,18 @@ export function useCaseDetailsView(caseId: string | undefined) {
       
       if (!details) {
         setError("The case you're looking for doesn't exist or has been removed");
+        navigate("/cases");
       } else {
         setCaseDetails(details);
       }
     } catch (err: any) {
       console.error("Case details error:", err);
       setError(err.message || "Failed to load case details");
+      navigate("/cases");
     } finally {
       setLoading(false);
     }
-  }, [caseId, fetchCaseDetails]);
+  }, [caseId, fetchCaseDetails, currentUser, navigate]);
 
   useEffect(() => {
     loadCaseDetails();
@@ -89,7 +100,10 @@ export function useCaseDetailsView(caseId: string | undefined) {
   }, [showRefundDialog, caseDetails]);
 
   const handleSubmitReply = async (content: string) => {
-    if (!caseId || !content.trim()) return;
+    if (!caseId || !content.trim()) {
+      toast.error("Please enter a reply");
+      return;
+    }
     
     try {
       await addReply(caseId, content);
