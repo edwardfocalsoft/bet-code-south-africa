@@ -1,25 +1,10 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { useCases } from "@/hooks/useCases";
 import { useAuth } from "@/contexts/auth";
 import { toast } from "sonner";
-
-interface CaseDetails {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  case_number?: string;
-  tickets?: any[];
-  purchases?: any[];
-  replies?: any[];
-  user?: {
-    id: string;
-    email: string;
-  };
-}
+import { CaseDetails } from "@/types";
 
 export function useCaseDetailsView() {
   const { id: caseId } = useParams<{ id: string }>();
@@ -42,8 +27,8 @@ export function useCaseDetailsView() {
   const isAdmin = userRole === 'admin';
   const showRefundDialog = searchParams.get('refund') === 'true';
 
-  const ticketData = caseDetails?.tickets?.[0];
-  const purchaseData = caseDetails?.purchases?.[0];
+  const ticketData = caseDetails?.tickets;
+  const purchaseData = caseDetails?.purchases;
 
   const canProcessRefund = Boolean(
     isAdmin &&
@@ -52,6 +37,27 @@ export function useCaseDetailsView() {
     ticketData &&
     (caseDetails?.status === "open" || caseDetails?.status === "in_progress")
   );
+
+  // Helper function to transform database response to CaseDetails format
+  const transformCaseData = (rawData: any): CaseDetails => {
+    return {
+      id: rawData.id,
+      case_number: rawData.case_number,
+      title: rawData.title,
+      description: rawData.description,
+      status: rawData.status,
+      created_at: rawData.created_at,
+      updated_at: rawData.updated_at,
+      user_id: rawData.user_id,
+      ticket_id: rawData.ticket_id,
+      purchase_id: rawData.purchase_id,
+      replies: rawData.replies || [],
+      // Transform arrays to single objects if they exist
+      tickets: Array.isArray(rawData.tickets) ? rawData.tickets[0] : rawData.tickets,
+      purchases: Array.isArray(rawData.purchases) ? rawData.purchases[0] : rawData.purchases,
+      user: rawData.user
+    };
+  };
 
   const loadCaseDetails = useCallback(async () => {
     try {
@@ -66,7 +72,8 @@ export function useCaseDetailsView() {
       if (!details) {
         setError("Case not found");
       } else {
-        setCaseDetails(details);
+        const transformedDetails = transformCaseData(details);
+        setCaseDetails(transformedDetails);
       }
     } catch (err: any) {
       console.error("Case details error:", err);

@@ -29,7 +29,7 @@ const CaseDetails = () => {
     handleStatusChange,
     handleRefund,
     isAdmin,
-  } = useCaseDetailsView(caseId);
+  } = useCaseDetailsView(); // Remove the caseId parameter
 
   const [currentPage, setCurrentPage] = useState(1);
   const repliesPerPage = 5;
