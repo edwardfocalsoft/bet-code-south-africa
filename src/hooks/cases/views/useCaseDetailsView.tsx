@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { useCases } from "@/hooks/useCases";
@@ -27,8 +26,8 @@ export function useCaseDetailsView() {
   const isAdmin = userRole === 'admin';
   const showRefundDialog = searchParams.get('refund') === 'true';
 
-  const ticketData = caseDetails?.tickets;
-  const purchaseData = caseDetails?.purchases;
+  const ticketData = caseDetails?.ticket;
+  const purchaseData = caseDetails?.purchase;
 
   const canProcessRefund = Boolean(
     isAdmin &&
@@ -55,8 +54,8 @@ export function useCaseDetailsView() {
       ticket_id: rawData.ticket_id,
       purchase_id: rawData.purchase_id,
       replies: Array.isArray(rawData.replies) ? rawData.replies : [],
-      tickets: Array.isArray(rawData.tickets) ? rawData.tickets[0] : rawData.tickets || null,
-      purchases: Array.isArray(rawData.purchases) ? rawData.purchases[0] : rawData.purchases || null,
+      ticket: Array.isArray(rawData.tickets) ? rawData.tickets[0] : rawData.tickets || null,
+      purchase: Array.isArray(rawData.purchases) ? rawData.purchases[0] : rawData.purchases || null,
       user: rawData.user || null
     };
   }, []);
