@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { useCases } from "@/hooks/useCases";
@@ -24,8 +23,8 @@ export function useCaseDetailsView() {
   const [error, setError] = useState<string | null>(null);
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
 
-  const isAdmin = userRole === 'admin';
-  const showRefundDialog = searchParams.get('refund') === 'true';
+  const isAdmin = userRole === "admin";
+  const showRefundDialog = searchParams.get("refund") === "true";
 
   const ticketData = caseDetails?.tickets;
   const purchaseData = caseDetails?.purchases;
@@ -38,7 +37,6 @@ export function useCaseDetailsView() {
     (caseDetails?.status === "open" || caseDetails?.status === "in_progress")
   );
 
-  // Helper function to transform database response to CaseDetails format
   const transformCaseData = (rawData: any): CaseDetails => {
     return {
       id: rawData.id,
@@ -52,7 +50,6 @@ export function useCaseDetailsView() {
       ticket_id: rawData.ticket_id,
       purchase_id: rawData.purchase_id,
       replies: rawData.replies || [],
-      // Transform arrays to single objects if they exist
       tickets: Array.isArray(rawData.tickets) ? rawData.tickets[0] : rawData.tickets,
       purchases: Array.isArray(rawData.purchases) ? rawData.purchases[0] : rawData.purchases,
       user: rawData.user
@@ -61,14 +58,13 @@ export function useCaseDetailsView() {
 
   const loadCaseDetails = useCallback(async () => {
     try {
-      // Don't load if no caseId or user
       if (!caseId || !currentUser) return;
 
       setLoading(true);
       setError(null);
-      
+
       const details = await fetchCaseDetails(caseId);
-      
+
       if (!details) {
         setError("Case not found");
       } else {
@@ -83,24 +79,29 @@ export function useCaseDetailsView() {
     }
   }, [caseId, currentUser, fetchCaseDetails]);
 
-  // Initial load and auth check
+  // Redirect if user not logged in or no case ID
   useEffect(() => {
     if (!currentUser) {
-      navigate("/login");
+      navigate("/login", { replace: true });
       return;
     }
 
     if (!caseId) {
       setError("No case ID provided");
       setLoading(false);
-      navigate("/cases");
+      navigate("/cases", { replace: true });
       return;
     }
+  }, [caseId, currentUser, navigate]);
 
-    loadCaseDetails();
-  }, [caseId, currentUser, navigate, loadCaseDetails]);
+  // Load case data once valid
+  useEffect(() => {
+    if (caseId && currentUser) {
+      loadCaseDetails();
+    }
+  }, [caseId, currentUser, loadCaseDetails]);
 
-  // Handle refund dialog from URL param
+  // Show refund dialog based on URL param
   useEffect(() => {
     if (showRefundDialog && caseDetails) {
       setRefundDialogOpen(true);
@@ -112,7 +113,7 @@ export function useCaseDetailsView() {
       toast.error("Please enter a reply");
       return;
     }
-    
+
     try {
       await addReply(caseId, content);
       toast.success("Reply added successfully!");
@@ -124,7 +125,7 @@ export function useCaseDetailsView() {
 
   const handleStatusChange = async (newStatus: string) => {
     if (!caseId) return;
-    
+
     try {
       await updateCaseStatus(caseId, newStatus);
       toast.success(`Status updated to ${newStatus}`);
@@ -136,7 +137,7 @@ export function useCaseDetailsView() {
 
   const handleRefund = async () => {
     if (!caseId || !purchaseData || !ticketData) return;
-    
+
     try {
       await processRefund(
         caseId,
@@ -148,7 +149,7 @@ export function useCaseDetailsView() {
       toast.success("Refund processed successfully!");
       setRefundDialogOpen(false);
       await loadCaseDetails();
-      
+
       if (showRefundDialog) {
         navigate(`/cases/${caseId}`, { replace: true });
       }
