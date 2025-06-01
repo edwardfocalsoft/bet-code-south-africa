@@ -104,8 +104,8 @@ function App() {
                     <Route path="/user/wallet" element={<Wallet />} />
                     <Route path="/notifications" element={<Notifications />} />
                     <Route path="/settings" element={<Settings />} />
-                    <Route path="/cases" element={<Cases />} />
-                    <Route path="/cases/:id" element={<CaseDetails />} />
+                    <Route path="/user/cases" element={<Cases />} />
+                    <Route path="/user/cases/:id" element={<CaseDetails />} />
                     <Route path="/report-issue" element={<ReportIssue />} />
 
                     {/* Buyer routes */}
