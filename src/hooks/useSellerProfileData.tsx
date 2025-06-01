@@ -42,6 +42,7 @@ export const useSellerProfileData = (userId: string | undefined) => {
       
       // First handle avatar upload if a file is selected
       if (selectedFile) {
+        toast.loading("Uploading profile picture...");
         const newAvatarUrl = await uploadAvatar();
         if (newAvatarUrl) {
           updatedProfileData = {
@@ -49,16 +50,23 @@ export const useSellerProfileData = (userId: string | undefined) => {
             avatarUrl: newAvatarUrl
           };
           setProfileData(updatedProfileData);
+          toast.dismiss();
+          toast.success("Profile picture uploaded successfully!");
         }
       }
       
       // Then save the profile data (including new avatar URL if uploaded)
+      toast.loading("Updating profile...");
       await saveProfile(e);
       resetFileData();
       
       // Refresh profile to ensure we have the latest data
       await refreshProfile();
+      
+      toast.dismiss();
+      toast.success("Profile updated successfully!");
     } catch (error: any) {
+      toast.dismiss();
       toast.error(`Error updating profile: ${error.message}`);
     }
   };
@@ -66,9 +74,12 @@ export const useSellerProfileData = (userId: string | undefined) => {
   // Enhanced saveBankDetails with success message
   const handleSaveBankDetails = async (e: React.FormEvent) => {
     try {
+      toast.loading("Updating bank details...");
       await saveBankDetails(e);
-      toast.success("Bank details updated successfully");
+      toast.dismiss();
+      toast.success("Bank details updated successfully!");
     } catch (error: any) {
+      toast.dismiss();
       toast.error(`Error updating bank details: ${error.message}`);
     }
   };

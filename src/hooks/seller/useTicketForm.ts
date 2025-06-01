@@ -135,6 +135,10 @@ export const useTicketForm = (initialData?: Partial<TicketFormData>) => {
     if (!isValid) return false;
     
     setIsSubmitting(true);
+    
+    // Show loading toast
+    toast.loading("Creating your betting ticket...");
+    
     try {
       // Combine date and time for kickoff_time
       const kickoffDateTime = new Date(ticketData.date);
@@ -168,27 +172,40 @@ export const useTicketForm = (initialData?: Partial<TicketFormData>) => {
 
       console.log('[useTicketForm] Ticket created successfully:', data);
 
+      // Dismiss loading toast
+      toast.dismiss();
+
       // Notify subscribers about the new ticket
       if (data?.id) {
         console.log('[useTicketForm] Starting notification process for ticket:', data.id);
         try {
           const result = await notifySubscribersOfNewTicket(userId, data.id, data.title);
           console.log('[useTicketForm] Notification process completed:', result);
+          
+          // Show success toast with notification info
+          const notificationText = result.count > 0 
+            ? ` (${result.count} subscribers notified)`
+            : "";
+          toast.success(`Betting ticket "${data.title}" created successfully!${notificationText}`);
         } catch (notificationError) {
           console.error('[useTicketForm] Error in notification process:', notificationError);
-          // Don't fail the ticket creation if notifications fail
-          toast.error("Ticket created but some notifications may have failed");
+          // Still show success for ticket creation
+          toast.success(`Betting ticket "${data.title}" created successfully!`);
+          toast.warning("Some notifications may have failed to send");
         }
       } else {
         console.error('[useTicketForm] No ticket ID returned from database');
+        toast.success("Betting ticket created successfully!");
       }
 
-      toast.success("Ticket created successfully!");
       navigate('/seller/tickets');
       return true;
     } catch (error: any) {
       console.error('[useTicketForm] Error creating ticket:', error);
-      toast.error(`Error creating ticket: ${error.message}`);
+      
+      // Dismiss loading toast and show error
+      toast.dismiss();
+      toast.error(`Failed to create ticket: ${error.message}`);
       return false;
     } finally {
       setIsSubmitting(false);

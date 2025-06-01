@@ -1,121 +1,140 @@
 
 import React, { useState } from "react";
-import { 
+import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-  DialogFooter
 } from "@/components/ui/dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { formatCurrency } from "@/utils/formatting";
+import { CreditCard, Loader2, Check } from "lucide-react";
+import { toast } from "sonner";
 
 interface TicketPurchaseDialogProps {
-  open: boolean;
+  isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  ticket: any;
-  processingPurchase: boolean;
-  paymentMethod: 'credit';
-  setPaymentMethod: (method: 'credit') => void;
-  canAffordWithCredit: boolean;
-  creditBalance: number;
-  onConfirm: () => void;
-  error?: string | null;
+  ticket: {
+    id: string;
+    title: string;
+    price: number;
+    isFree: boolean;
+    sellerUsername: string;
+  };
+  onPurchase: () => Promise<void>;
+  isPurchasing: boolean;
 }
 
 const TicketPurchaseDialog: React.FC<TicketPurchaseDialogProps> = ({
-  open,
+  isOpen,
   onOpenChange,
   ticket,
-  processingPurchase,
-  canAffordWithCredit,
-  creditBalance,
-  onConfirm,
-  error
+  onPurchase,
+  isPurchasing,
 }) => {
-  const [localError, setLocalError] = useState<string | null>(null);
-  
-  const handleConfirm = () => {
-    setLocalError(null);
-    console.log("TicketPurchaseDialog - Confirming purchase with credits");
-    // Call onConfirm directly, the parent component will handle the payment flow
-    onConfirm();
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handlePurchase = async () => {
+    setIsProcessing(true);
+    
+    try {
+      if (ticket.isFree) {
+        toast.loading("Processing free ticket...");
+      } else {
+        toast.loading("Processing payment...");
+      }
+      
+      await onPurchase();
+      
+      // The success toast is already shown in the parent component
+      // but we'll ensure it's dismissed here
+      toast.dismiss();
+      
+      if (ticket.isFree) {
+        toast.success("Free ticket added to your purchases!");
+      } else {
+        toast.success(`Successfully purchased "${ticket.title}" for ${formatCurrency(ticket.price)}`);
+      }
+      
+      onOpenChange(false);
+    } catch (error: any) {
+      toast.dismiss();
+      toast.error(`Purchase failed: ${error.message || "Please try again"}`);
+    } finally {
+      setIsProcessing(false);
+    }
   };
-  
+
   return (
-    <Dialog open={open} onOpenChange={processingPurchase && !error && !localError ? undefined : onOpenChange}>
-      <DialogContent>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Confirm Purchase</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {ticket.isFree ? (
+              <>
+                <Check className="h-5 w-5 text-green-500" />
+                Get Free Ticket
+              </>
+            ) : (
+              <>
+                <CreditCard className="h-5 w-5" />
+                Purchase Ticket
+              </>
+            )}
+          </DialogTitle>
           <DialogDescription>
-            You are about to purchase the following ticket:
+            {ticket.isFree 
+              ? "This ticket is available for free. Click confirm to add it to your purchases."
+              : "Review your purchase details below and confirm to proceed with payment."
+            }
           </DialogDescription>
         </DialogHeader>
         
-        <div className="py-4">
-          <h3 className="font-medium">{ticket?.title}</h3>
-          <p className="text-sm text-muted-foreground">Seller: {ticket?.profiles?.username || "Unknown Seller"}</p>
-          <p className="text-lg font-bold mt-4">
-            Price: R {Number(ticket?.price || 0).toFixed(2)}
-          </p>
-          
-          {/* Credit balance information */}
-          <div className="mt-6 border-t border-betting-light-gray pt-4">
-            <div className="flex items-center justify-between">
-              <span>Your credit balance:</span>
-              <span className={`${canAffordWithCredit ? 'text-green-500' : 'text-red-500'} font-medium`}>
-                R {creditBalance.toFixed(2)}
-              </span>
+        <div className="space-y-4">
+          <div className="p-4 bg-muted rounded-lg">
+            <h4 className="font-medium mb-2">{ticket.title}</h4>
+            <p className="text-sm text-muted-foreground mb-2">
+              by {ticket.sellerUsername}
+            </p>
+            <div className="flex justify-between items-center">
+              <span className="text-sm">Price:</span>
+              {ticket.isFree ? (
+                <Badge className="bg-green-600">FREE</Badge>
+              ) : (
+                <span className="font-bold text-lg">{formatCurrency(ticket.price)}</span>
+              )}
             </div>
-            
-            {!canAffordWithCredit && (
-              <Alert variant="destructive" className="mt-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  You don't have enough credits to purchase this ticket.
-                  Please top up your wallet before making this purchase.
-                </AlertDescription>
-              </Alert>
-            )}
           </div>
-
-          {/* Display errors */}
-          {(error || localError) && (
-            <Alert variant="destructive" className="mt-6">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error || localError}</AlertDescription>
-            </Alert>
-          )}
+          
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="flex-1"
+              disabled={isPurchasing || isProcessing}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handlePurchase}
+              className="flex-1"
+              disabled={isPurchasing || isProcessing}
+            >
+              {(isPurchasing || isProcessing) ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {ticket.isFree ? "Adding..." : "Processing..."}
+                </>
+              ) : (
+                <>
+                  {ticket.isFree ? "Get Free Ticket" : `Pay ${formatCurrency(ticket.price)}`}
+                </>
+              )}
+            </Button>
+          </div>
         </div>
-        
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setLocalError(null);
-              onOpenChange(false);
-            }}
-            disabled={processingPurchase && !error && !localError}
-          >
-            Cancel
-          </Button>
-          <Button
-            className="bg-betting-green hover:bg-betting-green-dark"
-            onClick={handleConfirm}
-            disabled={processingPurchase && !error && !localError || !canAffordWithCredit}
-          >
-            {processingPurchase && !error && !localError ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              "Confirm Purchase"
-            )}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -24,6 +24,9 @@ export const useCaseCreate = () => {
 
     setIsLoading(true);
     console.log(`[case-create] Starting case creation for user ${currentUser.id}`);
+    
+    // Show loading toast
+    toast.loading("Creating support case...");
 
     try {
       const { data, error } = await supabase
@@ -45,6 +48,9 @@ export const useCaseCreate = () => {
       }
 
       console.log(`[case-create] Case created successfully with ID: ${data.id}`);
+      
+      // Dismiss loading toast and show success
+      toast.dismiss();
       toast.success("Support case created successfully!");
       
       // Invalidate relevant queries
@@ -53,6 +59,9 @@ export const useCaseCreate = () => {
       return data;
     } catch (error: any) {
       console.error("[case-create] Error in case creation process:", error);
+      
+      // Dismiss loading toast and show error
+      toast.dismiss();
       toast.error("Failed to create case: " + (error.message || "Unknown error"));
       return false;
     } finally {
