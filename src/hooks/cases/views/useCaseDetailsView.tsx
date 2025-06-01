@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCases } from "@/hooks/useCases";
 import { useAuth } from "@/contexts/auth";
+import { toast } from "sonner";
 
 export function useCaseDetailsView(caseId?: string) {
   const navigate = useNavigate();
@@ -19,7 +20,6 @@ export function useCaseDetailsView(caseId?: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refundDialogOpen, setRefundDialogOpen] = useState(false);
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   const isAdmin = userRole === 'admin';
   
@@ -47,7 +47,10 @@ export function useCaseDetailsView(caseId?: string) {
 
   useEffect(() => {
     const loadCaseDetails = async () => {
-      if (!caseId || !currentUser || initialLoadComplete) return;
+      if (!caseId || !currentUser) {
+        setLoading(false);
+        return;
+      }
 
       try {
         setLoading(true);
@@ -60,8 +63,6 @@ export function useCaseDetailsView(caseId?: string) {
         } else {
           setCaseDetails(details);
         }
-        
-        setInitialLoadComplete(true);
       } catch (err: any) {
         console.error("Error loading case details:", err);
         setError(err.message || "Failed to load case details");
@@ -71,7 +72,7 @@ export function useCaseDetailsView(caseId?: string) {
     };
 
     loadCaseDetails();
-  }, [caseId, fetchCaseDetails, currentUser, initialLoadComplete]);
+  }, [caseId, fetchCaseDetails, currentUser]);
 
   const handleSubmitReply = async (content: string) => {
     if (!caseId || !content.trim()) return;
@@ -79,16 +80,16 @@ export function useCaseDetailsView(caseId?: string) {
     try {
       const result = await addReply(caseId, content);
       if (result) {
+        toast.success("Reply added successfully!");
         // Refresh case details to show the new reply
-        setInitialLoadComplete(false);
         const updatedDetails = await fetchCaseDetails(caseId);
-        
         if (updatedDetails) {
           setCaseDetails(updatedDetails);
         }
       }
     } catch (err: any) {
       console.error("Error submitting reply:", err);
+      toast.error("Failed to add reply. Please try again.");
     }
   };
 
@@ -99,16 +100,16 @@ export function useCaseDetailsView(caseId?: string) {
       const success = await updateCaseStatus(caseId, newStatus);
       
       if (success) {
+        toast.success(`Case status updated to ${newStatus}`);
         // Refresh case details to show the new status
-        setInitialLoadComplete(false);
         const updatedDetails = await fetchCaseDetails(caseId);
-        
         if (updatedDetails) {
           setCaseDetails(updatedDetails);
         }
       }
     } catch (err: any) {
       console.error("Error updating status:", err);
+      toast.error("Failed to update case status. Please try again.");
     }
   };
 
@@ -125,10 +126,9 @@ export function useCaseDetailsView(caseId?: string) {
       );
       
       if (success) {
+        toast.success("Refund processed successfully!");
         // Reload case details
-        setInitialLoadComplete(false);
         const updatedDetails = await fetchCaseDetails(caseId);
-        
         if (updatedDetails) {
           setCaseDetails(updatedDetails);
           setRefundDialogOpen(false);
@@ -141,6 +141,7 @@ export function useCaseDetailsView(caseId?: string) {
       }
     } catch (err: any) {
       console.error("Error processing refund:", err);
+      toast.error("Failed to process refund. Please try again.");
     }
   };
   
