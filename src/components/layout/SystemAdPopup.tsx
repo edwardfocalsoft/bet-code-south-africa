@@ -13,6 +13,7 @@ interface SystemAd {
   id: string;
   title: string;
   image_url: string;
+  ad_redirect: string | null;
 }
 
 const SystemAdPopup: React.FC = () => {
@@ -31,7 +32,7 @@ const SystemAdPopup: React.FC = () => {
       // Get the active ad
       const { data: activeAd, error: adError } = await supabase
         .from("system_ads")
-        .select("id, title, image_url")
+        .select("id, title, image_url, ad_redirect")
         .eq("is_active", true)
         .single();
 
@@ -80,6 +81,13 @@ const SystemAdPopup: React.FC = () => {
     setAd(null);
   };
 
+  const handleAdClick = () => {
+    if (ad?.ad_redirect) {
+      window.open(ad.ad_redirect, '_blank');
+    }
+    handleCloseAd();
+  };
+
   if (!ad) return null;
 
   return (
@@ -95,7 +103,10 @@ const SystemAdPopup: React.FC = () => {
             <X className="h-4 w-4" />
           </Button>
           
-          <div className="aspect-square">
+          <div 
+            className={`aspect-square ${ad.ad_redirect ? 'cursor-pointer' : ''}`}
+            onClick={ad.ad_redirect ? handleAdClick : undefined}
+          >
             <img
               src={ad.image_url}
               alt={ad.title}
@@ -108,6 +119,11 @@ const SystemAdPopup: React.FC = () => {
               <h3 className="text-lg font-medium text-center text-white">
                 {ad.title}
               </h3>
+              {ad.ad_redirect && (
+                <p className="text-sm text-center text-gray-300 mt-1">
+                  Click to learn more
+                </p>
+              )}
             </div>
           )}
         </div>

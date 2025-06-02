@@ -7,13 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Upload, Trash2, Eye, Plus } from "lucide-react";
+import { Loader2, Upload, Trash2, Eye, Plus, ExternalLink } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
 
 interface SystemAd {
   id: string;
   title: string;
   image_url: string;
+  ad_redirect: string | null;
   is_active: boolean;
   created_at: string;
 }
@@ -27,6 +28,7 @@ const SystemAdsTab: React.FC = () => {
   const [newAd, setNewAd] = useState({
     title: "",
     image_url: "",
+    ad_redirect: "",
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -78,12 +80,15 @@ const SystemAdsTab: React.FC = () => {
       const filePath = `system-ads/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from("profiles")
+        .from("system-ads")
         .upload(filePath, selectedFile);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        throw uploadError;
+      }
 
-      const { data } = supabase.storage.from("profiles").getPublicUrl(filePath);
+      const { data } = supabase.storage.from("system-ads").getPublicUrl(filePath);
       return data.publicUrl;
     } catch (error: any) {
       toast.error(`Upload failed: ${error.message}`);
@@ -114,13 +119,14 @@ const SystemAdsTab: React.FC = () => {
         .insert({
           title: newAd.title,
           image_url: imageUrl,
+          ad_redirect: newAd.ad_redirect || null,
           created_by: currentUser?.id,
         });
 
       if (error) throw error;
 
       toast.success("Ad created successfully!");
-      setNewAd({ title: "", image_url: "" });
+      setNewAd({ title: "", image_url: "", ad_redirect: "" });
       setSelectedFile(null);
       setShowCreateForm(false);
       loadAds();
@@ -218,6 +224,17 @@ const SystemAdsTab: React.FC = () => {
                 </div>
                 
                 <div>
+                  <Label htmlFor="ad-redirect">Redirect URL (Optional)</Label>
+                  <Input
+                    id="ad-redirect"
+                    value={newAd.ad_redirect}
+                    onChange={(e) => setNewAd({ ...newAd, ad_redirect: e.target.value })}
+                    placeholder="https://example.com (leave empty for no redirect)"
+                    className="bg-betting-light-gray border-betting-light-gray"
+                  />
+                </div>
+                
+                <div>
                   <Label htmlFor="ad-image">Ad Image (1:1 aspect ratio recommended)</Label>
                   <Input
                     id="ad-image"
@@ -255,7 +272,7 @@ const SystemAdsTab: React.FC = () => {
                     variant="outline"
                     onClick={() => {
                       setShowCreateForm(false);
-                      setNewAd({ title: "", image_url: "" });
+                      setNewAd({ title: "", image_url: "", ad_redirect: "" });
                       setSelectedFile(null);
                     }}
                   >
@@ -288,6 +305,12 @@ const SystemAdsTab: React.FC = () => {
                     <p className="text-sm text-muted-foreground">
                       Created: {new Date(ad.created_at).toLocaleDateString()}
                     </p>
+                    {ad.ad_redirect && (
+                      <div className="flex items-center gap-1 text-sm text-blue-500">
+                        <ExternalLink className="h-3 w-3" />
+                        <span className="truncate max-w-[200px]">{ad.ad_redirect}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2">

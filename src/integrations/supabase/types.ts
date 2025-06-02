@@ -484,6 +484,7 @@ export type Database = {
       }
       system_ads: {
         Row: {
+          ad_redirect: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -493,6 +494,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ad_redirect?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -502,6 +504,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ad_redirect?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
