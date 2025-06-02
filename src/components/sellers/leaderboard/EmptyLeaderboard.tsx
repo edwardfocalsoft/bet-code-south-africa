@@ -2,12 +2,10 @@
 import React from 'react';
 
 interface EmptyLeaderboardProps {
-  message?: string;
+  message: string;
 }
 
-const EmptyLeaderboard: React.FC<EmptyLeaderboardProps> = ({ 
-  message = "No sellers found for this period" 
-}) => {
+const EmptyLeaderboard: React.FC<EmptyLeaderboardProps> = ({ message }) => {
   return (
     <div className="text-center py-8">
       <p className="text-muted-foreground mb-4">{message}</p>

@@ -4,7 +4,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import MarqueeNotice from "./MarqueeNotice";
-import SystemAdPopup from "./SystemAdPopup";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
@@ -92,7 +91,6 @@ const Layout: React.FC<LayoutProps> = ({
         {children}
       </main>
       <Footer />
-      {currentUser && <SystemAdPopup />}
     </div>
   );
 };
