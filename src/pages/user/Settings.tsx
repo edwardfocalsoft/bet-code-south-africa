@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { useAuth } from "@/contexts/auth";
@@ -8,12 +9,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Save, CreditCard, Search, ChevronDown } from "lucide-react";
+import { Loader2, Save, CreditCard, Search, ChevronDown, Speaker } from "lucide-react";
 import { usePaymentSettings } from "@/hooks/usePaymentSettings";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import SiteSettingsTab from "@/components/admin/site/SiteSettingsTab";
 import SEOSettingsTab from "@/components/admin/seo/SEOSettingsTab";
+import SystemAdsTab from "@/components/admin/ads/SystemAdsTab";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,13 +73,9 @@ const UserSettings: React.FC = () => {
       
       if (error) throw error;
       
-      toast.success("Profile updated successfully!", {
-        description: "Your profile information has been saved.",
-      });
+      toast.success("Profile updated successfully!");
     } catch (error: any) {
-      toast.error("Error updating profile", {
-        description: error.message || "Failed to update profile",
-      });
+      toast.error(`Error updating profile: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -102,17 +100,13 @@ const UserSettings: React.FC = () => {
       
       if (error) throw error;
       
-      toast.success("Password updated successfully!", {
-        description: "Your password has been changed.",
-      });
+      toast.success("Password updated successfully!");
       
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (error: any) {
-      toast.error("Error updating password", {
-        description: error.message || "Failed to update password",
-      });
+      toast.error(`Error updating password: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -136,11 +130,8 @@ const UserSettings: React.FC = () => {
   const updatePaymentSettings = async () => {
     setLoading(true);
     
-    // Validate before submitting
     if (!paymentFormData.merchant_id || !paymentFormData.merchant_key || !paymentFormData.passphrase) {
-      toast.error("Validation Error", {
-        description: "Please fill in all required fields",
-      });
+      toast.error("Please fill in all required fields");
       setLoading(false);
       return;
     }
@@ -148,9 +139,7 @@ const UserSettings: React.FC = () => {
     const success = await updateSettings(paymentFormData);
     
     if (success) {
-      toast.success("Payment settings saved successfully!", {
-        description: "Payment gateway configuration has been updated.",
-      });
+      toast.success("Payment settings saved successfully!");
     }
     
     setLoading(false);
@@ -159,6 +148,7 @@ const UserSettings: React.FC = () => {
   const showPaymentSettings = userRole === "admin";
   const showSiteSettings = userRole === "admin";
   const showSEOSettings = userRole === "admin";
+  const showSystemAds = userRole === "admin";
 
   const getTabOptions = () => {
     const options = [
@@ -169,6 +159,7 @@ const UserSettings: React.FC = () => {
     if (showPaymentSettings) options.push({ value: "payment", label: "Payment Gateway" });
     if (showSiteSettings) options.push({ value: "site", label: "Site Settings" });
     if (showSEOSettings) options.push({ value: "seo", label: "SEO Settings" });
+    if (showSystemAds) options.push({ value: "ads", label: "System Ads" });
     
     return options;
   };
@@ -422,6 +413,9 @@ const UserSettings: React.FC = () => {
       case "seo":
         return showSEOSettings ? <SEOSettingsTab /> : null;
 
+      case "ads":
+        return showSystemAds ? <SystemAdsTab /> : null;
+
       default:
         return null;
     }
@@ -465,13 +459,14 @@ const UserSettings: React.FC = () => {
             </div>
           </div>
         ) : (
-          <Tabs defaultValue="profile" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className={`grid w-full grid-cols-${tabOptions.length}`}>
-              <TabsTrigger value="profile">Profile Information</TabsTrigger>
+          <Tabs defaultValue="profile" value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 mb-6">
+              <TabsTrigger value="profile">Profile</TabsTrigger>
               <TabsTrigger value="security">Security</TabsTrigger>
-              {showPaymentSettings && <TabsTrigger value="payment">Payment Gateway</TabsTrigger>}
-              {showSiteSettings && <TabsTrigger value="site">Site Settings</TabsTrigger>}
-              {showSEOSettings && <TabsTrigger value="seo"><Search className="mr-2 h-4 w-4" /> SEO Settings</TabsTrigger>}
+              {showPaymentSettings && <TabsTrigger value="payment">Payment</TabsTrigger>}
+              {showSiteSettings && <TabsTrigger value="site">Site</TabsTrigger>}
+              {showSEOSettings && <TabsTrigger value="seo">SEO</TabsTrigger>}
+              {showSystemAds && <TabsTrigger value="ads">Ads</TabsTrigger>}
             </TabsList>
             
             <TabsContent value="profile">
@@ -497,6 +492,12 @@ const UserSettings: React.FC = () => {
             {showSEOSettings && (
               <TabsContent value="seo">
                 <SEOSettingsTab />
+              </TabsContent>
+            )}
+
+            {showSystemAds && (
+              <TabsContent value="ads">
+                <SystemAdsTab />
               </TabsContent>
             )}
           </Tabs>

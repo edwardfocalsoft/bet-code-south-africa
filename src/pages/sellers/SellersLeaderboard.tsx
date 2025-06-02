@@ -1,133 +1,139 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState } from "react";
 import Layout from "@/components/layout/Layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import LeaderboardHeader from "@/components/sellers/leaderboard/LeaderboardHeader";
-import LeaderboardTable from "@/components/sellers/leaderboard/LeaderboardTable";
-import EmptyLeaderboard from "@/components/sellers/leaderboard/EmptyLeaderboard";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Star, TrendingUp, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import LoadingState from "@/components/sellers/leaderboard/LoadingState";
-import { SellerStats } from "@/components/sellers/leaderboard/LeaderboardTable";
-import { toast } from "sonner";
-import { fetchSellerLeaderboard } from "@/utils/sqlFunctions";
+import EmptyLeaderboard from "@/components/sellers/leaderboard/EmptyLeaderboard";
+import SellerRankBadge from "@/components/sellers/leaderboard/SellerRankBadge";
+import RatingDisplay from "@/components/sellers/leaderboard/RatingDisplay";
+
+interface LeaderboardEntry {
+  rank: number;
+  id: string;
+  username: string;
+  avatar_url: string;
+  sales_count: number;
+  total_sales: number;
+  average_rating: number;
+}
 
 const SellersLeaderboard: React.FC = () => {
-  const [leaderboard, setLeaderboard] = useState<SellerStats[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [weekStart, setWeekStart] = useState<Date>(new Date());
-  const [weekEnd, setWeekEnd] = useState<Date>(new Date());
-  const [error, setError] = useState<string | null>(null);
+  const [timeframe, setTimeframe] = useState<'week' | 'month' | 'year'>('month');
 
-  useEffect(() => {
-    // Calculate the current week's start (Monday 00:00:00) and end (Sunday 23:59:59.999)
-    const getCurrentWeek = () => {
-      const now = new Date();
-      const dayOfWeek = now.getDay(); // 0 (Sunday) to 6 (Saturday)
-      const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-      
-      // Calculate Monday 00:00:00
-      const start = new Date(now);
-      start.setDate(now.getDate() - daysSinceMonday);
-      start.setHours(0, 0, 0, 0);
-      
-      // Calculate Sunday 23:59:59.999
-      const end = new Date(start);
-      end.setDate(start.getDate() + 6);
-      end.setHours(23, 59, 59, 999);
-      
-      console.log("Week start:", start.toISOString());
-      console.log("Week end:", end.toISOString());
-      
-      setWeekStart(start);
-      setWeekEnd(end);
-      
-      return { start, end };
-    };
+  const getDateRange = (period: 'week' | 'month' | 'year') => {
+    const now = new Date();
+    const start = new Date();
     
-    const { start, end } = getCurrentWeek();
-    fetchLeaderboard(start, end);
-  }, []);
-
-  const fetchLeaderboard = async (start: Date, end: Date) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      console.log("Fetching leaderboard data for date range:", start.toISOString(), "to", end.toISOString());
-      
-      // Use our improved function that uses the public leaderboard function
-      const data = await fetchSellerLeaderboard(start, end, 20);
-      
-      if (!data || data.length === 0) {
-        // If no sales this week, try looking at the last 30 days
-        console.log("No data for specified week, trying last 30 days");
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        
-        const fallbackData = await fetchSellerLeaderboard(thirtyDaysAgo, new Date(), 20);
-        
-        if (!fallbackData || fallbackData.length === 0) {
-          setError("No sales data found for the current week or last 30 days.");
-          setLeaderboard([]);
-          setLoading(false);
-          return;
-        }
-        
-        // Filter out sellers with 0 sales
-        const filteredFallbackData = fallbackData.filter(seller => seller.sales > 0);
-        
-        if (filteredFallbackData.length === 0) {
-          setError("No sellers with sales found for the last 30 days.");
-          setLeaderboard([]);
-          setLoading(false);
-          return;
-        }
-        
-        setLeaderboard(filteredFallbackData);
-        // Update date range to reflect the 30-day period
-        setWeekStart(thirtyDaysAgo);
-      } else {
-        // Filter out sellers with 0 sales
-        const filteredData = data.filter(seller => seller.sales > 0);
-        
-        if (filteredData.length === 0) {
-          setError("No sellers with sales found for the current week.");
-          setLeaderboard([]);
-          setLoading(false);
-          return;
-        }
-        
-        setLeaderboard(filteredData);
-      }
-      
-      setLoading(false);
-    } catch (error: any) {
-      console.error('Error fetching leaderboard data:', error);
-      toast.error("Failed to load leaderboard data");
-      setError("Failed to load leaderboard data. Please try again later.");
-      setLoading(false);
+    switch (period) {
+      case 'week':
+        start.setDate(now.getDate() - 7);
+        break;
+      case 'month':
+        start.setMonth(now.getMonth() - 1);
+        break;
+      case 'year':
+        start.setFullYear(now.getFullYear() - 1);
+        break;
     }
+    
+    return { start, end: now };
   };
+
+  const { data: leaderboard, isLoading, error } = useQuery({
+    queryKey: ['leaderboard', timeframe],
+    queryFn: async () => {
+      const { start, end } = getDateRange(timeframe);
+      
+      const { data, error } = await supabase.rpc('get_public_leaderboard', {
+        start_date: start.toISOString(),
+        end_date: end.toISOString(),
+        result_limit: 10
+      });
+
+      if (error) throw error;
+      return data as LeaderboardEntry[];
+    }
+  });
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-ZA', {
+      style: 'currency',
+      currency: 'ZAR'
+    }).format(amount);
+  };
+
+  if (isLoading) return <LoadingState />;
+  if (error) return <EmptyLeaderboard message="Error loading leaderboard" />;
 
   return (
     <Layout>
       <div className="container mx-auto py-8">
-        <LeaderboardHeader weekStart={weekStart} weekEnd={weekEnd} />
-        
-        <Card className="betting-card">
-          <CardHeader>
-            <CardTitle className="text-xl">Weekly Rankings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <LoadingState />
-            ) : error ? (
-              <EmptyLeaderboard message={error} />
-            ) : leaderboard.length === 0 ? (
-              <EmptyLeaderboard message="No sales data found for the selected time period." />
-            ) : (
-              <LeaderboardTable sellers={leaderboard} />
-            )}
-          </CardContent>
-        </Card>
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-4">Sellers Leaderboard</h1>
+          <p className="text-xl text-muted-foreground mb-6">
+            Top performing sellers based on sales and ratings
+          </p>
+          
+          <div className="flex gap-2 mb-6">
+            {(['week', 'month', 'year'] as const).map((period) => (
+              <Button
+                key={period}
+                variant={timeframe === period ? "default" : "outline"}
+                onClick={() => setTimeframe(period)}
+                className={timeframe === period ? "bg-betting-green hover:bg-betting-green-dark" : ""}
+              >
+                {period.charAt(0).toUpperCase() + period.slice(1)}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {!leaderboard?.length ? (
+          <EmptyLeaderboard message="No sellers found for this period" />
+        ) : (
+          <div className="space-y-4">
+            {leaderboard.map((seller, index) => (
+              <Card key={seller.id} className="hover:shadow-lg transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <SellerRankBadge rank={seller.rank} />
+                      
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={seller.avatar_url} alt={seller.username} />
+                        <AvatarFallback>{seller.username?.charAt(0).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      
+                      <div>
+                        <h3 className="font-semibold text-lg">{seller.username}</h3>
+                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                          <div className="flex items-center">
+                            <TrendingUp className="w-4 h-4 mr-1" />
+                            {seller.sales_count} tickets sold
+                          </div>
+                          <div className="flex items-center">
+                            <Users className="w-4 h-4 mr-1" />
+                            {formatCurrency(seller.total_sales)} earned
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="text-right">
+                      <RatingDisplay rating={seller.average_rating} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
     </Layout>
   );

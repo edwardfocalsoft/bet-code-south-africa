@@ -103,7 +103,7 @@ function App() {
                     {/* User routes */}
                     <Route path="/user/wallet" element={<Wallet />} />
                     <Route path="/notifications" element={<Notifications />} />
-                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/user/settings" element={<Settings />} />
                     <Route path="/user/cases" element={<Cases />} />
                     <Route path="/user/cases/:id" element={<CaseDetails />} />
                     <Route path="/report-issue" element={<ReportIssue />} />

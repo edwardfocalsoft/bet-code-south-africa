@@ -9,6 +9,38 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ad_views: {
+        Row: {
+          ad_id: string
+          id: string
+          user_id: string
+          viewed_at: string
+          viewed_date: string
+        }
+        Insert: {
+          ad_id: string
+          id?: string
+          user_id: string
+          viewed_at?: string
+          viewed_date?: string
+        }
+        Update: {
+          ad_id?: string
+          id?: string
+          user_id?: string
+          viewed_at?: string
+          viewed_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_views_ad_id_fkey"
+            columns: ["ad_id"]
+            isOneToOne: false
+            referencedRelation: "system_ads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bank_details: {
         Row: {
           account_holder: string
@@ -447,6 +479,39 @@ export type Database = {
           created_at?: string
           id?: string
           seller_id?: string
+        }
+        Relationships: []
+      }
+      system_ads: {
+        Row: {
+          ad_redirect: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          image_url: string
+          is_active: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          ad_redirect?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_url: string
+          is_active?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          ad_redirect?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          image_url?: string
+          is_active?: boolean
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }

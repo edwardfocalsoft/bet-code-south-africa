@@ -4,137 +4,133 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { formatCurrency } from "@/utils/formatting";
-import { CreditCard, Loader2, Check } from "lucide-react";
-import { toast } from "sonner";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CreditCard, Wallet, Loader2, AlertCircle } from "lucide-react";
 
-interface TicketPurchaseDialogProps {
+export interface TicketPurchaseDialogProps {
   isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  ticket: {
-    id: string;
-    title: string;
-    price: number;
-    isFree: boolean;
-    sellerUsername: string;
-  };
-  onPurchase: () => Promise<void>;
-  isPurchasing: boolean;
+  onClose: () => void;
+  ticket: any;
+  processingPurchase: boolean;
+  paymentMethod: string;
+  setPaymentMethod: (method: string) => void;
+  canAffordWithCredit: boolean;
+  creditBalance: number;
+  onConfirm: () => Promise<void>;
+  error: string;
 }
 
 const TicketPurchaseDialog: React.FC<TicketPurchaseDialogProps> = ({
   isOpen,
-  onOpenChange,
+  onClose,
   ticket,
-  onPurchase,
-  isPurchasing,
+  processingPurchase,
+  paymentMethod,
+  setPaymentMethod,
+  canAffordWithCredit,
+  creditBalance,
+  onConfirm,
+  error
 }) => {
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  const handlePurchase = async () => {
-    setIsProcessing(true);
-    
-    try {
-      if (ticket.isFree) {
-        toast.loading("Processing free ticket...");
-      } else {
-        toast.loading("Processing payment...");
-      }
-      
-      await onPurchase();
-      
-      // The success toast is already shown in the parent component
-      // but we'll ensure it's dismissed here
-      toast.dismiss();
-      
-      if (ticket.isFree) {
-        toast.success("Free ticket added to your purchases!");
-      } else {
-        toast.success(`Successfully purchased "${ticket.title}" for ${formatCurrency(ticket.price)}`);
-      }
-      
-      onOpenChange(false);
-    } catch (error: any) {
-      toast.dismiss();
-      toast.error(`Purchase failed: ${error.message || "Please try again"}`);
-    } finally {
-      setIsProcessing(false);
-    }
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-ZA', {
+      style: 'currency',
+      currency: 'ZAR'
+    }).format(amount);
   };
 
+  if (!ticket) return null;
+
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {ticket.isFree ? (
-              <>
-                <Check className="h-5 w-5 text-green-500" />
-                Get Free Ticket
-              </>
-            ) : (
-              <>
-                <CreditCard className="h-5 w-5" />
-                Purchase Ticket
-              </>
-            )}
-          </DialogTitle>
+          <DialogTitle>Purchase Ticket</DialogTitle>
           <DialogDescription>
-            {ticket.isFree 
-              ? "This ticket is available for free. Click confirm to add it to your purchases."
-              : "Review your purchase details below and confirm to proceed with payment."
-            }
+            Choose your payment method to purchase this ticket for {formatCurrency(ticket.price)}
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-4">
-          <div className="p-4 bg-muted rounded-lg">
-            <h4 className="font-medium mb-2">{ticket.title}</h4>
-            <p className="text-sm text-muted-foreground mb-2">
-              by {ticket.sellerUsername}
-            </p>
-            <div className="flex justify-between items-center">
-              <span className="text-sm">Price:</span>
-              {ticket.isFree ? (
-                <Badge className="bg-green-600">FREE</Badge>
-              ) : (
-                <span className="font-bold text-lg">{formatCurrency(ticket.price)}</span>
-              )}
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem 
+                value="credit" 
+                id="credit" 
+                disabled={!canAffordWithCredit}
+              />
+              <Label 
+                htmlFor="credit" 
+                className={`flex items-center gap-2 ${!canAffordWithCredit ? 'opacity-50' : ''}`}
+              >
+                <Wallet className="w-4 h-4" />
+                Credit Balance ({formatCurrency(creditBalance)})
+                {!canAffordWithCredit && (
+                  <span className="text-red-500 text-sm">(Insufficient funds)</span>
+                )}
+              </Label>
             </div>
-          </div>
-          
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="flex-1"
-              disabled={isPurchasing || isProcessing}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handlePurchase}
-              className="flex-1"
-              disabled={isPurchasing || isProcessing}
-            >
-              {(isPurchasing || isProcessing) ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {ticket.isFree ? "Adding..." : "Processing..."}
-                </>
-              ) : (
-                <>
-                  {ticket.isFree ? "Get Free Ticket" : `Pay ${formatCurrency(ticket.price)}`}
-                </>
-              )}
-            </Button>
-          </div>
+            
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="payfast" id="payfast" />
+              <Label htmlFor="payfast" className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4" />
+                PayFast (Card/EFT)
+              </Label>
+            </div>
+          </RadioGroup>
+
+          {paymentMethod === "credit" && canAffordWithCredit && (
+            <Alert>
+              <AlertDescription>
+                {formatCurrency(ticket.price)} will be deducted from your credit balance.
+                Remaining balance: {formatCurrency(creditBalance - ticket.price)}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {paymentMethod === "payfast" && (
+            <Alert>
+              <AlertDescription>
+                You will be redirected to PayFast to complete your payment securely.
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
+
+        <DialogFooter className="flex gap-2">
+          <Button variant="outline" onClick={onClose} disabled={processingPurchase}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={onConfirm}
+            disabled={processingPurchase || (paymentMethod === "credit" && !canAffordWithCredit)}
+            className="bg-betting-green hover:bg-betting-green-dark"
+          >
+            {processingPurchase ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              `Purchase for ${formatCurrency(ticket.price)}`
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

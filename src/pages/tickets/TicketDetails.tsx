@@ -1,201 +1,321 @@
 
-import React, { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
-import { Button } from "@/components/ui/button";
-import { Loader2, AlertCircle } from "lucide-react";
-import { useAuth } from "@/contexts/auth";
 import { useTicket } from "@/hooks/useTicket";
-import { useWallet } from "@/hooks/useWallet";
+import { useAuth } from "@/contexts/auth";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Clock, User, DollarSign, Star, Calendar, MapPin, Trophy, AlertCircle } from "lucide-react";
+import { formatDistance } from "date-fns";
 import { toast } from "sonner";
-import TicketHeader from "@/components/tickets/details/TicketHeader";
-import TicketContent from "@/components/tickets/details/TicketContent";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import TicketPurchaseDialog from "@/components/tickets/details/TicketPurchaseDialog";
-import SellerInfoCard from "@/components/tickets/details/SellerInfoCard";
-import SimilarTicketsCard from "@/components/tickets/details/SimilarTicketsCard";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import TipButton from "@/components/sellers/TipButton";
 
 const TicketDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { ticket, seller, loading, error, purchaseLoading, alreadyPurchased, purchaseId, purchaseTicket, refreshTicket, purchaseError } = useTicket(id);
   const { currentUser } = useAuth();
-  const { creditBalance, error: walletError } = useWallet();
-  const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
+  const { ticket, loading } = useTicket(id!);
+  const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("credit");
   const [processingPurchase, setProcessingPurchase] = useState(false);
-  const [localError, setLocalError] = useState<string | null>(null);
-  const navigate = useNavigate();
+  const [purchaseError, setPurchaseError] = useState("");
 
-  const handlePurchase = async () => {
-    setLocalError(null);
-    
-    if (!currentUser) {
-      toast.error("Please log in to purchase tickets", {
-        description: "You need to be logged in to purchase tickets."
-      });
-      navigate("/auth/login");
-      return;
-    }
+  // Get user's credit balance
+  const { data: userProfile } = useQuery({
+    queryKey: ['userProfile', currentUser?.id],
+    queryFn: async () => {
+      if (!currentUser?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('credit_balance')
+        .eq('id', currentUser.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!currentUser?.id
+  });
 
-    if (!ticket) return;
-    
-    // Check if it's a free ticket
-    if (ticket.is_free) {
-      setProcessingPurchase(true);
-      try {
-        console.log("Processing free ticket purchase");
-        const result = await purchaseTicket();
-        if (result && result.success) {
-          refreshTicket();
-        }
-      } catch (error: any) {
-        console.error("Free ticket purchase error:", error);
-        setLocalError(error.message || "Failed to add free ticket to your purchases");
-      } finally {
-        setProcessingPurchase(false);
-      }
-      return;
-    }
-    
-    // Otherwise, open the purchase dialog for confirmation
-    setPurchaseDialogOpen(true);
+  const creditBalance = userProfile?.credit_balance || 0;
+  const canAffordWithCredit = creditBalance >= (ticket?.price || 0);
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-ZA', {
+      style: 'currency',
+      currency: 'ZAR'
+    }).format(amount);
   };
 
-  const confirmPurchase = async () => {
-    if (!currentUser || !ticket) return;
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('en-ZA', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getStatusBadge = (ticket: any) => {
+    const now = new Date();
+    const kickoffTime = new Date(ticket.kickoff_time);
     
+    if (ticket.is_expired || kickoffTime < now) {
+      return <Badge variant="secondary">Expired</Badge>;
+    }
+    
+    return <Badge className="bg-betting-green text-white">Active</Badge>;
+  };
+
+  const handlePurchase = () => {
+    if (!currentUser) {
+      toast.error("Please login to purchase tickets");
+      return;
+    }
+    
+    setPurchaseError("");
+    setShowPurchaseDialog(true);
+  };
+
+  const initiatePayFastPayment = async (purchaseId: string) => {
+    // Basic PayFast integration - redirect to external payment gateway
+    const paymentData = {
+      merchant_id: "10000100", // Use your PayFast merchant ID
+      merchant_key: "46f0cd694581a", // Use your PayFast merchant key
+      amount: ticket?.price.toFixed(2),
+      item_name: `Ticket: ${ticket?.title}`,
+      custom_str1: purchaseId,
+      return_url: `${window.location.origin}/payment/success?purchase_id=${purchaseId}`,
+      cancel_url: `${window.location.origin}/tickets/${ticket?.id}?payment=cancelled`,
+      notify_url: `${window.location.origin}/api/payfast/notify`
+    };
+
+    // Create form and submit to PayFast
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = 'https://sandbox.payfast.co.za/eng/process'; // Use https://www.payfast.co.za/eng/process for production
+
+    Object.entries(paymentData).forEach(([key, value]) => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = value as string;
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+  };
+
+  const handleConfirmPurchase = async () => {
+    if (!ticket || !currentUser) return;
+
     setProcessingPurchase(true);
-    setLocalError(null);
-    
+    setPurchaseError("");
+
     try {
-      console.log("Starting purchase process with credits");
-      const result = await purchaseTicket();
-      console.log("Purchase result:", result);
-      
-      if (!result) {
-        throw new Error("Purchase failed");
-      }
-      
-      if (result.paymentComplete) {
-        toast.success("Purchase successful!");
-        setPurchaseDialogOpen(false);
-        refreshTicket();
+      if (paymentMethod === "credit") {
+        // Handle credit purchase
+        const { data: purchaseId, error: purchaseError } = await supabase
+          .rpc('purchase_ticket', {
+            p_ticket_id: ticket.id,
+            p_buyer_id: currentUser.id
+          });
+
+        if (purchaseError) throw purchaseError;
+
+        if (ticket.is_free) {
+          toast.success("Free ticket obtained successfully!");
+        } else {
+          // Complete the purchase for credit payment
+          const { data: completed, error: completeError } = await supabase
+            .rpc('complete_ticket_purchase', {
+              p_purchase_id: purchaseId,
+              p_payment_id: `credit_${Date.now()}`,
+              p_payment_data: { method: 'credit' }
+            });
+
+          if (completeError) throw completeError;
+          toast.success("Ticket purchased successfully with credits!");
+        }
+        
+        setShowPurchaseDialog(false);
+      } else {
+        // Handle PayFast payment
+        const { data: purchaseId, error: purchaseError } = await supabase
+          .rpc('purchase_ticket', {
+            p_ticket_id: ticket.id,
+            p_buyer_id: currentUser.id
+          });
+
+        if (purchaseError) throw purchaseError;
+
+        // Initiate PayFast payment
+        await initiatePayFastPayment(purchaseId);
       }
     } catch (error: any) {
-      console.error("Purchase error:", error);
-      setLocalError(error.message || "There was an error processing your purchase. Please try again.");
+      console.error('Purchase error:', error);
+      setPurchaseError(error.message || "Purchase failed. Please try again.");
+      toast.error("Purchase failed. Please try again.");
     } finally {
       setProcessingPurchase(false);
     }
   };
 
-  // Reset error state when dialog is closed
-  useEffect(() => {
-    if (!purchaseDialogOpen) {
-      setLocalError(null);
-    }
-  }, [purchaseDialogOpen]);
-
-  // Refresh ticket details when user logs in/out
-  useEffect(() => {
-    refreshTicket();
-  }, [currentUser?.id, refreshTicket]);
-
   if (loading) {
     return (
       <Layout>
-        <div className="container mx-auto py-12 text-center">
-          <Loader2 className="h-12 w-12 animate-spin mx-auto text-betting-green" />
-          <p className="mt-4 text-lg text-muted-foreground">Loading ticket details...</p>
+        <div className="flex justify-center items-center min-h-screen">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-betting-green"></div>
         </div>
       </Layout>
     );
   }
 
-  if (error || !ticket) {
+  if (!ticket) {
     return (
       <Layout>
-        <div className="container mx-auto py-12 text-center">
-          <AlertCircle className="h-12 w-12 mx-auto text-betting-accent" />
-          <h2 className="text-xl font-medium mt-4">Ticket Not Found</h2>
-          <p className="mt-2 text-muted-foreground">
-            The ticket you're looking for doesn't exist or has been removed.
-          </p>
-          <Button className="mt-6 bg-betting-green hover:bg-betting-green-dark" asChild>
-            <Link to="/tickets">Browse Tickets</Link>
-          </Button>
+        <div className="container mx-auto py-8">
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+              <h2 className="text-2xl font-semibold mb-2">Ticket Not Found</h2>
+              <p className="text-muted-foreground">The ticket you're looking for doesn't exist or has been removed.</p>
+            </CardContent>
+          </Card>
         </div>
       </Layout>
     );
   }
 
-  const isSeller = currentUser?.id === ticket.seller_id;
-  const isPastKickoff = new Date() > new Date(ticket.kickoff_time || Date.now());
-  const canAffordWithCredit = creditBalance >= ticket.price;
+  const timeToKickoff = formatDistance(new Date(ticket.kickoff_time), new Date(), { addSuffix: true });
+  const isExpired = new Date(ticket.kickoff_time) < new Date() || ticket.is_expired;
 
   return (
     <Layout>
       <div className="container mx-auto py-8">
-        <div className="mb-4">
-          <Link to="/tickets" className="text-betting-green hover:underline flex items-center gap-1 text-sm">
-            &larr; Back to tickets
-          </Link>
-        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-2xl mb-2">{ticket.title}</CardTitle>
+                    <CardDescription className="text-lg">{ticket.description}</CardDescription>
+                  </div>
+                  {getStatusBadge(ticket)}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-muted-foreground" />
+                    <span>{formatDate(ticket.kickoff_time)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-muted-foreground" />
+                    <span>{timeToKickoff}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-muted-foreground" />
+                    <span>{ticket.betting_site}</span>
+                  </div>
+                  {ticket.odds && (
+                    <div className="flex items-center gap-2">
+                      <Trophy className="h-5 w-5 text-muted-foreground" />
+                      <span>Odds: {ticket.odds}</span>
+                    </div>
+                  )}
+                </div>
 
-        {(purchaseError || walletError || localError) && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {purchaseError || walletError || localError}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-2">
-            <TicketContent 
-              ticket={ticket}
-              seller={seller}
-              isSeller={isSeller}
-              isPastKickoff={isPastKickoff}
-              alreadyPurchased={alreadyPurchased}
-              currentUser={currentUser}
-              purchaseLoading={purchaseLoading}
-              onPurchase={handlePurchase}
-              purchaseId={purchaseId}
-            />
-            
-            {seller && !isSeller && currentUser && (
-              <div className="mt-6 flex justify-end">
-                <TipButton 
-                  sellerId={seller.id}
-                  sellerName={seller.username || "Seller"}
-                  variant="outline"
-                  size="default"
-                />
-              </div>
-            )}
+                {ticket.event_results && (
+                  <div className="bg-muted p-4 rounded-lg">
+                    <h4 className="font-semibold mb-2">Event Results</h4>
+                    <p>{ticket.event_results}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
-          <div>
-            <SellerInfoCard seller={seller} ticket={ticket} />
-            <SimilarTicketsCard ticketId={ticket.id} sellerId={ticket.seller_id} />
+          {/* Sidebar */}
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Pricing
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-betting-green mb-4">
+                  {ticket.is_free ? "FREE" : formatCurrency(ticket.price)}
+                </div>
+                {!isExpired && (
+                  <Button 
+                    onClick={handlePurchase}
+                    className="w-full bg-betting-green hover:bg-betting-green-dark"
+                    disabled={processingPurchase}
+                  >
+                    {ticket.is_free ? "Get Free Ticket" : "Purchase Ticket"}
+                  </Button>
+                )}
+                {isExpired && (
+                  <Button disabled className="w-full">
+                    Ticket Expired
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Seller Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-betting-green rounded-full flex items-center justify-center text-white font-semibold">
+                    {ticket.seller?.username?.charAt(0).toUpperCase() || 'S'}
+                  </div>
+                  <div>
+                    <p className="font-semibold">{ticket.seller?.username || 'Anonymous Seller'}</p>
+                    <div className="flex items-center gap-1">
+                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      <span className="text-sm text-muted-foreground">4.8 (124 reviews)</span>
+                    </div>
+                  </div>
+                </div>
+                <Button variant="outline" className="w-full">
+                  View Seller Profile
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </div>
+
+        <TicketPurchaseDialog
+          isOpen={showPurchaseDialog}
+          onClose={() => setShowPurchaseDialog(false)}
+          ticket={ticket}
+          processingPurchase={processingPurchase}
+          paymentMethod={paymentMethod}
+          setPaymentMethod={setPaymentMethod}
+          canAffordWithCredit={canAffordWithCredit}
+          creditBalance={creditBalance}
+          onConfirm={handleConfirmPurchase}
+          error={purchaseError}
+        />
       </div>
-      
-      <TicketPurchaseDialog
-        open={purchaseDialogOpen}
-        onOpenChange={setPurchaseDialogOpen}
-        ticket={ticket}
-        processingPurchase={processingPurchase}
-        paymentMethod="credit"
-        setPaymentMethod={() => {}} // No need to change payment method anymore
-        canAffordWithCredit={canAffordWithCredit}
-        creditBalance={creditBalance}
-        onConfirm={confirmPurchase}
-        error={localError || purchaseError}
-      />
     </Layout>
   );
 };
