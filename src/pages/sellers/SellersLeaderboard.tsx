@@ -8,10 +8,10 @@ import { Star, TrendingUp, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { LoadingState } from "@/components/sellers/leaderboard/LoadingState";
-import { EmptyLeaderboard } from "@/components/sellers/leaderboard/EmptyLeaderboard";
-import { SellerRankBadge } from "@/components/sellers/leaderboard/SellerRankBadge";
-import { RatingDisplay } from "@/components/sellers/leaderboard/RatingDisplay";
+import LoadingState from "@/components/sellers/leaderboard/LoadingState";
+import EmptyLeaderboard from "@/components/sellers/leaderboard/EmptyLeaderboard";
+import SellerRankBadge from "@/components/sellers/leaderboard/SellerRankBadge";
+import RatingDisplay from "@/components/sellers/leaderboard/RatingDisplay";
 
 interface LeaderboardEntry {
   rank: number;
@@ -69,7 +69,7 @@ const SellersLeaderboard: React.FC = () => {
   };
 
   if (isLoading) return <LoadingState />;
-  if (error) return <EmptyLeaderboard />;
+  if (error) return <EmptyLeaderboard message="Error loading leaderboard" />;
 
   return (
     <Layout>
@@ -95,7 +95,7 @@ const SellersLeaderboard: React.FC = () => {
         </div>
 
         {!leaderboard?.length ? (
-          <EmptyLeaderboard />
+          <EmptyLeaderboard message="No sellers found for this period" />
         ) : (
           <div className="space-y-4">
             {leaderboard.map((seller, index) => (

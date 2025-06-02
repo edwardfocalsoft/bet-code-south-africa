@@ -13,7 +13,6 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import TicketPurchaseDialog from "@/components/tickets/details/TicketPurchaseDialog";
-import { usePayFast } from "@/hooks/usePayFast";
 
 const TicketDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,7 +22,6 @@ const TicketDetails: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState("credit");
   const [processingPurchase, setProcessingPurchase] = useState(false);
   const [purchaseError, setPurchaseError] = useState("");
-  const { initiatePayment } = usePayFast();
 
   // Get user's credit balance
   const { data: userProfile } = useQuery({
@@ -85,6 +83,36 @@ const TicketDetails: React.FC = () => {
     setShowPurchaseDialog(true);
   };
 
+  const initiatePayFastPayment = async (purchaseId: string) => {
+    // Basic PayFast integration - redirect to external payment gateway
+    const paymentData = {
+      merchant_id: "10000100", // Use your PayFast merchant ID
+      merchant_key: "46f0cd694581a", // Use your PayFast merchant key
+      amount: ticket?.price.toFixed(2),
+      item_name: `Ticket: ${ticket?.title}`,
+      custom_str1: purchaseId,
+      return_url: `${window.location.origin}/payment/success?purchase_id=${purchaseId}`,
+      cancel_url: `${window.location.origin}/tickets/${ticket?.id}?payment=cancelled`,
+      notify_url: `${window.location.origin}/api/payfast/notify`
+    };
+
+    // Create form and submit to PayFast
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = 'https://sandbox.payfast.co.za/eng/process'; // Use https://www.payfast.co.za/eng/process for production
+
+    Object.entries(paymentData).forEach(([key, value]) => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = value as string;
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+  };
+
   const handleConfirmPurchase = async () => {
     if (!ticket || !currentUser) return;
 
@@ -129,13 +157,7 @@ const TicketDetails: React.FC = () => {
         if (purchaseError) throw purchaseError;
 
         // Initiate PayFast payment
-        await initiatePayment({
-          amount: ticket.price,
-          itemName: `Ticket: ${ticket.title}`,
-          customStr1: purchaseId,
-          successUrl: `/payment/success?purchase_id=${purchaseId}`,
-          cancelUrl: `/tickets/${ticket.id}?payment=cancelled`
-        });
+        await initiatePayFastPayment(purchaseId);
       }
     } catch (error: any) {
       console.error('Purchase error:', error);
