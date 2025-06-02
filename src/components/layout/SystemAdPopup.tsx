@@ -17,15 +17,16 @@ interface SystemAd {
 }
 
 const SystemAdPopup: React.FC = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, userRole } = useAuth();
   const [ad, setAd] = useState<SystemAd | null>(null);
   const [showAd, setShowAd] = useState(false);
 
   useEffect(() => {
-    if (currentUser) {
+    // Only show ads to buyers and sellers, not admins
+    if (currentUser && userRole && (userRole === 'buyer' || userRole === 'seller')) {
       checkForActiveAd();
     }
-  }, [currentUser]);
+  }, [currentUser, userRole]);
 
   const checkForActiveAd = async () => {
     try {

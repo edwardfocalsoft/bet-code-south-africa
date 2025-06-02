@@ -92,7 +92,7 @@ const Layout: React.FC<LayoutProps> = ({
         {children}
       </main>
       <Footer />
-      {currentUser && <SystemAdPopup />}
+      {currentUser && userRole && (userRole === 'buyer' || userRole === 'seller') && <SystemAdPopup />}
     </div>
   );
 };
