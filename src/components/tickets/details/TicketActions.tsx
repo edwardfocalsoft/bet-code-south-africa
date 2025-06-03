@@ -1,7 +1,6 @@
 
 import React from "react";
 import ShareTicket from "@/components/tickets/ShareTicket";
-import ReportTicketDialog from "@/components/tickets/ReportTicketDialog";
 
 interface TicketActionsProps {
   ticket: any;
@@ -22,9 +21,6 @@ const TicketActions: React.FC<TicketActionsProps> = ({
         ticket={ticket}
         seller={seller}
       />
-      {currentUser && (
-        <ReportTicketDialog ticketId={ticket.id} />
-      )}
     </div>
   );
 };
