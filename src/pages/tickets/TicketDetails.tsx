@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -185,8 +184,8 @@ const TicketDetails: React.FC = () => {
       </div>
       
       <TicketPurchaseDialog
-        open={purchaseDialogOpen}
-        onOpenChange={setPurchaseDialogOpen}
+        isOpen={purchaseDialogOpen}
+        onClose={() => setPurchaseDialogOpen(false)}
         ticket={ticket}
         processingPurchase={processingPurchase}
         paymentMethod="credit"
@@ -194,7 +193,7 @@ const TicketDetails: React.FC = () => {
         canAffordWithCredit={canAffordWithCredit}
         creditBalance={creditBalance}
         onConfirm={confirmPurchase}
-        error={localError || purchaseError}
+        error={localError || purchaseError || ""}
       />
     </Layout>
   );
