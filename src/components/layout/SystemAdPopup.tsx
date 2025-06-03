@@ -22,7 +22,7 @@ const SystemAdPopup: React.FC = () => {
   const [showAd, setShowAd] = useState(false);
 
   useEffect(() => {
-    // Only show ads to buyers and sellers, not admins
+    // Only show ads to buyers and sellers, not admins or logged out users
     if (currentUser && userRole && (userRole === 'buyer' || userRole === 'seller')) {
       checkForActiveAd();
     }
@@ -92,8 +92,8 @@ const SystemAdPopup: React.FC = () => {
   if (!ad) return null;
 
   return (
-    <Dialog open={showAd} onOpenChange={handleCloseAd}>
-      <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+    <Dialog open={showAd} onOpenChange={() => {}}>
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden" hideCloseButton>
         <div className="relative">
           <Button
             variant="ghost"
