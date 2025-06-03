@@ -9,7 +9,9 @@ interface TicketHeaderProps {
   isPastKickoff: boolean;
   isFree: boolean;
   isSeller: boolean;
-  ticketId: string; // Added ticketId prop
+  ticketId: string;
+  ticket: any; // Added ticket prop
+  seller: any; // Added seller prop
 }
 
 const TicketHeader: React.FC<TicketHeaderProps> = ({
@@ -18,7 +20,9 @@ const TicketHeader: React.FC<TicketHeaderProps> = ({
   isPastKickoff,
   isFree,
   isSeller,
-  ticketId // Include ticketId in destructuring
+  ticketId,
+  ticket, // Include ticket in destructuring
+  seller // Include seller in destructuring
 }) => {
   return (
     <>
@@ -26,8 +30,10 @@ const TicketHeader: React.FC<TicketHeaderProps> = ({
         <h1 className="text-2xl font-bold mb-1">{title}</h1>
         {!isSeller && (
           <ShareTicket 
-            ticketId={ticketId}  // Pass the actual ticketId here
+            ticketId={ticketId}
             ticketTitle={title}
+            ticket={ticket} // Pass the ticket object
+            seller={seller} // Pass the seller object
           />
         )}
       </div>

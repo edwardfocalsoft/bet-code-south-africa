@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import RateTicketDialog from "../RateTicketDialog";
@@ -82,7 +83,9 @@ const TicketContent: React.FC<TicketContentProps> = ({
               isPastKickoff={isPastKickoff}
               isFree={ticket.is_free}
               isSeller={isSeller}
-              ticketId={ticket.id} // Pass the ticket ID here
+              ticketId={ticket.id}
+              ticket={ticket} // Pass the full ticket object
+              seller={seller} // Pass the full seller object
             />
             
             <TicketMetadata 
@@ -105,19 +108,9 @@ const TicketContent: React.FC<TicketContentProps> = ({
             />
             
             <TicketActions 
-              alreadyPurchased={alreadyPurchased}
-              canRate={canRate}
-              canReport={canReport}
-              purchaseLoading={purchaseLoading}
-              onPurchase={onPurchase}
-              isSeller={isSeller}
-              isPastKickoff={isPastKickoff}
+              ticket={ticket}
+              seller={seller}
               currentUser={currentUser}
-              price={ticket.price}
-              isFree={ticket.is_free}
-              openRateDialog={() => setRateDialogOpen(true)}
-              openReportDialog={() => setReportDialogOpen(true)}
-              hasRated={hasRated}
             />
           </div>
         </div>
