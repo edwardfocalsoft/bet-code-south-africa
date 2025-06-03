@@ -13,7 +13,6 @@ interface DownloadTicketImageProps {
 
 const DownloadTicketImage: React.FC<DownloadTicketImageProps> = ({ ticket, seller }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const qrRef = useRef<HTMLDivElement>(null);
 
   const generateTicketImage = async () => {
     if (!canvasRef.current) return;
@@ -22,9 +21,9 @@ const DownloadTicketImage: React.FC<DownloadTicketImageProps> = ({ ticket, selle
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Set canvas size for ticket shape
-    canvas.width = 700;
-    canvas.height = 1000;
+    // Set canvas size for horizontal ticket
+    canvas.width = 1200;
+    canvas.height = 500;
 
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -34,12 +33,15 @@ const DownloadTicketImage: React.FC<DownloadTicketImageProps> = ({ ticket, selle
       const margin = 20;
       const width = canvas.width - (margin * 2);
       const height = canvas.height - (margin * 2);
-      const cornerRadius = 15;
+      const cornerRadius = 20;
       const perfRadius = 8;
-      const perfSpacing = 20;
+      const perfSpacing = 25;
 
-      // Main ticket background
-      ctx.fillStyle = '#1a1a1a';
+      // Main ticket background with gradient effect
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, '#2c2c2c');
+      gradient.addColorStop(1, '#1a1a1a');
+      ctx.fillStyle = gradient;
       ctx.beginPath();
       ctx.roundRect(margin, margin, width, height, cornerRadius);
       ctx.fill();
@@ -47,26 +49,24 @@ const DownloadTicketImage: React.FC<DownloadTicketImageProps> = ({ ticket, selle
       // Green header section
       ctx.fillStyle = '#4CAF50';
       ctx.beginPath();
-      ctx.roundRect(margin, margin, width, 120, [cornerRadius, cornerRadius, 0, 0]);
+      ctx.roundRect(margin, margin, width, 80, [cornerRadius, cornerRadius, 0, 0]);
       ctx.fill();
 
-      // Green footer section
+      // Green accent stripe
       ctx.fillStyle = '#4CAF50';
-      ctx.beginPath();
-      ctx.roundRect(margin, canvas.height - margin - 80, width, 80, [0, 0, cornerRadius, cornerRadius]);
-      ctx.fill();
+      ctx.fillRect(margin, margin + 80, width, 4);
 
-      // Perforation line in the middle
-      const perfY = canvas.height / 2;
-      ctx.fillStyle = '#333333';
-      for (let x = margin; x < canvas.width - margin; x += perfSpacing) {
+      // Vertical perforation line (separating main content from QR section)
+      const perfX = canvas.width - 280;
+      for (let y = margin + 40; y < canvas.height - margin - 40; y += perfSpacing) {
+        ctx.fillStyle = '#333333';
         ctx.beginPath();
-        ctx.arc(x, perfY, perfRadius, 0, Math.PI * 2);
+        ctx.arc(perfX, y, perfRadius, 0, Math.PI * 2);
         ctx.fill();
       }
 
       // Side perforations
-      for (let y = margin + 40; y < canvas.height - margin - 40; y += perfSpacing) {
+      for (let y = margin + 60; y < canvas.height - margin - 60; y += perfSpacing) {
         ctx.fillStyle = '#333333';
         ctx.beginPath();
         ctx.arc(margin, y, perfRadius / 2, 0, Math.PI * 2);
@@ -81,222 +81,269 @@ const DownloadTicketImage: React.FC<DownloadTicketImageProps> = ({ ticket, selle
 
     // Header - BetCode branding
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 32px Arial';
+    ctx.font = 'bold 36px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('BetCode South Africa', canvas.width / 2, 75);
+    ctx.fillText('BetCode South Africa', canvas.width / 2, 55);
+
+    // Left section - Main ticket content
+    const leftSection = 60;
+    const rightBoundary = canvas.width - 320; // Leave space for QR section
 
     // Ticket title
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 28px Arial';
+    ctx.font = 'bold 32px Arial';
     ctx.textAlign = 'left';
     const title = ticket.title || 'Betting Ticket';
-    const maxTitleWidth = 500;
-    let fontSize = 28;
+    let fontSize = 32;
     ctx.font = `bold ${fontSize}px Arial`;
-    while (ctx.measureText(title).width > maxTitleWidth && fontSize > 16) {
+    while (ctx.measureText(title).width > (rightBoundary - leftSection - 40) && fontSize > 20) {
       fontSize -= 2;
       ctx.font = `bold ${fontSize}px Arial`;
     }
-    ctx.fillText(title.substring(0, 40), 60, 180);
+    ctx.fillText(title.substring(0, 50), leftSection, 140);
 
-    // Ticket details section
-    let yPos = 240;
-    const lineHeight = 35;
-    const leftColumn = 60;
-    const rightColumn = 360;
+    // Two-column layout for details
+    const leftColumn = leftSection;
+    const middleColumn = leftSection + 300;
+    let yPos = 190;
 
-    // Left column details
+    // Left column - Betting Site and Odds
     ctx.fillStyle = '#CCCCCC';
     ctx.font = '18px Arial';
-    ctx.textAlign = 'left';
-
     ctx.fillText('Betting Site:', leftColumn, yPos);
     ctx.fillStyle = '#4CAF50';
-    ctx.font = 'bold 18px Arial';
+    ctx.font = 'bold 20px Arial';
     ctx.fillText(ticket.betting_site || 'N/A', leftColumn, yPos + 25);
-    yPos += 60;
 
     ctx.fillStyle = '#CCCCCC';
     ctx.font = '18px Arial';
-    ctx.fillText('Odds:', leftColumn, yPos);
+    ctx.fillText('Odds:', leftColumn, yPos + 70);
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 24px Arial';
-    ctx.fillText(ticket.odds || 'N/A', leftColumn, yPos + 30);
-    yPos += 70;
+    ctx.font = 'bold 28px Arial';
+    ctx.fillText(ticket.odds || 'N/A', leftColumn, yPos + 100);
 
+    // Middle column - Time and Price
     if (ticket.kickoff_time) {
       ctx.fillStyle = '#CCCCCC';
       ctx.font = '18px Arial';
-      ctx.fillText('Kickoff Time:', leftColumn, yPos);
+      ctx.fillText('Kickoff Time:', middleColumn, yPos);
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 16px Arial';
+      ctx.font = 'bold 18px Arial';
       const kickoffDate = new Date(ticket.kickoff_time);
       const dateText = format(kickoffDate, 'MMM dd, yyyy');
       const timeText = format(kickoffDate, 'HH:mm');
-      ctx.fillText(dateText, leftColumn, yPos + 25);
-      ctx.fillText(timeText, leftColumn, yPos + 45);
+      ctx.fillText(dateText, middleColumn, yPos + 25);
+      ctx.fillText(timeText, middleColumn, yPos + 45);
     }
 
-    // Right column - Price and CTA
-    const priceY = 240;
+    // Price section
     ctx.fillStyle = '#CCCCCC';
     ctx.font = '18px Arial';
-    ctx.textAlign = 'left';
-    ctx.fillText('Price:', rightColumn, priceY);
+    ctx.fillText('Price:', middleColumn, yPos + 70);
 
     if (ticket.is_free) {
       ctx.fillStyle = '#4CAF50';
-      ctx.font = 'bold 36px Arial';
-      ctx.fillText('FREE', rightColumn, priceY + 40);
+      ctx.font = 'bold 32px Arial';
+      ctx.fillText('FREE', middleColumn, yPos + 105);
       
       // Free ticket CTA
       ctx.fillStyle = '#4CAF50';
-      ctx.fillRect(rightColumn - 10, priceY + 60, 280, 50);
+      ctx.fillRect(middleColumn - 5, yPos + 115, 240, 40);
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 18px Arial';
+      ctx.font = 'bold 16px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('GET THIS FREE TICKET NOW!', rightColumn + 130, priceY + 90);
+      ctx.fillText('GET THIS FREE TICKET NOW!', middleColumn + 115, yPos + 138);
+      ctx.textAlign = 'left';
     } else {
       ctx.fillStyle = '#FF5722';
-      ctx.font = 'bold 36px Arial';
-      ctx.fillText(formatCurrency(ticket.price || 0), rightColumn, priceY + 40);
+      ctx.font = 'bold 32px Arial';
+      ctx.fillText(formatCurrency(ticket.price || 0), middleColumn, yPos + 105);
       
       // Paid ticket CTA
       ctx.fillStyle = '#FF5722';
-      ctx.fillRect(rightColumn - 10, priceY + 60, 280, 50);
+      ctx.fillRect(middleColumn - 5, yPos + 115, 240, 40);
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 18px Arial';
+      ctx.font = 'bold 16px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('PURCHASE THIS TICKET', rightColumn + 130, priceY + 90);
+      ctx.fillText('PURCHASE THIS TICKET', middleColumn + 115, yPos + 138);
+      ctx.textAlign = 'left';
     }
 
-    // Description section
-    if (ticket.description) {
+    // Ticket code section (blurred)
+    if (ticket.ticket_code) {
       ctx.fillStyle = '#CCCCCC';
-      ctx.font = '16px Arial';
-      ctx.textAlign = 'left';
-      ctx.fillText('Description:', 60, 420);
+      ctx.font = '14px Arial';
+      ctx.fillText('Ticket Code:', leftColumn, yPos + 180);
+      
+      // Create blurred effect for ticket code
+      ctx.fillStyle = '#666666';
+      ctx.fillRect(leftColumn, yPos + 190, 200, 25);
+      ctx.fillStyle = '#999999';
+      ctx.font = 'bold 16px Arial';
+      ctx.fillText('●●●●●●●●●●', leftColumn + 10, yPos + 208);
+      
+      ctx.fillStyle = '#CCCCCC';
+      ctx.font = '12px Arial';
+      ctx.fillText('Code revealed after purchase', leftColumn, yPos + 225);
+    }
+
+    // Description section (bottom left)
+    if (ticket.description) {
+      const descY = yPos + 250;
+      ctx.fillStyle = '#CCCCCC';
+      ctx.font = '14px Arial';
+      ctx.fillText('Description:', leftColumn, descY);
       
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = '16px Arial';
+      ctx.font = '14px Arial';
       const words = ticket.description.split(' ');
       let line = '';
-      let descY = 450;
-      const maxWidth = 580;
+      let currentY = descY + 20;
+      const maxWidth = rightBoundary - leftColumn - 40;
       
       for (let n = 0; n < words.length; n++) {
         const testLine = line + words[n] + ' ';
         const metrics = ctx.measureText(testLine);
         if (metrics.width > maxWidth && n > 0) {
-          ctx.fillText(line.trim(), 60, descY);
+          ctx.fillText(line.trim(), leftColumn, currentY);
           line = words[n] + ' ';
-          descY += 22;
-          if (descY > 550) break;
+          currentY += 18;
+          if (currentY > canvas.height - 60) break;
         } else {
           line = testLine;
         }
       }
-      if (line.trim() && descY <= 550) {
-        ctx.fillText(line.trim(), 60, descY);
+      if (line.trim() && currentY <= canvas.height - 60) {
+        ctx.fillText(line.trim(), leftColumn, currentY);
       }
     }
 
-    // QR Code section
-    const qrSize = 150;
-    const qrX = canvas.width - qrSize - 80;
-    const qrY = canvas.height - 300;
+    // Right section - QR Code and additional info
+    const qrSection = canvas.width - 260;
+    const qrSize = 120;
+    const qrX = qrSection + 20;
+    const qrY = 150;
 
     // QR Code background
     ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(qrX - 15, qrY - 15, qrSize + 30, qrSize + 30);
+    ctx.fillRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20);
 
-    // Generate and draw QR code
+    // Generate QR code
     const ticketUrl = `${window.location.origin}/tickets/${ticket.id}`;
     
-    // Create a temporary container for QR code
+    // Create a proper QR code using qrcode.react
     const tempContainer = document.createElement('div');
     tempContainer.style.position = 'absolute';
     tempContainer.style.left = '-9999px';
     tempContainer.style.top = '-9999px';
     document.body.appendChild(tempContainer);
 
-    // Create QR code SVG
-    const qrSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    qrSvg.setAttribute('width', qrSize.toString());
-    qrSvg.setAttribute('height', qrSize.toString());
-    tempContainer.appendChild(qrSvg);
+    // Create QR code element
+    const qrElement = document.createElement('div');
+    tempContainer.appendChild(qrElement);
 
-    // Use QRCodeSVG to generate the QR code
-    const qrCodeData = `<svg width="${qrSize}" height="${qrSize}" viewBox="0 0 ${qrSize} ${qrSize}" xmlns="http://www.w3.org/2000/svg">
-      <rect width="100%" height="100%" fill="white"/>
-      <g transform="scale(${qrSize / 100})">
-        ${generateSimpleQRPattern(ticketUrl)}
-      </g>
-    </svg>`;
+    // Use React to render QR code
+    import('react-dom/client').then(({ createRoot }) => {
+      const root = createRoot(qrElement);
+      root.render(
+        React.createElement(QRCodeSVG, {
+          value: ticketUrl,
+          size: qrSize,
+          bgColor: "#FFFFFF",
+          fgColor: "#000000",
+          level: "M"
+        })
+      );
 
-    const qrImage = new Image();
-    qrImage.onload = () => {
-      ctx.drawImage(qrImage, qrX, qrY, qrSize, qrSize);
-      
-      // QR Code labels
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 14px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('SCAN TO VIEW', qrX + qrSize / 2, qrY + qrSize + 25);
-      ctx.fillText('TICKET ONLINE', qrX + qrSize / 2, qrY + qrSize + 45);
-    };
-    
-    qrImage.src = 'data:image/svg+xml;base64,' + btoa(`
-      <svg width="${qrSize}" height="${qrSize}" viewBox="0 0 ${qrSize} ${qrSize}" xmlns="http://www.w3.org/2000/svg">
-        <rect width="100%" height="100%" fill="white"/>
-        <rect x="10" y="10" width="30" height="30" fill="black"/>
-        <rect x="110" y="10" width="30" height="30" fill="black"/>
-        <rect x="10" y="110" width="30" height="30" fill="black"/>
-        <text x="75" y="75" font-family="Arial" font-size="8" text-anchor="middle" fill="black">QR</text>
-      </svg>
-    `);
-
-    // Seller info
-    if (seller?.username) {
-      ctx.fillStyle = '#CCCCCC';
-      ctx.font = '16px Arial';
-      ctx.textAlign = 'left';
-      ctx.fillText(`Seller: ${seller.username}`, 60, qrY + 50);
-    }
-
-    // Footer text
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 18px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('Visit betcode.co.za for more tickets', canvas.width / 2, canvas.height - 35);
-
-    // Clean up
-    document.body.removeChild(tempContainer);
-  };
-
-  const generateSimpleQRPattern = (text: string) => {
-    // Simple QR-like pattern for demonstration
-    let pattern = '';
-    for (let i = 0; i < 100; i += 10) {
-      for (let j = 0; j < 100; j += 10) {
-        if ((i + j) % 20 === 0) {
-          pattern += `<rect x="${j}" y="${i}" width="8" height="8" fill="black"/>`;
+      // Wait for QR code to render, then extract and draw it
+      setTimeout(() => {
+        const svgElement = qrElement.querySelector('svg');
+        if (svgElement) {
+          const svgData = new XMLSerializer().serializeToString(svgElement);
+          const img = new Image();
+          img.onload = () => {
+            ctx.drawImage(img, qrX, qrY, qrSize, qrSize);
+            
+            // QR Code labels
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('SCAN TO VIEW', qrX + qrSize / 2, qrY + qrSize + 20);
+            ctx.fillText('TICKET ONLINE', qrX + qrSize / 2, qrY + qrSize + 35);
+            
+            // Seller info
+            if (seller?.username) {
+              ctx.fillStyle = '#CCCCCC';
+              ctx.font = '14px Arial';
+              ctx.textAlign = 'left';
+              ctx.fillText(`Seller: ${seller.username}`, qrSection, qrY + qrSize + 60);
+            }
+            
+            // Footer text
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Visit betcode.co.za for more tickets', canvas.width / 2, canvas.height - 25);
+          };
+          
+          img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
         }
+        
+        // Clean up
+        document.body.removeChild(tempContainer);
+      }, 100);
+    });
+
+    // If QR code fails, show placeholder
+    setTimeout(() => {
+      if (!qrElement.querySelector('svg')) {
+        // Simple placeholder QR pattern
+        ctx.fillStyle = '#000000';
+        for (let i = 0; i < qrSize; i += 10) {
+          for (let j = 0; j < qrSize; j += 10) {
+            if ((i + j) % 20 === 0) {
+              ctx.fillRect(qrX + j, qrY + i, 8, 8);
+            }
+          }
+        }
+        
+        // Labels for placeholder
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('SCAN TO VIEW', qrX + qrSize / 2, qrY + qrSize + 20);
+        ctx.fillText('TICKET ONLINE', qrX + qrSize / 2, qrY + qrSize + 35);
+        
+        // Seller info
+        if (seller?.username) {
+          ctx.fillStyle = '#CCCCCC';
+          ctx.font = '14px Arial';
+          ctx.textAlign = 'left';
+          ctx.fillText(`Seller: ${seller.username}`, qrSection, qrY + qrSize + 60);
+        }
+        
+        // Footer text
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Visit betcode.co.za for more tickets', canvas.width / 2, canvas.height - 25);
       }
-    }
-    return pattern;
+    }, 500);
   };
 
   const downloadImage = async () => {
     await generateTicketImage();
     
-    if (!canvasRef.current) return;
-    
-    const canvas = canvasRef.current;
-    const link = document.createElement('a');
-    link.download = `betcode-ticket-${ticket.id}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    // Wait a bit for QR code to render
+    setTimeout(() => {
+      if (!canvasRef.current) return;
+      
+      const canvas = canvasRef.current;
+      const link = document.createElement('a');
+      link.download = `betcode-ticket-${ticket.id}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }, 1000);
   };
 
   return (
@@ -313,18 +360,9 @@ const DownloadTicketImage: React.FC<DownloadTicketImageProps> = ({ ticket, selle
       <canvas
         ref={canvasRef}
         style={{ display: 'none' }}
-        width={700}
-        height={1000}
+        width={1200}
+        height={500}
       />
-      <div ref={qrRef} style={{ display: 'none' }}>
-        <QRCodeSVG
-          value={`${window.location.origin}/tickets/${ticket.id}`}
-          size={150}
-          bgColor="#FFFFFF"
-          fgColor="#000000"
-          level="M"
-        />
-      </div>
     </>
   );
 };
