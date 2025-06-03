@@ -84,8 +84,8 @@ const TicketContent: React.FC<TicketContentProps> = ({
               isFree={ticket.is_free}
               isSeller={isSeller}
               ticketId={ticket.id}
-              ticket={ticket} // Pass the full ticket object
-              seller={seller} // Pass the full seller object
+              ticket={ticket}
+              seller={seller}
             />
             
             <TicketMetadata 
@@ -111,6 +111,11 @@ const TicketContent: React.FC<TicketContentProps> = ({
               ticket={ticket}
               seller={seller}
               currentUser={currentUser}
+              onPurchase={onPurchase}
+              purchaseLoading={purchaseLoading}
+              alreadyPurchased={alreadyPurchased}
+              isSeller={isSeller}
+              isPastKickoff={isPastKickoff}
             />
           </div>
         </div>

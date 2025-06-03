@@ -86,7 +86,7 @@ const DownloadTicketImage: React.FC<DownloadTicketImageProps> = ({ ticket, selle
     ctx.fillText('BetCode South Africa', canvas.width / 2, 55);
 
     // Left section - Main ticket content
-    const leftSection = 60;
+    const leftMargin = 60;
     const rightBoundary = canvas.width - 320; // Leave space for QR section
 
     // Ticket title
@@ -96,15 +96,15 @@ const DownloadTicketImage: React.FC<DownloadTicketImageProps> = ({ ticket, selle
     const title = ticket.title || 'Betting Ticket';
     let fontSize = 32;
     ctx.font = `bold ${fontSize}px Arial`;
-    while (ctx.measureText(title).width > (rightBoundary - leftSection - 40) && fontSize > 20) {
+    while (ctx.measureText(title).width > (rightBoundary - leftMargin - 40) && fontSize > 20) {
       fontSize -= 2;
       ctx.font = `bold ${fontSize}px Arial`;
     }
-    ctx.fillText(title.substring(0, 50), leftSection, 140);
+    ctx.fillText(title.substring(0, 50), leftMargin, 140);
 
     // Two-column layout for details
-    const leftColumn = leftSection;
-    const middleColumn = leftSection + 300;
+    const leftColumn = leftMargin;
+    const middleColumn = leftMargin + 320;
     let yPos = 190;
 
     // Left column - Betting Site and Odds
