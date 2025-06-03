@@ -93,7 +93,7 @@ const SystemAdPopup: React.FC = () => {
 
   return (
     <Dialog open={showAd} onOpenChange={() => {}}>
-      <DialogContent className="sm:max-w-md p-0 overflow-hidden" hideCloseButton>
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden [&>button]:hidden">
         <div className="relative">
           <Button
             variant="ghost"
