@@ -14,13 +14,17 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import DownloadTicketImage from "./DownloadTicketImage";
 
 interface ShareTicketProps {
   ticketId: string;
   ticketTitle: string;
+  ticket: any;
+  seller: any;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -28,6 +32,8 @@ interface ShareTicketProps {
 const ShareTicket: React.FC<ShareTicketProps> = ({ 
   ticketId, 
   ticketTitle,
+  ticket,
+  seller,
   open,
   onOpenChange 
 }) => {
@@ -95,6 +101,14 @@ const ShareTicket: React.FC<ShareTicketProps> = ({
           <DropdownMenuLabel>Share this ticket</DropdownMenuLabel>
           
           <DropdownMenuItem 
+            className="flex items-center gap-2 cursor-pointer hover:bg-betting-light-gray p-0" 
+          >
+            <DownloadTicketImage ticket={ticket} seller={seller} />
+          </DropdownMenuItem>
+          
+          <DropdownMenuSeparator />
+          
+          <DropdownMenuItem 
             className="flex items-center gap-2 cursor-pointer hover:bg-betting-light-gray" 
             onClick={copyToClipboard}
           >
@@ -145,6 +159,14 @@ const ShareTicket: React.FC<ShareTicketProps> = ({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="bg-betting-dark-gray border-betting-light-gray">
         <DropdownMenuLabel>Share this ticket</DropdownMenuLabel>
+        
+        <DropdownMenuItem 
+          className="flex items-center gap-2 cursor-pointer hover:bg-betting-light-gray p-0" 
+        >
+          <DownloadTicketImage ticket={ticket} seller={seller} />
+        </DropdownMenuItem>
+        
+        <DropdownMenuSeparator />
         
         <DropdownMenuItem 
           className="flex items-center gap-2 cursor-pointer hover:bg-betting-light-gray" 
