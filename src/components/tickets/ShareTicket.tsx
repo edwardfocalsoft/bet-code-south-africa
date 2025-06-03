@@ -100,11 +100,9 @@ const ShareTicket: React.FC<ShareTicketProps> = ({
         <DropdownMenuContent align="end" className="bg-betting-dark-gray border-betting-light-gray">
           <DropdownMenuLabel>Share this ticket</DropdownMenuLabel>
           
-          <DropdownMenuItem 
-            className="flex items-center gap-2 cursor-pointer hover:bg-betting-light-gray p-0" 
-          >
+          <div className="p-2">
             <DownloadTicketImage ticket={ticket} seller={seller} />
-          </DropdownMenuItem>
+          </div>
           
           <DropdownMenuSeparator />
           
@@ -160,11 +158,9 @@ const ShareTicket: React.FC<ShareTicketProps> = ({
       <DropdownMenuContent align="end" className="bg-betting-dark-gray border-betting-light-gray">
         <DropdownMenuLabel>Share this ticket</DropdownMenuLabel>
         
-        <DropdownMenuItem 
-          className="flex items-center gap-2 cursor-pointer hover:bg-betting-light-gray p-0" 
-        >
+        <div className="p-2">
           <DownloadTicketImage ticket={ticket} seller={seller} />
-        </DropdownMenuItem>
+        </div>
         
         <DropdownMenuSeparator />
         

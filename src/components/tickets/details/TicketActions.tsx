@@ -1,6 +1,6 @@
 
 import React from "react";
-import ShareTicket from "@/components/tickets/ShareTicket";
+import DownloadTicketImage from "@/components/tickets/DownloadTicketImage";
 
 interface TicketActionsProps {
   ticket: any;
@@ -15,9 +15,7 @@ const TicketActions: React.FC<TicketActionsProps> = ({
 }) => {
   return (
     <div className="flex flex-wrap gap-2 mt-6">
-      <ShareTicket 
-        ticketId={ticket.id} 
-        ticketTitle={ticket.title} 
+      <DownloadTicketImage 
         ticket={ticket}
         seller={seller}
       />
