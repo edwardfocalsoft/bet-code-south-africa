@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -189,7 +190,7 @@ const TicketDetails: React.FC = () => {
         ticket={ticket}
         processingPurchase={processingPurchase}
         paymentMethod="credit"
-        setPaymentMethod={() => {}} // No need to change payment method anymore
+        setPaymentMethod={() => {}} // Not used anymore
         canAffordWithCredit={canAffordWithCredit}
         creditBalance={creditBalance}
         onConfirm={confirmPurchase}

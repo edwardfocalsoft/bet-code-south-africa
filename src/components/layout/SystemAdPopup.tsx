@@ -22,14 +22,17 @@ const SystemAdPopup: React.FC = () => {
   const [showAd, setShowAd] = useState(false);
 
   useEffect(() => {
-    // Only show ads to buyers and sellers, not admins or logged out users
-    if (currentUser && userRole && (userRole === 'buyer' || userRole === 'seller')) {
+    // Show ads to all authenticated users (buyers, sellers, and even admins)
+    if (currentUser && userRole) {
+      console.log("Checking for active ad for user:", currentUser.id, "role:", userRole);
       checkForActiveAd();
     }
   }, [currentUser, userRole]);
 
   const checkForActiveAd = async () => {
     try {
+      console.log("Fetching active ads...");
+      
       // Get the active ad
       const { data: activeAd, error: adError } = await supabase
         .from("system_ads")
@@ -37,7 +40,21 @@ const SystemAdPopup: React.FC = () => {
         .eq("is_active", true)
         .single();
 
-      if (adError || !activeAd) return;
+      if (adError) {
+        console.log("No active ad found or error:", adError);
+        return;
+      }
+
+      if (!activeAd) {
+        console.log("No active ad available");
+        return;
+      }
+
+      console.log("Found active ad:", activeAd);
+
+      // Get today's date in YYYY-MM-DD format
+      const today = new Date().toISOString().split('T')[0];
+      console.log("Checking ad views for date:", today);
 
       // Check if user has already seen this ad today
       const { data: viewData, error: viewError } = await supabase
@@ -45,34 +62,52 @@ const SystemAdPopup: React.FC = () => {
         .select("id")
         .eq("user_id", currentUser?.id)
         .eq("ad_id", activeAd.id)
-        .eq("viewed_date", new Date().toISOString().split('T')[0])
+        .eq("viewed_date", today)
         .maybeSingle();
 
       if (viewError) {
         console.error("Error checking ad views:", viewError);
+        // Show ad anyway if we can't check views
+        setAd(activeAd);
+        setShowAd(true);
         return;
       }
 
+      console.log("Existing view data:", viewData);
+
       // If user hasn't seen this ad today, show it
       if (!viewData) {
+        console.log("User hasn't seen ad today, showing it");
         setAd(activeAd);
         setShowAd(true);
+      } else {
+        console.log("User has already seen ad today");
       }
     } catch (error) {
       console.error("Error checking for active ad:", error);
+      // Don't show ad if there's an error
     }
   };
 
   const handleCloseAd = async () => {
+    console.log("Closing ad and recording view");
+    
     if (ad && currentUser) {
       try {
         // Record that user has viewed this ad today
-        await supabase
+        const { error } = await supabase
           .from("ad_views")
           .insert({
             user_id: currentUser.id,
             ad_id: ad.id,
+            viewed_date: new Date().toISOString().split('T')[0]
           });
+          
+        if (error) {
+          console.error("Error recording ad view:", error);
+        } else {
+          console.log("Ad view recorded successfully");
+        }
       } catch (error) {
         console.error("Error recording ad view:", error);
       }
@@ -83,13 +118,18 @@ const SystemAdPopup: React.FC = () => {
   };
 
   const handleAdClick = () => {
+    console.log("Ad clicked, redirecting to:", ad?.ad_redirect);
     if (ad?.ad_redirect) {
       window.open(ad.ad_redirect, '_blank');
     }
     handleCloseAd();
   };
 
-  if (!ad) return null;
+  if (!ad || !showAd) {
+    return null;
+  }
+
+  console.log("Rendering ad popup:", ad);
 
   return (
     <Dialog open={showAd} onOpenChange={() => {}}>
@@ -112,6 +152,9 @@ const SystemAdPopup: React.FC = () => {
               src={ad.image_url}
               alt={ad.title}
               className="w-full h-full object-cover"
+              onError={(e) => {
+                console.error("Error loading ad image:", e);
+              }}
             />
           </div>
           
