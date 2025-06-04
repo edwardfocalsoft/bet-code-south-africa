@@ -68,6 +68,7 @@ const SystemAdPopup: React.FC = () => {
       if (viewError) {
         console.error("Error checking ad views:", viewError);
         // Show ad anyway if we can't check views
+        console.log("Showing ad due to view check error");
         setAd(activeAd);
         setShowAd(true);
         return;
