@@ -46,7 +46,11 @@ const NotificationDropdown: React.FC = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="relative h-10 w-10 rounded-full p-0 min-w-[40px]"
+        >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <Badge 

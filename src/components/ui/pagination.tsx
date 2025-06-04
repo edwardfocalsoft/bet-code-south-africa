@@ -49,7 +49,7 @@ export function Pagination({
         onClick={() => currentPage > 1 && onPageChange(currentPage - 1)}
         disabled={currentPage <= 1}
         aria-label="Previous page"
-        className="h-10 w-10 rounded-full"
+        className="h-10 w-10 rounded-full p-0 min-w-[40px]"
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
@@ -107,7 +107,7 @@ export function Pagination({
         onClick={() => currentPage < totalPages && onPageChange(currentPage + 1)}
         disabled={currentPage >= totalPages}
         aria-label="Next page"
-        className="h-10 w-10 rounded-full"
+        className="h-10 w-10 rounded-full p-0 min-w-[40px]"
       >
         <ChevronRight className="h-4 w-4" />
       </Button>
