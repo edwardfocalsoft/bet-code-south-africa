@@ -40,7 +40,7 @@ export function Pagination({
 
   return (
     <div
-      className={cn("flex items-center justify-center space-x-1", className)}
+      className={cn("flex items-center justify-center space-x-2", className)}
       {...props}
     >
       <Button
@@ -61,7 +61,7 @@ export function Pagination({
             size="sm"
             onClick={() => onPageChange(1)}
             aria-label="Page 1"
-            className="h-10 w-10 rounded-full p-0"
+            className="h-10 w-10 rounded-full p-0 min-w-[40px]"
           >
             1
           </Button>
@@ -78,7 +78,7 @@ export function Pagination({
           size="sm"
           onClick={() => onPageChange(page)}
           aria-label={`Page ${page}`}
-          className="h-10 w-10 rounded-full p-0"
+          className="h-10 w-10 rounded-full p-0 min-w-[40px]"
         >
           {page}
         </Button>
@@ -94,7 +94,7 @@ export function Pagination({
             size="sm"
             onClick={() => onPageChange(totalPages)}
             aria-label={`Page ${totalPages}`}
-            className="h-10 w-10 rounded-full p-0"
+            className="h-10 w-10 rounded-full p-0 min-w-[40px]"
           >
             {totalPages}
           </Button>
