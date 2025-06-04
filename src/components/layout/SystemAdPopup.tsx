@@ -24,14 +24,14 @@ const SystemAdPopup: React.FC = () => {
   useEffect(() => {
     // Show ads to all authenticated users (buyers, sellers, and even admins)
     if (currentUser && userRole) {
-      console.log("SystemAdPopup: Checking for active ad for user:", currentUser.id, "role:", userRole);
+      console.log("Checking for active ad for user:", currentUser.id, "role:", userRole);
       checkForActiveAd();
     }
   }, [currentUser, userRole]);
 
   const checkForActiveAd = async () => {
     try {
-      console.log("SystemAdPopup: Fetching active ads...");
+      console.log("Fetching active ads...");
       
       // Get the active ad
       const { data: activeAd, error: adError } = await supabase
@@ -41,20 +41,20 @@ const SystemAdPopup: React.FC = () => {
         .single();
 
       if (adError) {
-        console.log("SystemAdPopup: No active ad found or error:", adError);
+        console.log("No active ad found or error:", adError);
         return;
       }
 
       if (!activeAd) {
-        console.log("SystemAdPopup: No active ad available");
+        console.log("No active ad available");
         return;
       }
 
-      console.log("SystemAdPopup: Found active ad:", activeAd);
+      console.log("Found active ad:", activeAd);
 
       // Get today's date in YYYY-MM-DD format
       const today = new Date().toISOString().split('T')[0];
-      console.log("SystemAdPopup: Checking ad views for date:", today);
+      console.log("Checking ad views for date:", today);
 
       // Check if user has already seen this ad today
       const { data: viewData, error: viewError } = await supabase
@@ -66,31 +66,31 @@ const SystemAdPopup: React.FC = () => {
         .maybeSingle();
 
       if (viewError) {
-        console.error("SystemAdPopup: Error checking ad views:", viewError);
+        console.error("Error checking ad views:", viewError);
         // Show ad anyway if we can't check views
         setAd(activeAd);
         setShowAd(true);
         return;
       }
 
-      console.log("SystemAdPopup: Existing view data:", viewData);
+      console.log("Existing view data:", viewData);
 
       // If user hasn't seen this ad today, show it
       if (!viewData) {
-        console.log("SystemAdPopup: User hasn't seen ad today, showing it");
+        console.log("User hasn't seen ad today, showing it");
         setAd(activeAd);
         setShowAd(true);
       } else {
-        console.log("SystemAdPopup: User has already seen ad today");
+        console.log("User has already seen ad today");
       }
     } catch (error) {
-      console.error("SystemAdPopup: Error checking for active ad:", error);
+      console.error("Error checking for active ad:", error);
       // Don't show ad if there's an error
     }
   };
 
   const handleCloseAd = async () => {
-    console.log("SystemAdPopup: Closing ad and recording view");
+    console.log("Closing ad and recording view");
     
     if (ad && currentUser) {
       try {
@@ -104,12 +104,12 @@ const SystemAdPopup: React.FC = () => {
           });
           
         if (error) {
-          console.error("SystemAdPopup: Error recording ad view:", error);
+          console.error("Error recording ad view:", error);
         } else {
-          console.log("SystemAdPopup: Ad view recorded successfully");
+          console.log("Ad view recorded successfully");
         }
       } catch (error) {
-        console.error("SystemAdPopup: Error recording ad view:", error);
+        console.error("Error recording ad view:", error);
       }
     }
     
@@ -118,23 +118,18 @@ const SystemAdPopup: React.FC = () => {
   };
 
   const handleAdClick = () => {
-    console.log("SystemAdPopup: Ad clicked, redirecting to:", ad?.ad_redirect);
+    console.log("Ad clicked, redirecting to:", ad?.ad_redirect);
     if (ad?.ad_redirect) {
       window.open(ad.ad_redirect, '_blank');
     }
     handleCloseAd();
   };
 
-  // Add a small delay to ensure the component is properly mounted
-  useEffect(() => {
-    if (ad && showAd) {
-      console.log("SystemAdPopup: Rendering ad popup:", ad);
-    }
-  }, [ad, showAd]);
-
   if (!ad || !showAd) {
     return null;
   }
+
+  console.log("Rendering ad popup:", ad);
 
   return (
     <Dialog open={showAd} onOpenChange={() => {}}>
@@ -143,7 +138,7 @@ const SystemAdPopup: React.FC = () => {
           <Button
             variant="ghost"
             size="sm"
-            className="absolute top-2 right-2 z-10 h-8 w-8 p-0 bg-black/50 hover:bg-black/70 text-white rounded-full"
+            className="absolute top-2 right-2 z-10 h-8 w-8 p-0 bg-black/50 hover:bg-black/70 text-white"
             onClick={handleCloseAd}
           >
             <X className="h-4 w-4" />
@@ -158,7 +153,7 @@ const SystemAdPopup: React.FC = () => {
               alt={ad.title}
               className="w-full h-full object-cover"
               onError={(e) => {
-                console.error("SystemAdPopup: Error loading ad image:", e);
+                console.error("Error loading ad image:", e);
               }}
             />
           </div>
