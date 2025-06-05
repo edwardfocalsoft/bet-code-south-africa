@@ -60,12 +60,12 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
           </div>
         </div>
         
-        <div className="space-y-2">
-          <Link to={`/sellers/${seller.id}`}>
+        <div className="space-y-3">
+          <Link to={`/sellers/${seller.id}`} className="block">
             <Button 
               variant="outline" 
               size="sm"
-              className="w-full flex items-center justify-center gap-1"
+              className="w-full flex items-center justify-center gap-2"
             >
               <User className="h-4 w-4" />
               View Profile
@@ -76,7 +76,7 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
             <Button
               variant="outline"
               size="sm"
-              className="w-full flex items-center justify-center gap-1 text-green-600 border-green-600 hover:bg-green-50"
+              className="w-full flex items-center justify-center gap-2 text-green-600 border-green-600 hover:bg-green-50"
               onClick={handleWhatsAppClick}
             >
               <MessageCircle className="h-4 w-4" />
@@ -90,7 +90,7 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
               sellerName={seller.username || "Seller"}
               variant="outline"
               size="sm"
-              className="w-full mt-2"
+              className="w-full"
             />
           )}
         </div>

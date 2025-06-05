@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { Pagination } from "@/components/ui/pagination";
 import { useTickets } from "@/hooks/useTickets";
 import { isPast } from "date-fns";
 import TicketsTable from "@/components/admin/tickets/TicketsTable";
@@ -56,6 +57,7 @@ const AdminTickets: React.FC = () => {
   const [allTickets, setAllTickets] = useState<TicketWithSeller[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [filters, setFilters] = useState<TicketsFilterState>({
     searchTerm: "",
     bettingSite: null,
@@ -70,6 +72,8 @@ const AdminTickets: React.FC = () => {
   const [exportLoading, setExportLoading] = useState(false);
   const { toast } = useToast();
   const isMobile = useIsMobile();
+
+  const ticketsPerPage = 10;
 
   const { toggleTicketVisibility, markTicketAsExpired } = useTickets({
     fetchOnMount: false,
@@ -191,6 +195,7 @@ const AdminTickets: React.FC = () => {
     });
     
     setTickets(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
   };
 
   const generateStats = () => {
@@ -308,6 +313,16 @@ const AdminTickets: React.FC = () => {
 
   const uniqueBettingSites = [...new Set(allTickets.map(ticket => ticket.bettingSite))];
 
+  // Calculate pagination
+  const totalPages = Math.ceil(tickets.length / ticketsPerPage);
+  const startIndex = (currentPage - 1) * ticketsPerPage;
+  const endIndex = startIndex + ticketsPerPage;
+  const currentTickets = tickets.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
   useEffect(() => {
     fetchTickets(activeTab);
   }, [activeTab]);
@@ -380,12 +395,22 @@ const AdminTickets: React.FC = () => {
           
           <div className="betting-card overflow-x-auto">
             <TicketsTable 
-              tickets={tickets}
+              tickets={currentTickets}
               loading={loading}
               onToggleVisibility={toggleTicketVisibility}
               onMarkExpired={markTicketAsExpired}
             />
           </div>
+          
+          {totalPages > 1 && (
+            <div className="flex justify-center">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+            </div>
+          )}
         </div>
       ) : (
         <Tabs 
@@ -412,12 +437,22 @@ const AdminTickets: React.FC = () => {
             
             <div className="betting-card overflow-x-auto">
               <TicketsTable 
-                tickets={tickets}
+                tickets={currentTickets}
                 loading={loading}
                 onToggleVisibility={toggleTicketVisibility}
                 onMarkExpired={markTicketAsExpired}
               />
             </div>
+            
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-6">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                />
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       )}
