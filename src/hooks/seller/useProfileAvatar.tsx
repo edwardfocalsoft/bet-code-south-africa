@@ -12,6 +12,18 @@ export const useProfileAvatar = (userId: string | undefined) => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Check for valid image MIME types
+      const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      
+      if (!validImageTypes.includes(file.type)) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select a valid image file (JPEG, PNG, GIF, or WebP)",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       if (file.size > 2 * 1024 * 1024) {
         toast({
           title: "File too large",
@@ -42,7 +54,10 @@ export const useProfileAvatar = (userId: string | undefined) => {
       
       const { error: uploadError } = await supabase.storage
         .from("profiles")
-        .upload(filePath, selectedFile);
+        .upload(filePath, selectedFile, {
+          contentType: selectedFile.type,
+          upsert: false
+        });
         
       if (uploadError) {
         throw uploadError;
@@ -51,9 +66,10 @@ export const useProfileAvatar = (userId: string | undefined) => {
       const { data } = supabase.storage.from("profiles").getPublicUrl(filePath);
       return data.publicUrl;
     } catch (error: any) {
+      console.error("Upload error:", error);
       toast({
         title: "Upload failed",
-        description: error.message,
+        description: error.message || "Failed to upload image",
         variant: "destructive",
       });
       return null;

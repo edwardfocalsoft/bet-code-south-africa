@@ -54,8 +54,11 @@ const BuyerProfile: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file || !currentUser) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
+    // Check for valid image MIME types
+    const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    
+    if (!validImageTypes.includes(file.type)) {
+      toast.error("Please select a valid image file (JPEG, PNG, GIF, or WebP)");
       return;
     }
 
@@ -72,7 +75,10 @@ const BuyerProfile: React.FC = () => {
 
       const { error: uploadError } = await supabase.storage
         .from("profiles")
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          contentType: file.type,
+          upsert: false
+        });
 
       if (uploadError) throw uploadError;
 
@@ -80,6 +86,7 @@ const BuyerProfile: React.FC = () => {
       setAvatarUrl(data.publicUrl);
       toast.success("Avatar uploaded successfully!");
     } catch (error: any) {
+      console.error("Upload error:", error);
       toast.error(`Upload failed: ${error.message}`);
     } finally {
       setUploading(false);
@@ -134,7 +141,7 @@ const BuyerProfile: React.FC = () => {
                 <Input
                   id="avatar-upload"
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                   onChange={handleAvatarUpload}
                   className="hidden"
                 />

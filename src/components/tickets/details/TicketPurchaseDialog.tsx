@@ -73,10 +73,10 @@ const TicketPurchaseDialog: React.FC<TicketPurchaseDialogProps> = ({
           )}
 
           {/* Credit Balance Section */}
-          <div className="bg-gray-50 p-4 rounded-lg">
+          <div className="bg-betting-dark-gray p-4 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
               <Wallet className="w-5 h-5 text-betting-green" />
-              <span className="font-medium">Your Credit Balance</span>
+              <span className="font-medium text-white">Your Credit Balance</span>
             </div>
             <div className="text-2xl font-bold text-betting-green">
               {formatCurrency(creditBalance)}
@@ -90,7 +90,7 @@ const TicketPurchaseDialog: React.FC<TicketPurchaseDialogProps> = ({
               <span className="font-medium">{formatCurrency(ticket.price)}</span>
             </div>
             {canAffordWithCredit && (
-              <div className="flex justify-between text-sm text-gray-600">
+              <div className="flex justify-between text-sm text-gray-400">
                 <span>Remaining Balance:</span>
                 <span>{formatCurrency(creditBalance - ticket.price)}</span>
               </div>
