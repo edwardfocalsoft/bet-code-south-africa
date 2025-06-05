@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { createNotification } from "@/utils/notificationUtils";
 
 export const useTicketNotifications = () => {
   const notifySubscribersOfNewTicket = async (sellerId: string, ticketId: string, ticketTitle: string) => {
@@ -49,28 +50,35 @@ export const useTicketNotifications = () => {
       
       const ticketDescription = ticketData?.description || 'Check out this new betting ticket!';
       
-      // Prepare notifications
-      const notificationsToInsert = subscribers.map(sub => ({
-        user_id: sub.buyer_id,
-        title: `${sellerUsername} has published a ticket`,
-        message: ticketDescription,
-        type: 'ticket',
-        related_id: ticketId,
-        is_read: false
-      }));
+      // Create notifications for each subscriber using the utility function
+      let successCount = 0;
+      const notificationPromises = subscribers.map(async (sub) => {
+        try {
+          const notification = await createNotification(
+            sub.buyer_id,
+            `${sellerUsername} published a new ticket`,
+            `New ticket: ${ticketTitle}`,
+            'ticket',
+            ticketId
+          );
+          
+          if (notification) {
+            successCount++;
+            return true;
+          } else {
+            console.error(`[ticket-notifications] Failed to create notification for buyer ${sub.buyer_id}`);
+            return false;
+          }
+        } catch (error) {
+          console.error(`[ticket-notifications] Error creating notification for buyer ${sub.buyer_id}:`, error);
+          return false;
+        }
+      });
       
-      // Insert notifications
-      const { data: insertedNotifications, error: insertError } = await supabase
-        .from('notifications')
-        .insert(notificationsToInsert)
-        .select();
+      // Wait for all notifications to be created
+      const results = await Promise.all(notificationPromises);
       
-      if (insertError) {
-        console.error('[ticket-notifications] Error inserting notifications:', insertError);
-        throw insertError;
-      }
-      
-      console.log(`[ticket-notifications] Successfully inserted ${insertedNotifications?.length || 0} notifications`);
+      console.log(`[ticket-notifications] Successfully created ${successCount} notifications out of ${subscribers.length} subscribers`);
       
       // Send email notifications
       try {
@@ -123,10 +131,10 @@ export const useTicketNotifications = () => {
       }
       
       console.log('[ticket-notifications] Notification process completed successfully');
-      toast.success(`Ticket created and ${insertedNotifications?.length || 0} subscribers notified!`);
+      toast.success(`Ticket created and ${successCount} subscribers notified!`);
       return { 
         success: true, 
-        count: insertedNotifications?.length || 0,
+        count: successCount,
         subscriberCount: subscribers.length 
       };
       

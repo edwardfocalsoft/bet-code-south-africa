@@ -14,7 +14,7 @@ export const createNotification = async (
   userId: string, 
   title: string, 
   message: string, 
-  type: "subscription" | "ticket" | "system" | "free_ticket" | "case",
+  type: "subscription" | "ticket" | "system" | "free_ticket" | "case" | "admin_notification" | "seller_notification",
   relatedId?: string
 ): Promise<any | null> => {
   try {
