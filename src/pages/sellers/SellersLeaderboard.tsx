@@ -117,10 +117,6 @@ const SellersLeaderboard: React.FC = () => {
                             <TrendingUp className="w-4 h-4 mr-1" />
                             {seller.sales_count} tickets sold
                           </div>
-                          <div className="flex items-center">
-                            <Users className="w-4 h-4 mr-1" />
-                            {formatCurrency(seller.total_sales)} earned
-                          </div>
                         </div>
                       </div>
                     </div>
