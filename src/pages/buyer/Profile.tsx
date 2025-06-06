@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { useAuth } from "@/contexts/auth";
@@ -89,7 +90,24 @@ const BuyerProfile: React.FC = () => {
       }
 
       const { data } = supabase.storage.from("profiles").getPublicUrl(filePath);
-      setAvatarUrl(data.publicUrl);
+      const newAvatarUrl = data.publicUrl;
+      
+      // Update the avatar URL in the database immediately
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+          avatar_url: newAvatarUrl,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', currentUser.id);
+
+      if (updateError) {
+        console.error("[buyer-avatar-upload] Database update error:", updateError);
+        throw updateError;
+      }
+
+      // Update local state
+      setAvatarUrl(newAvatarUrl);
       toast.success("Avatar uploaded successfully!");
     } catch (error: any) {
       console.error("Upload error:", error);
