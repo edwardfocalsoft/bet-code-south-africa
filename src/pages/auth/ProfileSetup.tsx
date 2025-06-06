@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -11,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
 const ProfileSetup: React.FC = () => {
-  const { currentUser, userRole } = useAuth();
+  const { currentUser, userRole, loading } = useAuth();
   const [username, setUsername] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
@@ -118,7 +119,26 @@ const ProfileSetup: React.FC = () => {
     }
   };
 
-  if (!currentUser) {
+  // Show loading state while auth is loading
+  if (loading) {
+    return (
+      <Layout hideNavigation>
+        <div className="container max-w-md mx-auto py-12 px-4">
+          <Card className="bg-betting-dark-gray border-betting-light-gray">
+            <CardHeader>
+              <CardTitle>Loading...</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center">
+              <Loader2 className="h-12 w-12 animate-spin mx-auto text-betting-green" />
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Only show login prompt if auth is not loading and no user is found
+  if (!loading && !currentUser) {
     return (
       <Layout>
         <div className="container max-w-md mx-auto py-12 px-4">
