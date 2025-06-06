@@ -92,7 +92,7 @@ function App() {
                     <Route path="/auth/login" element={<Login />} />
                     <Route path="/auth/register" element={<Register />} />
                     <Route path="/auth/register/confirmation" element={<RegisterConfirmation />} />
-                    <Route path="/profile-setup" element={<ProfileSetup />} />
+                    <Route path="/auth/profile-setup" element={<ProfileSetup />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/terms" element={<Terms />} />
                     <Route path="/privacy" element={<Privacy />} />

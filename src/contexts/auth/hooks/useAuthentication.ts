@@ -105,8 +105,7 @@ export const useAuthentication = (
               throw new Error("Your account has been suspended. Please contact support for assistance.");
             }
             
-            // Removed seller approval check - all users can now login if not suspended
-            
+            // Auto-approve all sellers - no approval check needed
             setCurrentUser(userProfile);
             setUserRole(userProfile.role);
             setIsAdmin(userProfile.role === 'admin');
