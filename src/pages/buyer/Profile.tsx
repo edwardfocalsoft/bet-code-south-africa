@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { useAuth } from "@/contexts/auth";
@@ -70,17 +69,24 @@ const BuyerProfile: React.FC = () => {
     setUploading(true);
     try {
       const fileExt = file.name.split(".").pop();
-      const fileName = `${currentUser.id}-${Date.now()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      const fileName = `${Date.now()}.${fileExt}`;
+      // Fix the path structure to match RLS policy: avatars/userId/filename
+      const filePath = `avatars/${currentUser.id}/${fileName}`;
+
+      console.log(`[buyer-avatar-upload] Uploading to path: ${filePath}`);
+      console.log(`[buyer-avatar-upload] User ID: ${currentUser.id}`);
 
       const { error: uploadError } = await supabase.storage
         .from("profiles")
         .upload(filePath, file, {
           contentType: file.type,
-          upsert: false
+          upsert: true // Allow overwriting existing files
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("[buyer-avatar-upload] Upload error:", uploadError);
+        throw uploadError;
+      }
 
       const { data } = supabase.storage.from("profiles").getPublicUrl(filePath);
       setAvatarUrl(data.publicUrl);

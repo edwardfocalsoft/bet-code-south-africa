@@ -50,20 +50,26 @@ export const useProfileAvatar = (userId: string | undefined) => {
     setUploading(true);
     try {
       const fileExt = selectedFile.name.split('.').pop();
+      // Fix the path structure to match RLS policy: avatars/userId/filename
       const filePath = `avatars/${userId}/${Date.now()}.${fileExt}`;
+      
+      console.log(`[avatar-upload] Uploading to path: ${filePath}`);
+      console.log(`[avatar-upload] User ID: ${userId}`);
       
       const { error: uploadError } = await supabase.storage
         .from("profiles")
         .upload(filePath, selectedFile, {
           contentType: selectedFile.type,
-          upsert: false
+          upsert: true // Allow overwriting existing files
         });
         
       if (uploadError) {
+        console.error("[avatar-upload] Upload error:", uploadError);
         throw uploadError;
       }
       
       const { data } = supabase.storage.from("profiles").getPublicUrl(filePath);
+      console.log(`[avatar-upload] Upload successful, public URL: ${data.publicUrl}`);
       return data.publicUrl;
     } catch (error: any) {
       console.error("Upload error:", error);
