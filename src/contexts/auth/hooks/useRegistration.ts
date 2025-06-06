@@ -41,6 +41,8 @@ export const useRegistration = () => {
               id: data.user.id,
               email: data.user.email,
               role: role,
+              // Auto-approve sellers for now (can be made configurable later)
+              approved: true
             });
           
           if (profileError) {
@@ -56,6 +58,7 @@ export const useRegistration = () => {
           email: data.user.email || email,
           role: role,
           createdAt: new Date(),
+          approved: true
         };
         
         return userObj;

@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/auth";
 interface SystemSettings {
   id?: string;
   min_withdrawal_amount: number;
+  require_seller_approval: boolean;
   created_at?: string;
   updated_at?: string;
   updated_by?: string;
@@ -17,6 +18,7 @@ export const useSystemSettings = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [settings, setSettings] = useState<SystemSettings>({
     min_withdrawal_amount: 1000, // Default value
+    require_seller_approval: false, // Default to auto-approve sellers
   });
   const { currentUser } = useAuth();
 
@@ -37,7 +39,8 @@ export const useSystemSettings = () => {
         const { data: newSettings, error: insertError } = await supabase
           .from("system_settings")
           .insert({
-            min_withdrawal_amount: 1000
+            min_withdrawal_amount: 1000,
+            require_seller_approval: false
           })
           .select()
           .single();

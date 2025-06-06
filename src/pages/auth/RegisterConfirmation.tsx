@@ -5,7 +5,7 @@ import { useSearchParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { Heading } from "@/components/ui/heading";
 import { Button } from "@/components/ui/button";
-import { Mail, ArrowRight, Clock } from "lucide-react";
+import { Mail, ArrowRight, CheckCircle } from "lucide-react";
 
 const RegisterConfirmation = () => {
   const [searchParams] = useSearchParams();
@@ -19,32 +19,32 @@ const RegisterConfirmation = () => {
         <div className="betting-card p-8 text-center space-y-6">
           <div className="flex justify-center">
             {isSeller ? (
-              <Clock className="h-16 w-16 text-amber-500" />
+              <CheckCircle className="h-16 w-16 text-betting-green" />
             ) : (
               <Mail className="h-16 w-16 text-betting-green" />
             )}
           </div>
           
           <Heading as="h1" size="xl" className="text-center">
-            {isSeller ? "Account Awaiting Approval" : "Registration Complete"}
+            {isSeller ? "Seller Account Created!" : "Registration Complete"}
           </Heading>
           
           {isSeller ? (
             <div className="space-y-4">
               <p className="text-muted-foreground">
-                Thank you for registering as a seller! Your account is currently under review.
+                Congratulations! Your seller account has been created and is ready to use.
               </p>
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-md p-4 text-left">
-                <h3 className="font-semibold text-amber-500 mb-2">Next Steps:</h3>
+              <div className="bg-green-500/10 border border-green-500/20 rounded-md p-4 text-left">
+                <h3 className="font-semibold text-green-500 mb-2">You can now:</h3>
                 <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">
-                  <li>An administrator will review your account</li>
-                  <li>This process typically takes 1-2 business days</li>
-                  <li>You'll receive an email notification once approved</li>
-                  <li>You will not be able to log in until your account is approved</li>
+                  <li>Create and sell betting tickets</li>
+                  <li>Manage your seller profile</li>
+                  <li>Track your sales and earnings</li>
+                  <li>Interact with your subscribers</li>
                 </ul>
               </div>
               <p className="text-muted-foreground">
-                If you have any questions, please contact our support team.
+                Click below to access your seller dashboard and start selling tickets!
               </p>
             </div>
           ) : (

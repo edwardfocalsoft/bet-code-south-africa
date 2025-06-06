@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -106,19 +105,7 @@ export const useAuthentication = (
               throw new Error("Your account has been suspended. Please contact support for assistance.");
             }
             
-            // Check if the user is a seller and not approved
-            if (userProfile.role === 'seller' && userProfile.approved === false) {
-              console.log("Unapproved seller attempted login:", userProfile.id);
-              toast.error("Your seller account is pending approval by an admin. You'll be notified once approved.");
-              
-              // Sign out the unapproved seller
-              await supabase.auth.signOut({ scope: 'global' });
-              cleanupAuthState();
-              
-              // Redirect to a confirmation page
-              navigate('/auth/register/confirmation?role=seller');
-              return null;
-            }
+            // Removed seller approval check - all users can now login if not suspended
             
             setCurrentUser(userProfile);
             setUserRole(userProfile.role);
