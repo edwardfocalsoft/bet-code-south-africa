@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
 import { formatCurrency } from "@/utils/formatting";
 import { Badge } from "@/components/ui/badge";
 import { BettingSite } from "@/types";
@@ -28,10 +28,48 @@ const TicketPreview: React.FC<TicketPreviewProps> = ({ isOpen, onClose, ticketDa
     ? `${ticketData.ticketCode.substring(0, 3)}${'•'.repeat(Math.max(0, ticketData.ticketCode.length - 3))}`
     : "";
     
-  // Format the kickoff date/time
-  const kickoffDate = new Date(ticketData.date);
-  const [hours, minutes] = ticketData.time.split(':').map(Number);
-  kickoffDate.setHours(hours, minutes);
+  // Safely format the kickoff date/time with validation
+  const getFormattedKickoffTime = () => {
+    try {
+      // Ensure we have a valid date and time
+      if (!ticketData.date || !ticketData.time) {
+        return "Date/Time not set";
+      }
+
+      const kickoffDate = new Date(ticketData.date);
+      
+      // Check if the base date is valid
+      if (!isValid(kickoffDate)) {
+        return "Invalid date";
+      }
+
+      // Parse and validate time
+      const timeParts = ticketData.time.split(':');
+      if (timeParts.length !== 2) {
+        return "Invalid time format";
+      }
+
+      const hours = parseInt(timeParts[0], 10);
+      const minutes = parseInt(timeParts[1], 10);
+
+      // Validate time values
+      if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+        return "Invalid time values";
+      }
+
+      kickoffDate.setHours(hours, minutes);
+
+      // Final validation check
+      if (!isValid(kickoffDate)) {
+        return "Invalid kickoff time";
+      }
+
+      return format(kickoffDate, "PPP 'at' p");
+    } catch (error) {
+      console.error("Error formatting kickoff time:", error);
+      return "Error formatting date";
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -76,7 +114,7 @@ const TicketPreview: React.FC<TicketPreviewProps> = ({ isOpen, onClose, ticketDa
           
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-400">Kick-off:</span>
-            <span>{format(kickoffDate, "PPP 'at' p")}</span>
+            <span>{getFormattedKickoffTime()}</span>
           </div>
           
           <div className="mt-4 pt-4 border-t border-betting-dark-gray">
