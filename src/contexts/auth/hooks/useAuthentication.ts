@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -105,7 +106,7 @@ export const useAuthentication = (
               throw new Error("Your account has been suspended. Please contact support for assistance.");
             }
             
-            // Auto-approve all sellers - no approval check needed
+            // Set user data - no approval check needed anymore since sellers are auto-approved
             setCurrentUser(userProfile);
             setUserRole(userProfile.role);
             setIsAdmin(userProfile.role === 'admin');
