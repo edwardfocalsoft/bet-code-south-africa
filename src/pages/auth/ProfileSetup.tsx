@@ -137,25 +137,10 @@ const ProfileSetup: React.FC = () => {
     );
   }
 
-  // Only show login prompt if auth is not loading and no user is found
+  // If no user after loading is complete, redirect to login
   if (!loading && !currentUser) {
-    return (
-      <Layout>
-        <div className="container max-w-md mx-auto py-12 px-4">
-          <Card className="bg-betting-dark-gray border-betting-light-gray">
-            <CardHeader>
-              <CardTitle>Please Login</CardTitle>
-              <CardDescription>
-                You need to be logged in to set up your profile.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center">
-              <Button onClick={() => navigate("/auth/login")}>Go to Login</Button>
-            </CardContent>
-          </Card>
-        </div>
-      </Layout>
-    );
+    navigate("/auth/login");
+    return null;
   }
 
   return (
