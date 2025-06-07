@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -24,6 +24,27 @@ const CreateTicketForm: React.FC = () => {
   const [isMultiMode, setIsMultiMode] = useState(false);
   const { notifySubscribersOfNewTicket } = useTicketNotifications();
   
+  // Initialize multi-ticket form hook
+  const multiTicketHook = useMultiTicketForm();
+  
+  // Initialize single ticket form hook
+  const singleTicketHook = useTicketForm();
+  
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [validatingStep, setValidatingStep] = useState(false);
+  
+  // Check if hooks are properly initialized
+  if (!multiTicketHook || !singleTicketHook) {
+    return (
+      <div className="space-y-4">
+        <div className="text-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Loading form...</p>
+        </div>
+      </div>
+    );
+  }
+
   const {
     formData: multiTicketData,
     addTicket,
@@ -36,7 +57,7 @@ const CreateTicketForm: React.FC = () => {
     startCamera,
     stopCamera,
     videoRef
-  } = useMultiTicketForm();
+  } = multiTicketHook;
   
   const { 
     ticketData, 
@@ -47,10 +68,7 @@ const CreateTicketForm: React.FC = () => {
     step, 
     setStep, 
     isCheckingTicketCode 
-  } = useTicketForm();
-  
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [validatingStep, setValidatingStep] = useState(false);
+  } = singleTicketHook;
   
   const handleModeToggle = (checked: boolean) => {
     setIsMultiMode(checked);
@@ -276,8 +294,8 @@ const CreateTicketForm: React.FC = () => {
   });
 
   return (
-    <>
-      <div className="mb-6 sm:mb-8 bg-betting-dark-gray sm:bg-betting-dark-gray p-0 sm:p-4 rounded-none sm:rounded-lg space-y-4">
+    <div className="space-y-6">
+      <div className="mb-6 sm:mb-8 bg-betting-dark-gray sm:bg-betting-dark-gray p-4 rounded-lg space-y-4">
         <div className="flex items-center space-x-2">
           <Switch
             id="multi-mode"
@@ -353,7 +371,7 @@ const CreateTicketForm: React.FC = () => {
           />
         </>
       )}
-    </>
+    </div>
   );
 };
 

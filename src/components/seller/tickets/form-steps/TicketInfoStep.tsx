@@ -40,7 +40,7 @@ const TicketInfoStep: React.FC<TicketInfoStepProps> = ({
   // Using only the values defined in the BettingSite type
   const bettingSites: BettingSite[] = [
     "Betway",
-    "HollywoodBets",
+    "HollywoodBets", 
     "Supabets",
     "Playa",
     "10bet",
@@ -66,7 +66,7 @@ const TicketInfoStep: React.FC<TicketInfoStepProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="space-y-2">
         <Label htmlFor="numberOfLegs">Number of Legs</Label>
         <Input
@@ -78,7 +78,7 @@ const TicketInfoStep: React.FC<TicketInfoStepProps> = ({
           onChange={(e) => handleLegsChange(e.target.value)}
           className="bg-betting-black border-betting-light-gray"
         />
-        {errors.numberOfLegs && <p className="text-red-500 text-xs mt-1">{errors.numberOfLegs}</p>}
+        {errors.numberOfLegs && <p className="text-red-500 text-sm mt-1">{errors.numberOfLegs}</p>}
       </div>
 
       <div className="space-y-2">
@@ -89,10 +89,10 @@ const TicketInfoStep: React.FC<TicketInfoStepProps> = ({
           disabled
           className="bg-betting-light-gray border-betting-light-gray text-muted-foreground"
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           High Stake (2-3 legs) • Standard (4-6 legs) • Long (7+ legs)
         </p>
-        {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
+        {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
       </div>
 
       <div className="space-y-2">
@@ -100,11 +100,11 @@ const TicketInfoStep: React.FC<TicketInfoStepProps> = ({
         <Textarea
           id="description"
           placeholder="Describe your ticket strategy (BTS, straight wins, corners, 10 minute draws, etc.)"
-          className="h-32 bg-betting-black border-betting-light-gray"
+          className="h-32 bg-betting-black border-betting-light-gray resize-none"
           value={ticketData.description}
           onChange={(e) => setTicketData({...ticketData, description: e.target.value})}
         />
-        {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description}</p>}
+        {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description}</p>}
       </div>
 
       <div className="space-y-2">
@@ -127,16 +127,16 @@ const TicketInfoStep: React.FC<TicketInfoStepProps> = ({
             ))}
           </SelectContent>
         </Select>
-        {errors.bettingSite && <p className="text-red-500 text-xs mt-1">{errors.bettingSite}</p>}
+        {errors.bettingSite && <p className="text-red-500 text-sm mt-1">{errors.bettingSite}</p>}
       </div>
 
-      <div className="pt-4 flex justify-end">
+      <div className="pt-6 flex justify-end">
         <Button
           onClick={onNext}
           className="bg-betting-green hover:bg-betting-green-dark"
         >
           Next Step
-          <ChevronRight className="ml-1 h-4 w-4" />
+          <ChevronRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
     </div>
