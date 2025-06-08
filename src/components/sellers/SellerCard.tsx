@@ -13,9 +13,10 @@ interface SellerCardProps {
     sales_count?: number;
     average_rating?: number;
   };
+  featured?: boolean;
 }
 
-const SellerCard: React.FC<SellerCardProps> = ({ seller }) => {
+const SellerCard: React.FC<SellerCardProps> = ({ seller, featured = false }) => {
   return (
     <Card className="betting-card h-full flex flex-col">
       <CardHeader className="text-center">
@@ -47,7 +48,7 @@ const SellerCard: React.FC<SellerCardProps> = ({ seller }) => {
           <div className="flex items-center justify-center gap-2">
             <h3 className="font-semibold text-lg">{seller.username || "Anonymous"}</h3>
             {seller.verified && (
-              <ShieldCheck className="h-5 w-5 text-blue-500" title="Verified Seller" />
+              <ShieldCheck className="h-5 w-5 text-blue-500" />
             )}
           </div>
           

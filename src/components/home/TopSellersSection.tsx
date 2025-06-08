@@ -5,7 +5,6 @@ import { Award, TrendingUp, Star, Trophy } from "lucide-react";
 import SellerCard from "@/components/sellers/SellerCard";
 import { User } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 interface TopSellersSectionProps {
@@ -65,47 +64,45 @@ const TopSellersSection: React.FC<TopSellersSectionProps> = ({
                         </div>
                       )}
                       
-                      {/* Enhanced Seller Card - removed shadow-lg shadow-betting-green/20 glow effect */}
-                      <Card className={`
-                        border transition-all duration-300 group-hover:scale-105 h-full
+                      {/* Enhanced Seller Card */}
+                      <div className={`
+                        transition-all duration-300 group-hover:scale-105 h-full
                         ${isTopThree 
-                          ? 'border-betting-green bg-gradient-to-br from-betting-dark-gray to-betting-black' 
-                          : 'border-betting-light-gray bg-betting-dark-gray hover:border-betting-green/50'
+                          ? 'border-betting-green' 
+                          : 'hover:border-betting-green/50'
                         }
                       `}>
-                        <CardContent className="p-6">
-                          <SellerCard 
-                            seller={{
-                              ...seller,
-                              ranking: seller.ranking || position,
-                              sales_count: seller.sales_count || 0
-                            }}
-                            featured={isTopThree}
-                          />
-                          
-                          {/* Performance Indicators */}
-                          <div className="mt-4 pt-4 border-t border-betting-light-gray/30">
-                            <div className="flex items-center justify-between text-sm">
-                              <div className="flex items-center gap-2">
-                                <TrendingUp className="h-4 w-4 text-betting-green" />
-                                <span className="text-muted-foreground">Performance</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                {seller.average_rating && seller.average_rating > 0 ? (
-                                  <>
-                                    <span className="text-betting-green font-semibold">
-                                      {seller.average_rating.toFixed(1)}
-                                    </span>
-                                    <Star className="h-3 w-3 fill-betting-green text-betting-green" />
-                                  </>
-                                ) : (
-                                  <span className="text-muted-foreground">New seller</span>
-                                )}
-                              </div>
+                        <SellerCard 
+                          seller={{
+                            ...seller,
+                            ranking: seller.ranking || position,
+                            sales_count: seller.sales_count || 0
+                          }}
+                          featured={isTopThree}
+                        />
+                        
+                        {/* Performance Indicators */}
+                        <div className="mt-4 pt-4 border-t border-betting-light-gray/30">
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2">
+                              <TrendingUp className="h-4 w-4 text-betting-green" />
+                              <span className="text-muted-foreground">Performance</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {seller.average_rating && seller.average_rating > 0 ? (
+                                <>
+                                  <span className="text-betting-green font-semibold">
+                                    {seller.average_rating.toFixed(1)}
+                                  </span>
+                                  <Star className="h-3 w-3 fill-betting-green text-betting-green" />
+                                </>
+                              ) : (
+                                <span className="text-muted-foreground">New seller</span>
+                              )}
                             </div>
                           </div>
-                        </CardContent>
-                      </Card>
+                        </div>
+                      </div>
                     </div>
                   );
                 })}
