@@ -13,12 +13,14 @@ interface TicketCardProps {
   ticket: BettingTicket;
   showActions?: boolean;
   sellerVerified?: boolean;
+  purchased?: boolean;
 }
 
 const TicketCard: React.FC<TicketCardProps> = ({ 
   ticket, 
   showActions = true,
-  sellerVerified = false
+  sellerVerified = false,
+  purchased = false
 }) => {
   const { currentUser } = useAuth();
   const isPastKickoff = new Date(ticket.kickoffTime) <= new Date();
@@ -77,6 +79,12 @@ const TicketCard: React.FC<TicketCardProps> = ({
                 Started
               </Badge>
             )}
+            
+            {purchased && (
+              <Badge variant="outline" className="text-betting-green border-betting-green/30">
+                Purchased
+              </Badge>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -98,7 +106,7 @@ const TicketCard: React.FC<TicketCardProps> = ({
             )}
           </div>
           
-          {showActions && !isPastKickoff && (
+          {showActions && !isPastKickoff && !purchased && (
             <div className="flex gap-2">
               {currentUser ? (
                 <Button 
