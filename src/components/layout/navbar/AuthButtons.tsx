@@ -2,6 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { ShieldCheck } from "lucide-react";
 import { useWallet } from "@/hooks/useWallet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/auth";
@@ -23,6 +24,14 @@ const AuthButtons: React.FC = () => {
             </div>
           ) : (
             <Skeleton className="w-20 h-8" />
+          )}
+          
+          {/* Show verified badge for current user if they are verified */}
+          {currentUser.verified && (
+            <div className="flex items-center gap-1">
+              <span className="text-sm text-muted-foreground">Verified</span>
+              <ShieldCheck className="h-4 w-4 text-blue-500" />
+            </div>
           )}
         </>
       )}
