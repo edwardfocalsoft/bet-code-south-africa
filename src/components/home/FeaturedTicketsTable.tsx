@@ -1,19 +1,12 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Pagination } from "@/components/ui/pagination";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ShieldCheck, Eye, ShoppingCart, Gift, LogIn } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 import { BettingTicket } from "@/types";
-import { formatCurrency } from "@/utils/formatting";
-import { format } from "date-fns";
+import { useAuth } from "@/contexts/auth";
 
 interface FeaturedTicketsTableProps {
   tickets: BettingTicket[];
@@ -24,100 +17,148 @@ const FeaturedTicketsTable: React.FC<FeaturedTicketsTableProps> = ({
   tickets,
   loading,
 }) => {
-  const [currentPage, setCurrentPage] = useState(1);
-  const ticketsPerPage = 5; // Changed to 5 items per page
-  
-  const totalPages = Math.ceil(tickets.length / ticketsPerPage);
-  const startIndex = (currentPage - 1) * ticketsPerPage;
-  const endIndex = startIndex + ticketsPerPage;
-  const currentTickets = tickets.slice(startIndex, endIndex);
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
+  const { currentUser } = useAuth();
 
   if (loading) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">Loading tickets...</p>
+      <div className="bg-betting-dark-gray rounded-lg p-6">
+        <div className="space-y-4">
+          {[...Array(3)].map((_, index) => (
+            <div key={index} className="animate-pulse">
+              <div className="h-4 bg-gray-700 rounded w-3/4 mb-2"></div>
+              <div className="h-3 bg-gray-700 rounded w-1/2"></div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   if (tickets.length === 0) {
     return (
-      <div className="text-center py-12">
+      <div className="bg-betting-dark-gray rounded-lg p-8 text-center">
         <p className="text-muted-foreground">No featured tickets available at the moment.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="bg-betting-dark-gray rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-betting-light-gray">
-              <TableHead className="text-white">Title</TableHead>
-              <TableHead className="text-white">Seller</TableHead>
-              <TableHead className="text-white">Site</TableHead>
-              <TableHead className="text-white">Price</TableHead>
-              <TableHead className="text-white">Kickoff</TableHead>
-              <TableHead className="text-white">Odds</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {currentTickets.map((ticket) => (
-              <TableRow key={ticket.id} className="border-betting-light-gray hover:bg-betting-light-gray/50">
-                <TableCell>
+    <div className="bg-betting-dark-gray rounded-lg overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-betting-light-gray/20">
+            <tr>
+              <th className="text-left p-4 font-medium">Ticket</th>
+              <th className="text-left p-4 font-medium">Seller</th>
+              <th className="text-left p-4 font-medium">Site</th>
+              <th className="text-left p-4 font-medium">Price</th>
+              <th className="text-left p-4 font-medium">Kickoff</th>
+              <th className="text-left p-4 font-medium">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tickets.map((ticket, index) => (
+              <tr 
+                key={ticket.id} 
+                className={`border-t border-betting-light-gray/10 hover:bg-betting-light-gray/5 ${
+                  index === tickets.length - 1 ? '' : 'border-b'
+                }`}
+              >
+                <td className="p-4">
                   <Link 
                     to={`/tickets/${ticket.id}`}
-                    className="text-betting-green hover:underline font-medium"
+                    className="hover:text-betting-green transition-colors"
                   >
-                    {ticket.title}
+                    <div className="font-medium">{ticket.title}</div>
+                    <div className="text-sm text-muted-foreground line-clamp-1">
+                      {ticket.description}
+                    </div>
                   </Link>
-                </TableCell>
-                <TableCell className="text-gray-300">
+                </td>
+                <td className="p-4">
                   <Link 
                     to={`/sellers/${ticket.sellerId}`}
-                    className="text-gray-300 hover:text-betting-green"
+                    className="hover:text-betting-green transition-colors"
                   >
-                    {ticket.sellerUsername}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">{ticket.sellerUsername}</span>
+                      {/* Add verified checkmark here when we have seller data */}
+                    </div>
                   </Link>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className="border-betting-green text-betting-green">
+                </td>
+                <td className="p-4">
+                  <Badge variant="outline" className="text-betting-green border-betting-green">
                     {ticket.bettingSite}
                   </Badge>
-                </TableCell>
-                <TableCell className="text-gray-300">
+                </td>
+                <td className="p-4">
                   {ticket.isFree ? (
-                    <Badge className="bg-betting-green text-white">FREE</Badge>
+                    <Badge className="bg-purple-600 hover:bg-purple-700">
+                      Free
+                    </Badge>
                   ) : (
-                    formatCurrency(ticket.price)
+                    <span className="font-medium text-betting-green">
+                      R{ticket.price.toFixed(2)}
+                    </span>
                   )}
-                </TableCell>
-                <TableCell className="text-gray-300">
-                  {format(ticket.kickoffTime, "MMM dd, HH:mm")}
-                </TableCell>
-                <TableCell className="text-gray-300">
-                  {ticket.odds ? `${ticket.odds}` : "N/A"}
-                </TableCell>
-              </TableRow>
+                </td>
+                <td className="p-4">
+                  <div className="text-sm">
+                    {formatDistanceToNow(ticket.kickoffTime, { addSuffix: true })}
+                  </div>
+                </td>
+                <td className="p-4">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
+                    >
+                      <Link to={`/tickets/${ticket.id}`}>
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Link>
+                    </Button>
+                    
+                    {currentUser ? (
+                      <Button
+                        size="sm"
+                        className="bg-betting-green hover:bg-betting-green/90"
+                        asChild
+                      >
+                        <Link to={`/tickets/${ticket.id}`}>
+                          {ticket.isFree ? (
+                            <>
+                              <Gift className="h-4 w-4 mr-1" />
+                              Get
+                            </>
+                          ) : (
+                            <>
+                              <ShoppingCart className="h-4 w-4 mr-1" />
+                              Buy
+                            </>
+                          )}
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        className="bg-betting-green hover:bg-betting-green/90"
+                        asChild
+                      >
+                        <Link to="/auth/login">
+                          <LogIn className="h-4 w-4 mr-1" />
+                          {ticket.isFree ? "Get" : "Buy"}
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
+                </td>
+              </tr>
             ))}
-          </TableBody>
-        </Table>
+          </tbody>
+        </table>
       </div>
-      
-      {totalPages > 1 && (
-        <div className="flex justify-center">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
-        </div>
-      )}
     </div>
   );
 };
