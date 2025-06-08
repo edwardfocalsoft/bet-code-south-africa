@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, isValid, isPast } from "date-fns";
 import { BettingTicket } from "@/types";
@@ -17,7 +17,6 @@ interface SimilarTicketsCardProps {
 const SimilarTicketsCard: React.FC<SimilarTicketsCardProps> = ({ ticketId, sellerId }) => {
   const [similarTickets, setSimilarTickets] = useState<BettingTicket[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sellerInfo, setSellerInfo] = useState<any>(null);
   const { mapDatabaseTickets } = useTicketMapper();
 
   useEffect(() => {
@@ -27,17 +26,6 @@ const SimilarTicketsCard: React.FC<SimilarTicketsCardProps> = ({ ticketId, selle
       setLoading(true);
       try {
         const now = new Date().toISOString();
-        
-        // Get seller info first
-        const { data: sellerData, error: sellerError } = await supabase
-          .from("profiles")
-          .select("username, verified")
-          .eq("id", sellerId)
-          .single();
-          
-        if (!sellerError && sellerData) {
-          setSellerInfo(sellerData);
-        }
         
         // Get tickets by the same seller, excluding current ticket and those with past kickoff
         const { data: ticketsData, error: ticketsError } = await supabase
@@ -115,16 +103,11 @@ const SimilarTicketsCard: React.FC<SimilarTicketsCardProps> = ({ ticketId, selle
                 </div>
               );
             })}
-            <div className="flex items-center justify-between mt-2">
-              <Button variant="outline" className="w-full" asChild>
-                <Link to={`/sellers/${sellerId}`} className="flex items-center gap-2">
-                  <span>View All Tickets</span>
-                  {sellerInfo?.verified && (
-                    <ShieldCheck className="h-4 w-4 text-blue-500" />
-                  )}
-                </Link>
-              </Button>
-            </div>
+            <Button variant="outline" className="w-full mt-2" asChild>
+              <Link to={`/sellers/${sellerId}`}>
+                View All Tickets
+              </Link>
+            </Button>
           </div>
         )}
       </CardContent>

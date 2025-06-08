@@ -1,7 +1,6 @@
 
 import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck } from "lucide-react";
 import ShareTicket from "../ShareTicket";
 
 interface TicketHeaderProps {
@@ -11,8 +10,8 @@ interface TicketHeaderProps {
   isFree: boolean;
   isSeller: boolean;
   ticketId: string;
-  ticket: any;
-  seller: any;
+  ticket: any; // Added ticket prop
+  seller: any; // Added seller prop
 }
 
 const TicketHeader: React.FC<TicketHeaderProps> = ({
@@ -22,30 +21,19 @@ const TicketHeader: React.FC<TicketHeaderProps> = ({
   isFree,
   isSeller,
   ticketId,
-  ticket,
-  seller
+  ticket, // Include ticket in destructuring
+  seller // Include seller in destructuring
 }) => {
   return (
     <>
       <div className="flex justify-between items-start">
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold mb-1">{title}</h1>
-          {seller && (
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm text-muted-foreground">by</span>
-              <span className="text-sm font-medium">{seller.username || "Anonymous"}</span>
-              {seller.verified && (
-                <ShieldCheck className="h-4 w-4 text-blue-500" />
-              )}
-            </div>
-          )}
-        </div>
+        <h1 className="text-2xl font-bold mb-1">{title}</h1>
         {!isSeller && (
           <ShareTicket 
             ticketId={ticketId}
             ticketTitle={title}
-            ticket={ticket}
-            seller={seller}
+            ticket={ticket} // Pass the ticket object
+            seller={seller} // Pass the seller object
           />
         )}
       </div>

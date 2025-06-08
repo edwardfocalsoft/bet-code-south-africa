@@ -8,10 +8,10 @@ export const useTicketNotifications = () => {
     try {
       console.log(`[ticket-notifications] Starting notification process for seller ${sellerId}, ticket: ${ticketTitle}`);
       
-      // Get seller information including verified status
+      // Get seller information
       const { data: sellerData, error: sellerError } = await supabase
         .from('profiles')
-        .select('username, verified')
+        .select('username')
         .eq('id', sellerId)
         .single();
       
@@ -22,7 +22,7 @@ export const useTicketNotifications = () => {
       
       const sellerUsername = sellerData.username || 'A seller';
       
-      // Get all subscribers for this seller
+      // Get all subscribers
       const { data: subscribers, error: subscribersError } = await supabase
         .from('subscriptions')
         .select('buyer_id')
@@ -41,31 +41,29 @@ export const useTicketNotifications = () => {
       
       console.log(`[ticket-notifications] Found ${subscribers.length} subscribers`);
       
-      // Get ticket details for the notification
+      // Get ticket details
       const { data: ticketData } = await supabase
         .from('tickets')
-        .select('description, is_free, price')
+        .select('description')
         .eq('id', ticketId)
         .single();
       
       const ticketDescription = ticketData?.description || 'Check out this new betting ticket!';
       
-      // Create notifications for each subscriber
+      // Create notifications for each subscriber using the utility function
       let successCount = 0;
       const notificationPromises = subscribers.map(async (sub) => {
         try {
-          const verifiedBadge = sellerData.verified ? ' ✓' : '';
           const notification = await createNotification(
             sub.buyer_id,
-            `New ticket from ${sellerUsername}${verifiedBadge}`,
-            `${ticketTitle} - ${ticketData?.is_free ? 'Free ticket' : `R${ticketData?.price}`}`,
+            `${sellerUsername} published a new ticket`,
+            `New ticket: ${ticketTitle}`,
             'ticket',
             ticketId
           );
           
           if (notification) {
             successCount++;
-            console.log(`[ticket-notifications] Notification created for buyer ${sub.buyer_id}`);
             return true;
           } else {
             console.error(`[ticket-notifications] Failed to create notification for buyer ${sub.buyer_id}`);
@@ -82,28 +80,30 @@ export const useTicketNotifications = () => {
       
       console.log(`[ticket-notifications] Successfully created ${successCount} notifications out of ${subscribers.length} subscribers`);
       
-      // Send email notifications in background
+      // Send email notifications
       try {
         const buyerIds = subscribers.map(sub => sub.buyer_id);
         const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
           .select('id, email, username')
-          .in('id', buyerIds)
-          .not('email', 'is', null); // Only get profiles with email addresses
+          .in('id', buyerIds);
         
         if (profilesError) {
           console.error('[ticket-notifications] Error fetching profiles for emails:', profilesError);
-        } else if (profiles && profiles.length > 0) {
-          console.log(`[ticket-notifications] Sending emails to ${profiles.length} subscribers with email addresses`);
-          
+          throw profilesError;
+        }
+        
+        if (profiles && profiles.length > 0) {
           const emailPromises = profiles.map(async (profile) => {
+            if (!profile.email) return;
+            
             try {
               console.log(`[ticket-notifications] Sending email to ${profile.email}`);
               const { error } = await supabase.functions.invoke('send-ticket-notification', {
                 body: {
                   buyerEmail: profile.email,
                   buyerUsername: profile.username || 'Subscriber',
-                  sellerUsername: `${sellerUsername}${sellerData.verified ? ' ✓' : ''}`,
+                  sellerUsername,
                   ticketTitle,
                   ticketId,
                   ticketDescription
@@ -112,9 +112,8 @@ export const useTicketNotifications = () => {
               
               if (error) {
                 console.error(`[ticket-notifications] Email error for ${profile.email}:`, error);
-                return false;
+                throw error;
               }
-              console.log(`[ticket-notifications] Email sent successfully to ${profile.email}`);
               return true;
             } catch (e) {
               console.error(`[ticket-notifications] Email failed for ${profile.email}:`, e);
@@ -122,9 +121,8 @@ export const useTicketNotifications = () => {
             }
           });
           
-          const emailResults = await Promise.all(emailPromises);
-          const emailSuccessCount = emailResults.filter(result => result).length;
-          console.log(`[ticket-notifications] Successfully sent ${emailSuccessCount} emails out of ${profiles.length} attempts`);
+          await Promise.all(emailPromises);
+          console.log('[ticket-notifications] Email notifications completed');
         }
       } catch (emailError) {
         console.error('[ticket-notifications] Error sending email notifications:', emailError);

@@ -1,150 +1,107 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Clock, User, ShieldCheck, Gift, ShoppingCart, LogIn } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
 import { BettingTicket } from "@/types";
-import { useAuth } from "@/contexts/auth";
+import { formatDistanceToNow } from "date-fns";
+import { Star, Clock, Award, Lock } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface TicketCardProps {
   ticket: BettingTicket;
-  showActions?: boolean;
-  sellerVerified?: boolean;
   purchased?: boolean;
 }
 
-const TicketCard: React.FC<TicketCardProps> = ({ 
-  ticket, 
-  showActions = true,
-  sellerVerified = false,
-  purchased = false
-}) => {
-  const { currentUser } = useAuth();
-  const isPastKickoff = new Date(ticket.kickoffTime) <= new Date();
+const TicketCard: React.FC<TicketCardProps> = ({ ticket, purchased = false }) => {
+  const isExpired = ticket.isExpired || new Date(ticket.kickoffTime) < new Date();
+  const isPaid = !ticket.isFree;
+  
+  const timeUntilKickoff = formatDistanceToNow(new Date(ticket.kickoffTime), {
+    addSuffix: true,
+  });
+  
+  const truncateDescription = (text: string, maxLength: number = 100) => {
+    if (text.length <= maxLength) return text;
+    return text.slice(0, maxLength) + "...";
+  };
 
   return (
-    <Card className="betting-card h-full flex flex-col">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <Link 
-              to={`/tickets/${ticket.id}`}
-              className="block hover:text-betting-green transition-colors"
-            >
-              <h3 className="font-semibold text-lg leading-tight mb-2 line-clamp-2">
-                {ticket.title}
-              </h3>
-            </Link>
-            
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-              <User className="h-4 w-4" />
-              <Link 
-                to={`/sellers/${ticket.sellerId}`}
-                className="hover:text-betting-green transition-colors flex items-center gap-1"
-              >
-                <span>{ticket.sellerUsername}</span>
-                {sellerVerified && (
-                  <ShieldCheck className="h-3 w-3 text-blue-500" />
-                )}
-              </Link>
-            </div>
-            
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4" />
-              <span>
-                {isPastKickoff 
-                  ? "Event started" 
-                  : formatDistanceToNow(ticket.kickoffTime, { addSuffix: true })
-                }
-              </span>
-            </div>
-          </div>
-          
-          <div className="flex flex-col gap-2">
-            <Badge className="bg-betting-green hover:bg-betting-green text-white">
-              {ticket.bettingSite}
-            </Badge>
-            
-            {ticket.isFree && (
-              <Badge className="bg-purple-600 hover:bg-purple-700 text-white">
-                Free
-              </Badge>
+    <div
+      className={cn(
+        "betting-card group",
+        isExpired && !purchased && "opacity-75"
+      )}
+    >
+      <div className="flex justify-between items-start mb-2">
+        <div>
+          <span
+            className={cn(
+              "betting-badge inline-block mb-2",
+              ticket.isFree ? "betting-badge-free" : "betting-badge-paid"
             )}
-            
-            {isPastKickoff && (
-              <Badge variant="outline" className="text-gray-500 border-gray-500/30">
-                Started
-              </Badge>
-            )}
-            
-            {purchased && (
-              <Badge variant="outline" className="text-betting-green border-betting-green/30">
-                Purchased
-              </Badge>
-            )}
-          </div>
+          >
+            {ticket.isFree ? "FREE" : `R${ticket.price}`}
+          </span>
+          <span className="ml-2 text-xs text-muted-foreground bg-betting-light-gray px-2 py-1 rounded-full">
+            {ticket.bettingSite}
+          </span>
         </div>
-      </CardHeader>
-      
-      <CardContent className="flex-1 flex flex-col">
-        <p className="text-sm text-muted-foreground mb-4 line-clamp-3 flex-1">
-          {ticket.description}
-        </p>
         
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="text-lg font-bold text-betting-green">
-              {ticket.isFree ? "FREE" : `R${ticket.price.toFixed(2)}`}
-            </div>
-            {ticket.odds && (
-              <div className="text-sm text-muted-foreground">
-                Odds: {ticket.odds}
-              </div>
-            )}
+        {ticket.odds && (
+          <div className="bg-betting-accent/10 text-betting-accent font-medium px-2 py-1 rounded text-sm">
+            {ticket.odds.toFixed(2)}x
           </div>
-          
-          {showActions && !isPastKickoff && !purchased && (
-            <div className="flex gap-2">
-              {currentUser ? (
-                <Button 
-                  size="sm" 
-                  className="bg-betting-green hover:bg-betting-green/90"
-                  asChild
-                >
-                  <Link to={`/tickets/${ticket.id}`}>
-                    {ticket.isFree ? (
-                      <>
-                        <Gift className="h-4 w-4 mr-1" />
-                        Get
-                      </>
-                    ) : (
-                      <>
-                        <ShoppingCart className="h-4 w-4 mr-1" />
-                        Buy
-                      </>
-                    )}
-                  </Link>
-                </Button>
-              ) : (
-                <Button 
-                  size="sm" 
-                  className="bg-betting-green hover:bg-betting-green/90"
-                  asChild
-                >
-                  <Link to="/auth/login">
-                    <LogIn className="h-4 w-4 mr-1" />
-                    {ticket.isFree ? "Get" : "Buy"}
-                  </Link>
-                </Button>
-              )}
-            </div>
-          )}
+        )}
+      </div>
+      
+      <h3 className="text-lg font-medium mb-1">
+        {ticket.title}
+      </h3>
+      
+      <p className="text-sm text-muted-foreground mb-3">
+        {purchased || ticket.isFree
+          ? truncateDescription(ticket.description)
+          : "Purchase this ticket to view the detailed analysis and betting code."}
+      </p>
+      
+      <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
+        <div className="flex items-center">
+          <Clock className="h-3 w-3 mr-1" />
+          <span>
+            {isExpired
+              ? "Expired"
+              : `Starts ${timeUntilKickoff}`}
+          </span>
         </div>
-      </CardContent>
-    </Card>
+        
+        <div className="flex items-center">
+          <Link
+            to={`/seller/${ticket.sellerId}`}
+            className="hover:text-betting-green transition-colors"
+          >
+            @{ticket.sellerUsername}
+          </Link>
+        </div>
+      </div>
+      
+      <div className="flex justify-between items-center">
+        <Link
+          to={`/tickets/${ticket.id}`}
+          className={cn(
+            "betting-button-primary text-sm",
+            isExpired && !purchased && "opacity-50 pointer-events-none"
+          )}
+        >
+          {purchased ? "View Details" : isPaid && !purchased ? "Buy Now" : "View Details"}
+        </Link>
+        
+        {isPaid && !purchased && (
+          <div className="flex items-center text-muted-foreground">
+            <Lock className="h-4 w-4 mr-1" />
+            <span className="text-xs">{isExpired ? "Expired" : "Locked"}</span>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 
