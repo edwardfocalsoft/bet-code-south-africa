@@ -17,6 +17,7 @@ export interface User {
   createdAt?: Date;
   approved?: boolean;
   suspended?: boolean;
+  verified?: boolean;
   loyaltyPoints?: number;
   bankDetails?: BankDetails;
   avatar_url?: string;

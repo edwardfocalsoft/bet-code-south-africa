@@ -248,6 +248,7 @@ export type Database = {
           suspended: boolean
           updated_at: string
           username: string | null
+          verified: boolean | null
           whatsapp_number: string | null
         }
         Insert: {
@@ -263,6 +264,7 @@ export type Database = {
           suspended?: boolean
           updated_at?: string
           username?: string | null
+          verified?: boolean | null
           whatsapp_number?: string | null
         }
         Update: {
@@ -278,6 +280,7 @@ export type Database = {
           suspended?: boolean
           updated_at?: string
           username?: string | null
+          verified?: boolean | null
           whatsapp_number?: string | null
         }
         Relationships: []

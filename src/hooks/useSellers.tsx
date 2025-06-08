@@ -7,7 +7,7 @@ import { User } from "@/types";
 interface UseSellersOptions {
   fetchOnMount?: boolean;
   limit?: number;
-  sortBy?: string; // Add sort option
+  sortBy?: string;
 }
 
 export function useSellers(options: UseSellersOptions = { fetchOnMount: true, limit: 3, sortBy: "sales" }) {
@@ -45,9 +45,10 @@ export function useSellers(options: UseSellersOptions = { fetchOnMount: true, li
           avatar_url: seller.avatar_url,
           role: "seller" as const,
           loyaltyPoints: 0,
-          sales_count: seller.sales_count, // Include sales count from leaderboard
+          sales_count: seller.sales_count,
           average_rating: seller.average_rating,
-          ranking: seller.rank
+          ranking: seller.rank,
+          verified: seller.verified || false
         }));
         
         setSellers(mappedSellers);
@@ -56,9 +57,7 @@ export function useSellers(options: UseSellersOptions = { fetchOnMount: true, li
         let query = supabase
           .from("profiles")
           .select("*")
-          .eq("role", "seller")
-          .eq("approved", true)
-          .eq("suspended", false);
+          .eq("role", "seller");
           
         // Apply limit if specified
         if (options.limit) {
@@ -77,6 +76,7 @@ export function useSellers(options: UseSellersOptions = { fetchOnMount: true, li
           createdAt: new Date(seller.created_at),
           approved: seller.approved,
           suspended: seller.suspended,
+          verified: seller.verified || false,
           loyaltyPoints: seller.loyalty_points || 0,
           avatar_url: seller.avatar_url,
           credit_balance: seller.credit_balance,

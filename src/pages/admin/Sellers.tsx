@@ -1,328 +1,224 @@
-import React, { useEffect, useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { User } from "@/types";
-import { 
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Check, X, AlertCircle, UserCheck, UserX, ChevronDown } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
+import { RefreshCw, Users, UserCheck, UserX, ShieldCheck } from "lucide-react";
+import { useSellers } from "@/hooks/useSellers";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import SellersTable from "@/components/admin/sellers/SellersTable";
 
-type SellerStatus = "pending" | "approved" | "suspended" | "all";
+const AdminSellers = () => {
+  const { sellers, loading, error, fetchSellers } = useSellers({ 
+    fetchOnMount: true, 
+    limit: 100, 
+    sortBy: "created_at" 
+  });
+  
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
 
-const AdminSellers: React.FC = () => {
-  const [sellers, setSellers] = useState<User[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<SellerStatus>("pending");
-  const { toast } = useToast();
-  const isMobile = useIsMobile();
-
-  const fetchSellers = async (status: SellerStatus = "pending") => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      let query = supabase
-        .from("profiles")
-        .select("*")
-        .eq("role", "seller");
-        
-      if (status === "pending") {
-        query = query.eq("approved", false).eq("suspended", false);
-      } else if (status === "approved") {
-        query = query.eq("approved", true).eq("suspended", false);
-      } else if (status === "suspended") {
-        query = query.eq("suspended", true);
-      }
-      
-      const { data, error: fetchError } = await query;
-      
-      if (fetchError) throw fetchError;
-      
-      const formattedSellers = data.map((seller: any) => ({
-        id: seller.id,
-        email: seller.email,
-        role: seller.role,
-        username: seller.username || "Unnamed Seller",
-        createdAt: new Date(seller.created_at),
-        approved: seller.approved,
-        suspended: seller.suspended,
-        loyaltyPoints: seller.loyalty_points || 0
-      }));
-      
-      setSellers(formattedSellers);
-    } catch (error: any) {
-      console.error("Error fetching sellers:", error);
-      setError(error.message || "Failed to fetch sellers");
-      toast({
-        title: "Error",
-        description: "Failed to load sellers data.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Force refresh when component mounts
   useEffect(() => {
-    fetchSellers(activeTab);
-  }, [activeTab]);
+    fetchSellers();
+  }, [fetchSellers]);
 
-  const handleApproval = async (sellerId: string, approve: boolean) => {
+  const updateSellerStatus = async (sellerId: string, updates: any, action: string) => {
+    setUpdatingStatus(sellerId);
     try {
-      console.log(`Setting seller ${sellerId} approval status to: ${approve}`);
-      
-      const { error: updateError, data } = await supabase
-        .from("profiles")
-        .update({ approved: approve })
-        .eq("id", sellerId)
-        .select();
-        
-      if (updateError) {
-        console.error("Error in Supabase update:", updateError);
-        throw updateError;
-      }
-      
-      console.log("Update response:", data);
-      
-      toast({
-        title: "Success",
-        description: `Seller ${approve ? "approved" : "rejected"} successfully.`,
-      });
-      
-      fetchSellers(activeTab);
+      const { error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', sellerId);
+
+      if (error) throw error;
+
+      toast.success(`Seller ${action} successfully`);
+      fetchSellers(); // Refresh the list
     } catch (error: any) {
-      console.error("Error updating seller:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update seller status.",
-        variant: "destructive",
-      });
+      console.error(`Error ${action} seller:`, error);
+      toast.error(`Failed to ${action} seller: ${error.message}`);
+    } finally {
+      setUpdatingStatus(null);
     }
   };
 
-  const handleSuspend = async (sellerId: string, suspend: boolean) => {
-    try {
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({ suspended: suspend })
-        .eq("id", sellerId)
-        .select();
-        
-      if (updateError) throw updateError;
-      
-      toast({
-        title: "Success",
-        description: `Seller ${suspend ? "suspended" : "reinstated"} successfully.`,
-        variant: suspend ? "destructive" : "default",
-      });
-      
-      fetchSellers(activeTab);
-    } catch (error: any) {
-      console.error("Error updating seller:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update seller status.",
-        variant: "destructive",
-      });
-    }
+  const handleApprove = (sellerId: string) => {
+    updateSellerStatus(sellerId, { approved: true }, 'approved');
   };
 
-  const renderSellerTable = () => {
-    if (loading) {
-      return Array(5).fill(0).map((_, index) => (
-        <TableRow key={index}>
-          <TableCell><Skeleton className="h-4 w-full" /></TableCell>
-          <TableCell><Skeleton className="h-4 w-full" /></TableCell>
-          <TableCell><Skeleton className="h-4 w-full" /></TableCell>
-          <TableCell><Skeleton className="h-4 w-full" /></TableCell>
-          <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-        </TableRow>
-      ));
-    }
-    
-    if (sellers.length === 0) {
-      return (
-        <TableRow>
-          <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-            No sellers found in this category.
-          </TableCell>
-        </TableRow>
-      );
-    }
-    
-    return sellers.map((seller) => (
-      <TableRow key={seller.id}>
-        <TableCell>{seller.username}</TableCell>
-        <TableCell>{seller.email}</TableCell>
-        <TableCell>{seller.createdAt.toLocaleDateString()}</TableCell>
-        <TableCell>
-          {seller.approved ? (
-            <Badge className="bg-green-600">Approved</Badge>
-          ) : seller.suspended ? (
-            <Badge className="bg-red-600">Suspended</Badge>
-          ) : (
-            <Badge variant="outline" className="text-amber-400 border-amber-400">
-              Pending
-            </Badge>
-          )}
-        </TableCell>
-        <TableCell>
-          {activeTab === "pending" && (
-            <div className="flex space-x-2">
-              <Button 
-                size="sm" 
-                onClick={() => handleApproval(seller.id, true)}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <Check className="h-4 w-4 mr-1" /> Approve
+  const handleSuspend = (sellerId: string) => {
+    updateSellerStatus(sellerId, { suspended: true }, 'suspended');
+  };
+
+  const handleUnsuspend = (sellerId: string) => {
+    updateSellerStatus(sellerId, { suspended: false }, 'unsuspended');
+  };
+
+  const handleVerify = (sellerId: string) => {
+    updateSellerStatus(sellerId, { verified: true }, 'verified');
+  };
+
+  const handleUnverify = (sellerId: string) => {
+    updateSellerStatus(sellerId, { verified: false }, 'unverified');
+  };
+
+  const pendingSellers = sellers.filter(seller => !seller.approved);
+  const approvedSellers = sellers.filter(seller => seller.approved && !seller.suspended);
+  const suspendedSellers = sellers.filter(seller => seller.suspended);
+  const verifiedSellers = sellers.filter(seller => seller.verified);
+
+  if (error) {
+    return (
+      <Layout requireAuth={true} allowedRoles={["admin"]}>
+        <div className="container mx-auto py-8">
+          <Card className="text-center">
+            <CardContent className="pt-6">
+              <p className="text-red-500 mb-4">Error loading sellers: {error}</p>
+              <Button onClick={fetchSellers}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Try Again
               </Button>
-              <Button 
-                size="sm" 
-                variant="destructive"
-                onClick={() => handleApproval(seller.id, false)}
-              >
-                <X className="h-4 w-4 mr-1" /> Reject
-              </Button>
-            </div>
-          )}
-          {activeTab === "approved" && (
-            <Button 
-              size="sm" 
-              variant="destructive"
-              onClick={() => handleSuspend(seller.id, true)}
-            >
-              <UserX className="h-4 w-4 mr-1" /> Suspend
-            </Button>
-          )}
-          {activeTab === "suspended" && (
-            <Button 
-              size="sm"
-              onClick={() => handleSuspend(seller.id, false)} 
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <UserCheck className="h-4 w-4 mr-1" /> Reinstate
-            </Button>
-          )}
-        </TableCell>
-      </TableRow>
-    ));
-  };
-
-  const tabOptions = [
-    { value: "pending", label: "Pending" },
-    { value: "approved", label: "Approved" },
-    { value: "suspended", label: "Suspended" },
-    { value: "all", label: "All" }
-  ];
-
-  const currentTabLabel = tabOptions.find(tab => tab.value === activeTab)?.label || "Pending";
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout requireAuth={true} allowedRoles={["admin"]}>
-      <div className="container mx-auto py-8">
-        <h1 className="text-3xl font-bold mb-6">Manage Sellers</h1>
-        
-        {error && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        
-        {isMobile ? (
-          <div className="space-y-6">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-between bg-betting-dark-gray border-betting-light-gray text-white hover:bg-betting-light-gray"
-                >
-                  {currentTabLabel}
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent 
-                className="w-full bg-betting-dark-gray border-betting-light-gray"
-                align="start"
-              >
-                {tabOptions.map((tab) => (
-                  <DropdownMenuItem
-                    key={tab.value}
-                    onClick={() => setActiveTab(tab.value as SellerStatus)}
-                    className="text-gray-300 hover:text-white hover:bg-betting-light-gray cursor-pointer"
-                  >
-                    {tab.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
-            <div className="betting-card">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Username</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Sign Up Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {renderSellerTable()}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-        ) : (
-          <Tabs 
-            defaultValue="pending" 
-            value={activeTab} 
-            onValueChange={(value) => setActiveTab(value as SellerStatus)}
-            className="mb-6"
-          >
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="pending">Pending</TabsTrigger>
-              <TabsTrigger value="approved">Approved</TabsTrigger>
-              <TabsTrigger value="suspended">Suspended</TabsTrigger>
-              <TabsTrigger value="all">All</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value={activeTab} className="mt-4">
-              <div className="betting-card">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Username</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Sign Up Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {renderSellerTable()}
-                  </TableBody>
-                </Table>
-              </div>
-            </TabsContent>
-          </Tabs>
-        )}
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Seller Management</h1>
+          <Button onClick={fetchSellers} disabled={loading}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
+
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center">
+                <Users className="mr-2 h-4 w-4" />
+                Total Sellers
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{sellers.length}</div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center">
+                <UserCheck className="mr-2 h-4 w-4" />
+                Approved
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{approvedSellers.length}</div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center">
+                <ShieldCheck className="mr-2 h-4 w-4 text-blue-500" />
+                Verified
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-500">{verifiedSellers.length}</div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center">
+                <UserX className="mr-2 h-4 w-4" />
+                Suspended
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{suspendedSellers.length}</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Sellers</CardTitle>
+            <CardDescription>
+              Manage seller accounts, approvals, verification status, and suspensions
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="pending" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="pending">
+                  Pending ({pendingSellers.length})
+                </TabsTrigger>
+                <TabsTrigger value="approved">
+                  Approved ({approvedSellers.length})
+                </TabsTrigger>
+                <TabsTrigger value="verified">
+                  Verified ({verifiedSellers.length})
+                </TabsTrigger>
+                <TabsTrigger value="suspended">
+                  Suspended ({suspendedSellers.length})
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="pending" className="mt-4">
+                <SellersTable
+                  sellers={pendingSellers}
+                  onApprove={handleApprove}
+                  onSuspend={handleSuspend}
+                  onUnsuspend={handleUnsuspend}
+                  onVerify={handleVerify}
+                  onUnverify={handleUnverify}
+                />
+              </TabsContent>
+              
+              <TabsContent value="approved" className="mt-4">
+                <SellersTable
+                  sellers={approvedSellers}
+                  onApprove={handleApprove}
+                  onSuspend={handleSuspend}
+                  onUnsuspend={handleUnsuspend}
+                  onVerify={handleVerify}
+                  onUnverify={handleUnverify}
+                />
+              </TabsContent>
+
+              <TabsContent value="verified" className="mt-4">
+                <SellersTable
+                  sellers={verifiedSellers}
+                  onApprove={handleApprove}
+                  onSuspend={handleSuspend}
+                  onUnsuspend={handleUnsuspend}
+                  onVerify={handleVerify}
+                  onUnverify={handleUnverify}
+                />
+              </TabsContent>
+              
+              <TabsContent value="suspended" className="mt-4">
+                <SellersTable
+                  sellers={suspendedSellers}
+                  onApprove={handleApprove}
+                  onSuspend={handleSuspend}
+                  onUnsuspend={handleUnsuspend}
+                  onVerify={handleVerify}
+                  onUnverify={handleUnverify}
+                />
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );
