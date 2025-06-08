@@ -25,7 +25,10 @@ export const useTicketNotifications = () => {
       // Get all subscribers for this seller
       const { data: subscribers, error: subscribersError } = await supabase
         .from('subscriptions')
-        .select('buyer_id')
+        .select(`
+          buyer_id,
+          profiles!subscriptions_buyer_id_fkey(username, email)
+        `)
         .eq('seller_id', sellerId);
       
       if (subscribersError) {
@@ -49,16 +52,21 @@ export const useTicketNotifications = () => {
         .single();
       
       const ticketDescription = ticketData?.description || 'Check out this new betting ticket!';
+      const priceInfo = ticketData?.is_free ? 'Free ticket' : `R${ticketData?.price}`;
       
       // Create notifications for each subscriber
       let successCount = 0;
+      let emailsSent = 0;
+      
       const notificationPromises = subscribers.map(async (sub) => {
         try {
           const verifiedBadge = sellerData.verified ? ' ✓' : '';
+          
+          // Create in-app notification
           const notification = await createNotification(
             sub.buyer_id,
             `New ticket from ${sellerUsername}${verifiedBadge}`,
-            `${ticketTitle} - ${ticketData?.is_free ? 'Free ticket' : `R${ticketData?.price}`}`,
+            `${ticketTitle} - ${priceInfo}`,
             'ticket',
             ticketId
           );
@@ -66,6 +74,34 @@ export const useTicketNotifications = () => {
           if (notification) {
             successCount++;
             console.log(`[ticket-notifications] Notification created for buyer ${sub.buyer_id}`);
+            
+            // Send email notification if subscriber has email
+            const buyerProfile = sub.profiles;
+            if (buyerProfile && buyerProfile.email) {
+              try {
+                console.log(`[ticket-notifications] Sending email to ${buyerProfile.email}`);
+                const { error: emailError } = await supabase.functions.invoke('send-ticket-notification', {
+                  body: {
+                    buyerEmail: buyerProfile.email,
+                    buyerUsername: buyerProfile.username || 'Subscriber',
+                    sellerUsername: `${sellerUsername}${sellerData.verified ? ' ✓' : ''}`,
+                    ticketTitle,
+                    ticketId,
+                    ticketDescription
+                  }
+                });
+                
+                if (!emailError) {
+                  emailsSent++;
+                  console.log(`[ticket-notifications] Email sent successfully to ${buyerProfile.email}`);
+                } else {
+                  console.error(`[ticket-notifications] Email error for ${buyerProfile.email}:`, emailError);
+                }
+              } catch (emailError) {
+                console.error(`[ticket-notifications] Email failed for ${buyerProfile.email}:`, emailError);
+              }
+            }
+            
             return true;
           } else {
             console.error(`[ticket-notifications] Failed to create notification for buyer ${sub.buyer_id}`);
@@ -78,65 +114,16 @@ export const useTicketNotifications = () => {
       });
       
       // Wait for all notifications to be created
-      const results = await Promise.all(notificationPromises);
+      await Promise.all(notificationPromises);
       
-      console.log(`[ticket-notifications] Successfully created ${successCount} notifications out of ${subscribers.length} subscribers`);
-      
-      // Send email notifications in background
-      try {
-        const buyerIds = subscribers.map(sub => sub.buyer_id);
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, email, username')
-          .in('id', buyerIds)
-          .not('email', 'is', null); // Only get profiles with email addresses
-        
-        if (profilesError) {
-          console.error('[ticket-notifications] Error fetching profiles for emails:', profilesError);
-        } else if (profiles && profiles.length > 0) {
-          console.log(`[ticket-notifications] Sending emails to ${profiles.length} subscribers with email addresses`);
-          
-          const emailPromises = profiles.map(async (profile) => {
-            try {
-              console.log(`[ticket-notifications] Sending email to ${profile.email}`);
-              const { error } = await supabase.functions.invoke('send-ticket-notification', {
-                body: {
-                  buyerEmail: profile.email,
-                  buyerUsername: profile.username || 'Subscriber',
-                  sellerUsername: `${sellerUsername}${sellerData.verified ? ' ✓' : ''}`,
-                  ticketTitle,
-                  ticketId,
-                  ticketDescription
-                }
-              });
-              
-              if (error) {
-                console.error(`[ticket-notifications] Email error for ${profile.email}:`, error);
-                return false;
-              }
-              console.log(`[ticket-notifications] Email sent successfully to ${profile.email}`);
-              return true;
-            } catch (e) {
-              console.error(`[ticket-notifications] Email failed for ${profile.email}:`, e);
-              return false;
-            }
-          });
-          
-          const emailResults = await Promise.all(emailPromises);
-          const emailSuccessCount = emailResults.filter(result => result).length;
-          console.log(`[ticket-notifications] Successfully sent ${emailSuccessCount} emails out of ${profiles.length} attempts`);
-        }
-      } catch (emailError) {
-        console.error('[ticket-notifications] Error sending email notifications:', emailError);
-        // Don't throw here - we still want to show success for the ticket creation
-        console.log('[ticket-notifications] Continuing despite email notification errors');
-      }
+      console.log(`[ticket-notifications] Successfully created ${successCount} notifications and sent ${emailsSent} emails out of ${subscribers.length} subscribers`);
       
       console.log('[ticket-notifications] Notification process completed successfully');
-      toast.success(`Ticket created and ${successCount} subscribers notified!`);
+      toast.success(`Ticket created and ${successCount} subscribers notified! ${emailsSent} emails sent.`);
       return { 
         success: true, 
         count: successCount,
+        emailCount: emailsSent,
         subscriberCount: subscribers.length 
       };
       
