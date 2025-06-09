@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import DownloadTicketImage from "./DownloadTicketImage";
+import { format } from "date-fns";
 
 interface ShareTicketProps {
   ticketId: string;
@@ -42,8 +43,13 @@ const ShareTicket: React.FC<ShareTicketProps> = ({
   // Generate the share URL with the ticket ID - ensuring the ticketId is properly used
   const ticketUrl = `${window.location.origin}/tickets/${ticketId}`;
   
-  // Share content
-  const shareContent = `Check out this betting ticket on BetCode South Africa: ${ticketTitle} - ${ticketUrl}`;
+  // Create detailed share content
+  const bettingSiteName = ticket?.betting_site || 'Unknown Site';
+  const oddsText = ticket?.odds ? `${ticket.odds}` : 'N/A';
+  const kickoffDate = ticket?.kickoff_time ? format(new Date(ticket.kickoff_time), 'PPP \'at\' p') : 'TBD';
+  const priceText = ticket?.is_free ? 'Free' : `R${ticket?.price || '0'}`;
+  
+  const shareContent = `Check out this betting ticket on BetCode South Africa: ${ticketTitle} | ${bettingSiteName} | Odds: ${oddsText} | Kick-off: ${kickoffDate} | Price: ${priceText} - ${ticketUrl}`;
   
   // Copy link to clipboard
   const copyToClipboard = () => {
