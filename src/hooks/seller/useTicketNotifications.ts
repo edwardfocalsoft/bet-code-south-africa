@@ -25,10 +25,7 @@ export const useTicketNotifications = () => {
       // Get all subscribers for this seller
       const { data: subscribers, error: subscribersError } = await supabase
         .from('subscriptions')
-        .select(`
-          buyer_id,
-          profiles!subscriptions_buyer_id_fkey(username, email)
-        `)
+        .select('buyer_id')
         .eq('seller_id', sellerId);
       
       if (subscribersError) {
@@ -43,6 +40,18 @@ export const useTicketNotifications = () => {
       }
       
       console.log(`[ticket-notifications] Found ${subscribers.length} subscribers`);
+      
+      // Get buyer profiles for all subscribers
+      const buyerIds = subscribers.map(sub => sub.buyer_id);
+      const { data: buyerProfiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, username, email')
+        .in('id', buyerIds);
+      
+      if (profilesError) {
+        console.error('[ticket-notifications] Error fetching buyer profiles:', profilesError);
+        throw profilesError;
+      }
       
       // Get ticket details for the notification
       const { data: ticketData } = await supabase
@@ -60,6 +69,7 @@ export const useTicketNotifications = () => {
       
       const notificationPromises = subscribers.map(async (sub) => {
         try {
+          const buyerProfile = buyerProfiles?.find(profile => profile.id === sub.buyer_id);
           const verifiedBadge = sellerData.verified ? ' ✓' : '';
           
           // Create in-app notification
@@ -76,7 +86,6 @@ export const useTicketNotifications = () => {
             console.log(`[ticket-notifications] Notification created for buyer ${sub.buyer_id}`);
             
             // Send email notification if subscriber has email
-            const buyerProfile = sub.profiles;
             if (buyerProfile && buyerProfile.email) {
               try {
                 console.log(`[ticket-notifications] Sending email to ${buyerProfile.email}`);
