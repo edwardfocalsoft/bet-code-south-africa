@@ -12,6 +12,7 @@ import LoadingState from "@/components/sellers/leaderboard/LoadingState";
 import EmptyLeaderboard from "@/components/sellers/leaderboard/EmptyLeaderboard";
 import SellerRankBadge from "@/components/sellers/leaderboard/SellerRankBadge";
 import RatingDisplay from "@/components/sellers/leaderboard/RatingDisplay";
+import { Link } from "react-router-dom";
 
 interface LeaderboardEntry {
   rank: number;
@@ -24,18 +25,19 @@ interface LeaderboardEntry {
 }
 
 const SellersLeaderboard: React.FC = () => {
-  const [timeframe, setTimeframe] = useState<'week' | 'month' | 'year'>('month');
+  const [timeframe, setTimeframe] = useState<'week' | 'year'>('week');
 
-  const getDateRange = (period: 'week' | 'month' | 'year') => {
+  const getDateRange = (period: 'week' | 'year') => {
     const now = new Date();
     const start = new Date();
     
     switch (period) {
       case 'week':
-        start.setDate(now.getDate() - 7);
-        break;
-      case 'month':
-        start.setMonth(now.getMonth() - 1);
+        // Get start of current week (Monday)
+        const day = now.getDay();
+        const mondayOffset = day === 0 ? -6 : 1 - day;
+        start.setDate(now.getDate() + mondayOffset);
+        start.setHours(0, 0, 0, 0);
         break;
       case 'year':
         start.setFullYear(now.getFullYear() - 1);
@@ -50,14 +52,82 @@ const SellersLeaderboard: React.FC = () => {
     queryFn: async () => {
       const { start, end } = getDateRange(timeframe);
       
-      const { data, error } = await supabase.rpc('get_public_leaderboard', {
+      // Updated query to include free tickets in sales count
+      const { data, error } = await supabase.rpc('get_leaderboard_with_free_tickets', {
         start_date: start.toISOString(),
         end_date: end.toISOString(),
-        result_limit: 10
+        result_limit: 20
       });
 
-      if (error) throw error;
-      return data as LeaderboardEntry[];
+      if (error) {
+        // Fallback to manual query if function doesn't exist
+        console.log('Using fallback query for leaderboard');
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('profiles')
+          .select(`
+            id,
+            username,
+            avatar_url,
+            verified
+          `)
+          .eq('role', 'seller')
+          .eq('approved', true)
+          .eq('suspended', false);
+
+        if (fallbackError) throw fallbackError;
+
+        // Get sales data for each seller including free tickets
+        const sellersWithStats = await Promise.all(
+          fallbackData.map(async (seller) => {
+            const { count: salesCount } = await supabase
+              .from('purchases')
+              .select('*', { count: 'exact', head: true })
+              .eq('seller_id', seller.id)
+              .eq('payment_status', 'completed')
+              .gte('purchase_date', start.toISOString())
+              .lte('purchase_date', end.toISOString());
+
+            const { data: salesData } = await supabase
+              .from('purchases')
+              .select('price')
+              .eq('seller_id', seller.id)
+              .eq('payment_status', 'completed')
+              .gte('purchase_date', start.toISOString())
+              .lte('purchase_date', end.toISOString());
+
+            const { data: ratingsData } = await supabase
+              .from('ratings')
+              .select('score')
+              .eq('seller_id', seller.id);
+
+            const totalSales = salesData?.reduce((sum, sale) => sum + (sale.price || 0), 0) || 0;
+            const averageRating = ratingsData?.length 
+              ? ratingsData.reduce((sum, rating) => sum + rating.score, 0) / ratingsData.length 
+              : 0;
+
+            return {
+              id: seller.id,
+              username: seller.username,
+              avatar_url: seller.avatar_url,
+              sales_count: salesCount || 0,
+              total_sales: totalSales,
+              average_rating: Number(averageRating.toFixed(1)),
+              rank: 0 // Will be assigned after sorting
+            };
+          })
+        );
+
+        // Filter out sellers with no sales and sort by sales count
+        const sellersWithSales = sellersWithStats
+          .filter(seller => seller.sales_count > 0)
+          .sort((a, b) => b.sales_count - a.sales_count)
+          .map((seller, index) => ({ ...seller, rank: index + 1 }));
+
+        return sellersWithSales;
+      }
+
+      // Filter out sellers with no sales from the RPC result
+      return data?.filter((seller: any) => seller.sales_count > 0) || [];
     }
   });
 
@@ -77,25 +147,25 @@ const SellersLeaderboard: React.FC = () => {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-4">Sellers Leaderboard</h1>
           <p className="text-xl text-muted-foreground mb-6">
-            Top performing sellers based on sales and ratings
+            Top performing sellers based on sales and ratings (includes free tickets)
           </p>
           
           <div className="flex gap-2 mb-6">
-            {(['week', 'month', 'year'] as const).map((period) => (
+            {(['week', 'year'] as const).map((period) => (
               <Button
                 key={period}
                 variant={timeframe === period ? "default" : "outline"}
                 onClick={() => setTimeframe(period)}
                 className={timeframe === period ? "bg-betting-green hover:bg-betting-green-dark" : ""}
               >
-                {period.charAt(0).toUpperCase() + period.slice(1)}
+                {period === 'week' ? 'This Week' : 'This Year'}
               </Button>
             ))}
           </div>
         </div>
 
         {!leaderboard?.length ? (
-          <EmptyLeaderboard message="No sellers found for this period" />
+          <EmptyLeaderboard message="No sellers with sales found for this period" />
         ) : (
           <div className="space-y-4">
             {leaderboard.map((seller, index) => (
@@ -111,12 +181,22 @@ const SellersLeaderboard: React.FC = () => {
                       </Avatar>
                       
                       <div>
-                        <h3 className="font-semibold text-lg">{seller.username}</h3>
+                        <Link 
+                          to={`/sellers/${seller.id}`}
+                          className="font-semibold text-lg hover:text-betting-green transition-colors"
+                        >
+                          {seller.username}
+                        </Link>
                         <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                           <div className="flex items-center">
                             <TrendingUp className="w-4 h-4 mr-1" />
                             {seller.sales_count} tickets sold
                           </div>
+                          {seller.total_sales > 0 && (
+                            <div className="text-betting-green font-semibold">
+                              {formatCurrency(seller.total_sales)} earned
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
