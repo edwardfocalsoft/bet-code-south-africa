@@ -4,87 +4,57 @@ import { toast } from "sonner";
 export const useTicketNotifications = () => {
   const notifySubscribersOfNewTicket = async (sellerId: string, ticketId: string, ticketTitle: string) => {
     try {
-      console.log(`[Notifications] Starting notification process for ticket ${ticketId}`);
-
-      // 1. Verify seller exists
-      const { data: seller, error: sellerError } = await supabase
+      // 1. Get seller info (same as manual notifications)
+      const { data: seller } = await supabase
         .from('profiles')
         .select('username, verified')
         .eq('id', sellerId)
         .single();
 
-      if (sellerError || !seller) {
-        console.error('[Notifications] Seller error:', sellerError?.message || 'Seller not found');
-        throw new Error(sellerError?.message || 'Seller not found');
-      }
+      if (!seller) throw new Error("Seller not found");
 
-      // 2. Get all active subscribers
-      const { data: subscriptions, error: subsError } = await supabase
+      // 2. Get subscribers (identical to manual approach)
+      const { data: subscriptions } = await supabase
         .from('subscriptions')
         .select('buyer_id')
-        .eq('seller_id', sellerId)
-        .eq('status', 'active'); // Added status filter if you have one
-
-      if (subsError) {
-        console.error('[Notifications] Subscriptions error:', subsError.message);
-        throw subsError;
-      }
+        .eq('seller_id', sellerId);
 
       if (!subscriptions || subscriptions.length === 0) {
-        console.log('[Notifications] No active subscribers found');
         return { success: true, notifiedCount: 0 };
       }
 
-      console.log(`[Notifications] Found ${subscriptions.length} subscribers`);
-
       // 3. Get ticket details
-      const { data: ticket, error: ticketError } = await supabase
+      const { data: ticket } = await supabase
         .from('tickets')
-        .select('is_free, price, description')
+        .select('is_free, price')
         .eq('id', ticketId)
         .single();
 
-      if (ticketError || !ticket) {
-        console.error('[Notifications] Ticket error:', ticketError?.message || 'Ticket not found');
-        throw new Error(ticketError?.message || 'Ticket not found');
-      }
-
-      // 4. Prepare notifications (identical to manual notification logic)
+      // 4. Create notifications (EXACTLY like manual notifications)
       const notifications = subscriptions.map(sub => ({
         user_id: sub.buyer_id,
         title: `New ticket from ${seller.username}${seller.verified ? ' ✓' : ''}`,
-        message: `${ticketTitle} - ${ticket.is_free ? 'Free' : `R${ticket.price}`}`,
-        type: 'ticket',
+        message: `${ticketTitle} - ${ticket?.is_free ? 'Free' : `R${ticket?.price}`}`,
+        type: 'ticket', // Only difference from manual
         related_id: ticketId,
-        is_read: false,
-        created_at: new Date().toISOString()
+        is_read: false
       }));
 
-      // 5. Batch insert notifications
-      const { error: notifyError, count } = await supabase
+      // 5. Insert (identical to working manual version)
+      const { error, count } = await supabase
         .from('notifications')
         .insert(notifications)
         .select();
 
-      if (notifyError) {
-        console.error('[Notifications] Insert error:', notifyError.message);
-        throw notifyError;
-      }
+      if (error) throw error;
 
-      const notifiedCount = count || 0;
-      console.log(`[Notifications] Successfully notified ${notifiedCount} subscribers`);
-      
-      toast.success(`Ticket created! Notified ${notifiedCount} subscribers`);
-      return { success: true, notifiedCount };
+      toast.success(`Notified ${count} subscribers`);
+      return { success: true, notifiedCount: count || 0 };
 
     } catch (error) {
-      console.error('[Notifications] System error:', error);
+      console.error("Notification error:", error);
       toast.error("Failed to notify subscribers");
-      return { 
-        success: false, 
-        notifiedCount: 0,
-        error: error instanceof Error ? error.message : 'Unknown error' 
-      };
+      return { success: false, notifiedCount: 0 };
     }
   };
 
