@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -30,8 +31,7 @@ export const useTicketNotifications = () => {
       const { data: subscriptions, error: subsError } = await supabase
         .from('subscriptions')
         .select('buyer_id')
-        .eq('seller_id', sellerId)
-        .eq('status', 'active');
+        .eq('seller_id', sellerId);
 
       if (subsError) throw subsError;
 
@@ -52,7 +52,7 @@ export const useTicketNotifications = () => {
         user_id: sub.buyer_id,
         title: `New ticket from ${seller.username}${seller.verified ? ' ✓' : ''}`,
         message: `${ticketTitle} - ${ticket?.is_free ? 'Free' : `R${ticket?.price}`}`,
-        type: 'ticket',
+        type: 'ticket' as const,
         related_id: ticketId,
         is_read: false,
         created_at: new Date().toISOString()
