@@ -52,82 +52,72 @@ const SellersLeaderboard: React.FC = () => {
     queryFn: async () => {
       const { start, end } = getDateRange(timeframe);
       
-      // Updated query to include free tickets in sales count
-      const { data, error } = await supabase.rpc('get_leaderboard_with_free_tickets', {
-        start_date: start.toISOString(),
-        end_date: end.toISOString(),
-        result_limit: 20
-      });
+      // Get sellers with sales data including free tickets
+      const { data: sellersWithStats, error: sellersError } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          username,
+          avatar_url,
+          verified
+        `)
+        .eq('role', 'seller')
+        .eq('approved', true)
+        .eq('suspended', false);
 
-      if (error) {
-        // Fallback to manual query if function doesn't exist
-        console.log('Using fallback query for leaderboard');
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('profiles')
-          .select(`
-            id,
-            username,
-            avatar_url,
-            verified
-          `)
-          .eq('role', 'seller')
-          .eq('approved', true)
-          .eq('suspended', false);
+      if (sellersError) throw sellersError;
 
-        if (fallbackError) throw fallbackError;
+      // Get sales data for each seller including free tickets
+      const sellersWithSalesData = await Promise.all(
+        sellersWithStats.map(async (seller) => {
+          // Count all purchases (including free tickets) within the date range
+          const { count: salesCount } = await supabase
+            .from('purchases')
+            .select('*', { count: 'exact', head: true })
+            .eq('seller_id', seller.id)
+            .eq('payment_status', 'completed')
+            .gte('purchase_date', start.toISOString())
+            .lte('purchase_date', end.toISOString());
 
-        // Get sales data for each seller including free tickets
-        const sellersWithStats = await Promise.all(
-          fallbackData.map(async (seller) => {
-            const { count: salesCount } = await supabase
-              .from('purchases')
-              .select('*', { count: 'exact', head: true })
-              .eq('seller_id', seller.id)
-              .eq('payment_status', 'completed')
-              .gte('purchase_date', start.toISOString())
-              .lte('purchase_date', end.toISOString());
+          // Get total sales value (excluding free tickets for monetary calculations)
+          const { data: salesData } = await supabase
+            .from('purchases')
+            .select('price')
+            .eq('seller_id', seller.id)
+            .eq('payment_status', 'completed')
+            .gte('purchase_date', start.toISOString())
+            .lte('purchase_date', end.toISOString());
 
-            const { data: salesData } = await supabase
-              .from('purchases')
-              .select('price')
-              .eq('seller_id', seller.id)
-              .eq('payment_status', 'completed')
-              .gte('purchase_date', start.toISOString())
-              .lte('purchase_date', end.toISOString());
+          // Get average rating
+          const { data: ratingsData } = await supabase
+            .from('ratings')
+            .select('score')
+            .eq('seller_id', seller.id);
 
-            const { data: ratingsData } = await supabase
-              .from('ratings')
-              .select('score')
-              .eq('seller_id', seller.id);
+          const totalSales = salesData?.reduce((sum, sale) => sum + (sale.price || 0), 0) || 0;
+          const averageRating = ratingsData?.length 
+            ? ratingsData.reduce((sum, rating) => sum + rating.score, 0) / ratingsData.length 
+            : 0;
 
-            const totalSales = salesData?.reduce((sum, sale) => sum + (sale.price || 0), 0) || 0;
-            const averageRating = ratingsData?.length 
-              ? ratingsData.reduce((sum, rating) => sum + rating.score, 0) / ratingsData.length 
-              : 0;
+          return {
+            id: seller.id,
+            username: seller.username,
+            avatar_url: seller.avatar_url,
+            sales_count: salesCount || 0,
+            total_sales: totalSales,
+            average_rating: Number(averageRating.toFixed(1)),
+            rank: 0 // Will be assigned after sorting
+          };
+        })
+      );
 
-            return {
-              id: seller.id,
-              username: seller.username,
-              avatar_url: seller.avatar_url,
-              sales_count: salesCount || 0,
-              total_sales: totalSales,
-              average_rating: Number(averageRating.toFixed(1)),
-              rank: 0 // Will be assigned after sorting
-            };
-          })
-        );
+      // Filter out sellers with no sales and sort by sales count
+      const sellersWithSales = sellersWithSalesData
+        .filter(seller => seller.sales_count > 0)
+        .sort((a, b) => b.sales_count - a.sales_count)
+        .map((seller, index) => ({ ...seller, rank: index + 1 }));
 
-        // Filter out sellers with no sales and sort by sales count
-        const sellersWithSales = sellersWithStats
-          .filter(seller => seller.sales_count > 0)
-          .sort((a, b) => b.sales_count - a.sales_count)
-          .map((seller, index) => ({ ...seller, rank: index + 1 }));
-
-        return sellersWithSales;
-      }
-
-      // Filter out sellers with no sales from the RPC result
-      return data?.filter((seller: any) => seller.sales_count > 0) || [];
+      return sellersWithSales;
     }
   });
 
