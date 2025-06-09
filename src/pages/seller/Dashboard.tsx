@@ -105,7 +105,7 @@ const SellerDashboard: React.FC = () => {
             <div className="p-6 border-b">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Recent Transactions</h3>
-                <Link to="/user/wallet">
+                <Link to="/seller/transactions">
                   <Button variant="outline" size="sm" className="flex items-center gap-2">
                     View More
                     <ArrowRight className="h-4 w-4" />

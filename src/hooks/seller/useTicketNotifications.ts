@@ -1,8 +1,16 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+interface NotificationResult {
+  success: boolean;
+  notifiedCount: number;
+  subscriberCount?: number;
+  error?: string;
+}
+
 export const useTicketNotifications = () => {
-  const notifySubscribersOfNewTicket = async (sellerId: string, ticketId: string, ticketTitle: string) => {
+  const notifySubscribersOfNewTicket = async (sellerId: string, ticketId: string, ticketTitle: string): Promise<NotificationResult> => {
     try {
       console.log(`[Notifications] Starting notification process for ticket ${ticketId}`);
 
@@ -22,17 +30,18 @@ export const useTicketNotifications = () => {
       const { data: subscriptions, error: subsError } = await supabase
         .from('subscriptions')
         .select('buyer_id')
-        .eq('seller_id', sellerId)
-        .eq('status', 'active'); // Added status filter if you have one
+        .eq('seller_id', sellerId);
 
       if (subsError) {
         console.error('[Notifications] Subscriptions error:', subsError.message);
         throw subsError;
       }
 
+      const subscriberCount = subscriptions?.length || 0;
+
       if (!subscriptions || subscriptions.length === 0) {
         console.log('[Notifications] No active subscribers found');
-        return { success: true, notifiedCount: 0 };
+        return { success: true, notifiedCount: 0, subscriberCount };
       }
 
       console.log(`[Notifications] Found ${subscriptions.length} subscribers`);
@@ -49,7 +58,7 @@ export const useTicketNotifications = () => {
         throw new Error(ticketError?.message || 'Ticket not found');
       }
 
-      // 4. Prepare notifications (identical to manual notification logic)
+      // 4. Prepare notifications
       const notifications = subscriptions.map(sub => ({
         user_id: sub.buyer_id,
         title: `New ticket from ${seller.username}${seller.verified ? ' ✓' : ''}`,
@@ -75,7 +84,7 @@ export const useTicketNotifications = () => {
       console.log(`[Notifications] Successfully notified ${notifiedCount} subscribers`);
       
       toast.success(`Ticket created! Notified ${notifiedCount} subscribers`);
-      return { success: true, notifiedCount };
+      return { success: true, notifiedCount, subscriberCount };
 
     } catch (error) {
       console.error('[Notifications] System error:', error);

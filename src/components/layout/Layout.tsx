@@ -1,3 +1,4 @@
+
 import React, { ReactNode, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "./Navbar";
@@ -30,6 +31,12 @@ const Layout: React.FC<LayoutProps> = ({
   
   useEffect(() => {
     if (!loading) {
+      // Prevent sellers from accessing wallet page
+      if (location.pathname === "/user/wallet" && userRole === "seller") {
+        navigate("/seller/transactions", { replace: true });
+        return;
+      }
+      
       // Redirect if not authenticated but auth is required
       if (requireAuth && !currentUser) {
         navigate("/auth/login", { 

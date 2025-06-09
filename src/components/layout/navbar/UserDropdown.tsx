@@ -73,6 +73,9 @@ const UserDropdown: React.FC = () => {
               <Link to="/seller/profile" className="w-full">Profile</Link>
             </DropdownMenuItem>
             <DropdownMenuItem>
+              <Link to="/seller/transactions" className="w-full">Transactions</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
               <Link to="/seller/withdrawals" className="w-full">Withdrawals</Link>
             </DropdownMenuItem>
             <DropdownMenuItem>

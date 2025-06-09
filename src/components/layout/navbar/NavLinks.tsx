@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth';
-import { LayoutDashboard, Wallet, Ticket, ShoppingBag, CreditCard, BellRing, UserCircle, Menu, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Wallet, Ticket, ShoppingBag, CreditCard, BellRing, UserCircle, Menu, ChevronDown, Receipt } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +30,7 @@ const NavLinks: React.FC = () => {
     { to: "/seller/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { to: "/seller/profile", label: "Profile", icon: UserCircle },
     { to: "/seller/tickets", label: "My Tickets", icon: Ticket },
+    { to: "/seller/transactions", label: "Transactions", icon: Receipt },
     { to: "/seller/withdrawals", label: "Withdrawals", icon: Wallet },
     { to: "/notifications", label: "Notifications", icon: BellRing },
   ];
@@ -149,6 +150,12 @@ const NavLinks: React.FC = () => {
             isActive ? 'text-white border-b-2 border-betting-green pb-1' : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
           }>
             My Tickets
+          </NavLink>
+          <NavLink to="/seller/transactions" className={({ isActive }) =>
+            isActive ? 'text-white border-b-2 border-betting-green pb-1' : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+          }>
+            <Receipt className="h-4 w-4 inline mr-1" />
+            Transactions
           </NavLink>
           <NavLink to="/seller/withdrawals" className={({ isActive }) =>
             isActive ? 'text-white border-b-2 border-betting-green pb-1' : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'

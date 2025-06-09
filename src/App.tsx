@@ -43,6 +43,7 @@ import SellerTickets from "@/pages/seller/Tickets";
 import CreateTicket from "@/pages/seller/CreateTicket";
 import EditTicket from "@/pages/seller/EditTicket";
 import SellerWithdrawals from "@/pages/seller/Withdrawals";
+import SellerTransactions from "@/pages/seller/Transactions";
 
 // Admin pages
 import AdminDashboard from "@/pages/admin/Dashboard";
@@ -120,6 +121,7 @@ function App() {
                     <Route path="/seller/tickets/create" element={<CreateTicket />} />
                     <Route path="/seller/tickets/:id/edit" element={<EditTicket />} />
                     <Route path="/seller/withdrawals" element={<SellerWithdrawals />} />
+                    <Route path="/seller/transactions" element={<SellerTransactions />} />
 
                     {/* Admin routes */}
                     <Route path="/admin/dashboard" element={<AdminDashboard />} />
