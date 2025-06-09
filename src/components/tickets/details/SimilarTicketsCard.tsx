@@ -3,11 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format, isValid, isPast } from "date-fns";
 import { BettingTicket } from "@/types";
 import { useTicketMapper } from "@/hooks/tickets/useTicketMapper";
+import VerifiedBadge from "@/components/common/VerifiedBadge";
 
 interface SimilarTicketsCardProps {
   ticketId: string;
@@ -28,7 +29,7 @@ const SimilarTicketsCard: React.FC<SimilarTicketsCardProps> = ({ ticketId, selle
       try {
         const now = new Date().toISOString();
         
-        // Get seller info first
+        // Get seller info first including verified status
         const { data: sellerData, error: sellerError } = await supabase
           .from("profiles")
           .select("username, verified")
@@ -119,9 +120,7 @@ const SimilarTicketsCard: React.FC<SimilarTicketsCardProps> = ({ ticketId, selle
               <Button variant="outline" className="w-full" asChild>
                 <Link to={`/sellers/${sellerId}`} className="flex items-center gap-2">
                   <span>View All Tickets</span>
-                  {sellerInfo?.verified && (
-                    <ShieldCheck className="h-4 w-4 text-blue-500" />
-                  )}
+                  <VerifiedBadge verified={sellerInfo?.verified} size="sm" />
                 </Link>
               </Button>
             </div>

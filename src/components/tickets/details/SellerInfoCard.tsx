@@ -4,10 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
-import { Loader2, User, MessageCircle, ShieldCheck } from "lucide-react";
+import { Loader2, User, MessageCircle } from "lucide-react";
 import TipButton from "@/components/sellers/TipButton";
 import { useAuth } from "@/contexts/auth";
 import { Button } from "@/components/ui/button";
+import VerifiedBadge from "@/components/common/VerifiedBadge";
 
 interface SellerInfoCardProps {
   seller: any;
@@ -53,9 +54,7 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
           <div>
             <div className="flex items-center gap-2">
               <span className="font-semibold">{seller.username || "Anonymous"}</span>
-              {seller.verified && (
-                <ShieldCheck className="h-4 w-4 text-blue-500" />
-              )}
+              <VerifiedBadge verified={seller.verified} size="md" />
             </div>
             {seller.created_at && (
               <div className="text-xs text-muted-foreground">

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { ShieldCheck } from "lucide-react";
+import VerifiedBadge from "@/components/common/VerifiedBadge";
 
 interface SellerAvatarProps {
   username: string;
@@ -23,9 +23,7 @@ const SellerAvatar: React.FC<SellerAvatarProps> = ({ username, avatarUrl, verifi
       </Avatar>
       <div className="flex items-center gap-2">
         <h3 className="text-xl font-semibold text-center">{username}</h3>
-        {verified && (
-          <ShieldCheck className="h-5 w-5 text-blue-500" />
-        )}
+        <VerifiedBadge verified={verified} size="lg" />
       </div>
     </div>
   );

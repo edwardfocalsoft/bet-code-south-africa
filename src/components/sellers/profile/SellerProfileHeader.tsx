@@ -3,10 +3,11 @@ import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Star, Award, Trophy, TrendingUp, ShieldCheck } from "lucide-react";
+import { Star, Award, Trophy, TrendingUp } from "lucide-react";
 import TipButton from "@/components/sellers/TipButton";
 import SubscribeButton from "@/components/sellers/SubscribeButton";
 import { useAuth } from "@/contexts/auth";
+import VerifiedBadge from "@/components/common/VerifiedBadge";
 
 interface SellerProfileHeaderProps {
   seller: any;
@@ -45,9 +46,7 @@ const SellerProfileHeader: React.FC<SellerProfileHeaderProps> = ({ seller, stats
           <div className="flex-1 text-center md:text-left">
             <div className="flex items-center gap-2 justify-center md:justify-start mb-1">
               <h3 className="font-bold text-xl">{seller.username || "Anonymous"}</h3>
-              {seller.verified && (
-                <ShieldCheck className="h-5 w-5 text-blue-500" />
-              )}
+              <VerifiedBadge verified={seller.verified} size="lg" />
             </div>
             <p className="text-sm text-muted-foreground">
               Member since {seller.created_at ? new Date(seller.created_at).toLocaleDateString() : "Unknown"}

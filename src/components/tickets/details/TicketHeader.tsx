@@ -1,8 +1,8 @@
 
 import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck } from "lucide-react";
 import ShareTicket from "../ShareTicket";
+import VerifiedBadge from "@/components/common/VerifiedBadge";
 
 interface TicketHeaderProps {
   title: string;
@@ -34,9 +34,7 @@ const TicketHeader: React.FC<TicketHeaderProps> = ({
             <div className="flex items-center gap-2 mb-2">
               <span className="text-sm text-muted-foreground">by</span>
               <span className="text-sm font-medium">{seller.username || "Anonymous"}</span>
-              {seller.verified && (
-                <ShieldCheck className="h-4 w-4 text-blue-500" />
-              )}
+              <VerifiedBadge verified={seller.verified} size="sm" />
             </div>
           )}
         </div>
