@@ -17,17 +17,15 @@ interface SystemAd {
 }
 
 const SystemAdPopup: React.FC = () => {
-  const { currentUser, userRole } = useAuth();
+  const { currentUser } = useAuth();
   const [ad, setAd] = useState<SystemAd | null>(null);
   const [showAd, setShowAd] = useState(false);
 
   useEffect(() => {
-    // Show ads to all authenticated users (buyers, sellers, and even admins)
-    if (currentUser && userRole) {
-      console.log("Checking for active ad for user:", currentUser.id, "role:", userRole);
-      checkForActiveAd();
-    }
-  }, [currentUser, userRole]);
+    // Show ads to all visitors (authenticated or not)
+    console.log("Checking for active ad for visitor");
+    checkForActiveAd();
+  }, []);
 
   const checkForActiveAd = async () => {
     try {
@@ -56,33 +54,37 @@ const SystemAdPopup: React.FC = () => {
       const today = new Date().toISOString().split('T')[0];
       console.log("Checking ad views for date:", today);
 
-      // Check if user has already seen this ad today
-      const { data: viewData, error: viewError } = await supabase
-        .from("ad_views")
-        .select("id")
-        .eq("user_id", currentUser?.id)
-        .eq("ad_id", activeAd.id)
-        .eq("viewed_date", today)
-        .maybeSingle();
+      // Check localStorage for ad view today
+      const viewKey = `ad_viewed_${activeAd.id}_${today}`;
+      const hasViewedToday = localStorage.getItem(viewKey);
 
-      if (viewError) {
-        console.error("Error checking ad views:", viewError);
-        // Show ad anyway if we can't check views
-        console.log("Showing ad due to view check error");
-        setAd(activeAd);
-        setShowAd(true);
-        return;
-      }
-
-      console.log("Existing view data:", viewData);
+      console.log("Has viewed ad today:", !!hasViewedToday);
 
       // If user hasn't seen this ad today, show it
-      if (!viewData) {
+      if (!hasViewedToday) {
         console.log("User hasn't seen ad today, showing it");
         setAd(activeAd);
         setShowAd(true);
       } else {
         console.log("User has already seen ad today");
+      }
+
+      // If user is authenticated, also record in database
+      if (currentUser) {
+        const { data: viewData, error: viewError } = await supabase
+          .from("ad_views")
+          .select("id")
+          .eq("user_id", currentUser.id)
+          .eq("ad_id", activeAd.id)
+          .eq("viewed_date", today)
+          .maybeSingle();
+
+        if (viewError) {
+          console.error("Error checking database ad views:", viewError);
+        }
+
+        // If not recorded in database and we're showing the ad, we'll record it when closed
+        console.log("Database view data:", viewData);
       }
     } catch (error) {
       console.error("Error checking for active ad:", error);
@@ -93,21 +95,29 @@ const SystemAdPopup: React.FC = () => {
   const handleCloseAd = async () => {
     console.log("Closing ad and recording view");
     
-    if (ad && currentUser) {
+    if (ad) {
       try {
-        // Record that user has viewed this ad today
-        const { error } = await supabase
-          .from("ad_views")
-          .insert({
-            user_id: currentUser.id,
-            ad_id: ad.id,
-            viewed_date: new Date().toISOString().split('T')[0]
-          });
-          
-        if (error) {
-          console.error("Error recording ad view:", error);
-        } else {
-          console.log("Ad view recorded successfully");
+        // Always record in localStorage
+        const today = new Date().toISOString().split('T')[0];
+        const viewKey = `ad_viewed_${ad.id}_${today}`;
+        localStorage.setItem(viewKey, 'true');
+        console.log("Ad view recorded in localStorage");
+
+        // If user is authenticated, also record in database
+        if (currentUser) {
+          const { error } = await supabase
+            .from("ad_views")
+            .insert({
+              user_id: currentUser.id,
+              ad_id: ad.id,
+              viewed_date: today
+            });
+            
+          if (error) {
+            console.error("Error recording ad view in database:", error);
+          } else {
+            console.log("Ad view recorded in database successfully");
+          }
         }
       } catch (error) {
         console.error("Error recording ad view:", error);
