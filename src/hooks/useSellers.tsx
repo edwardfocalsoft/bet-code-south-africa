@@ -21,37 +21,77 @@ export function useSellers(options: UseSellersOptions = { fetchOnMount: true, li
       setLoading(true);
       setError(null);
 
-      // If sorting by sales, use the public leaderboard function
+      // If sorting by sales, get sellers with sales data including free tickets
       if (options.sortBy === "sales") {
-        const now = new Date();
-        // Go back one year for all-time stats
-        const oneYearAgo = new Date();
-        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-        
-        const { data: topSellers, error: leaderboardError } = await supabase.rpc(
-          'get_public_leaderboard', 
-          { 
-            start_date: oneYearAgo.toISOString(), 
-            end_date: now.toISOString(),
-            result_limit: options.limit || 10
-          }
+        // Get all approved sellers
+        const { data: sellersWithStats, error: sellersError } = await supabase
+          .from('profiles')
+          .select(`
+            id,
+            username,
+            avatar_url,
+            verified
+          `)
+          .eq('role', 'seller')
+          .eq('approved', true)
+          .eq('suspended', false);
+
+        if (sellersError) throw sellersError;
+
+        // Get sales data for each seller including free tickets
+        const sellersWithSalesData = await Promise.all(
+          sellersWithStats.map(async (seller) => {
+            // Count all purchases (including free tickets) for all time
+            const { count: salesCount } = await supabase
+              .from('purchases')
+              .select('*', { count: 'exact', head: true })
+              .eq('seller_id', seller.id)
+              .eq('payment_status', 'completed');
+
+            // Get total sales value (excluding free tickets for monetary calculations)
+            const { data: salesData } = await supabase
+              .from('purchases')
+              .select('price')
+              .eq('seller_id', seller.id)
+              .eq('payment_status', 'completed');
+
+            // Get average rating
+            const { data: ratingsData } = await supabase
+              .from('ratings')
+              .select('score')
+              .eq('seller_id', seller.id);
+
+            const totalSales = salesData?.reduce((sum, sale) => sum + (sale.price || 0), 0) || 0;
+            const averageRating = ratingsData?.length 
+              ? ratingsData.reduce((sum, rating) => sum + rating.score, 0) / ratingsData.length 
+              : 0;
+
+            return {
+              id: seller.id,
+              username: seller.username || "Anonymous",
+              avatar_url: seller.avatar_url,
+              role: "seller" as const,
+              loyaltyPoints: 0,
+              sales_count: salesCount || 0,
+              average_rating: Number(averageRating.toFixed(1)),
+              ranking: 0, // Will be assigned after sorting
+              verified: seller.verified || false,
+              total_sales: totalSales
+            };
+          })
         );
+
+        // Sort by sales count (including free tickets) and assign ranking
+        const sortedSellers = sellersWithSalesData
+          .sort((a, b) => b.sales_count - a.sales_count)
+          .slice(0, options.limit || 10)
+          .map((seller, index) => ({
+            ...seller,
+            ranking: index + 1
+          }));
         
-        if (leaderboardError) throw leaderboardError;
-        
-        const mappedSellers = topSellers.map((seller: any) => ({
-          id: seller.id,
-          username: seller.username || "Anonymous",
-          avatar_url: seller.avatar_url,
-          role: "seller" as const,
-          loyaltyPoints: 0,
-          sales_count: seller.sales_count,
-          average_rating: seller.average_rating,
-          ranking: seller.rank,
-          verified: seller.verified || false
-        }));
-        
-        setSellers(mappedSellers);
+        console.log("Fetched top sellers (including free tickets):", sortedSellers);
+        setSellers(sortedSellers);
       } else {
         // Default query if not sorting by sales
         let query = supabase

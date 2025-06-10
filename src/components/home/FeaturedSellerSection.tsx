@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +16,7 @@ interface TopSeller {
   rank: number;
   sales_count: number;
   average_rating: number;
+  total_sales: number;
 }
 
 const FeaturedSellerSection: React.FC = () => {
@@ -42,59 +44,143 @@ const FeaturedSellerSection: React.FC = () => {
         
         console.log(`Fetching top seller for week: ${monday.toISOString()} to ${sunday.toISOString()}`);
 
-        // Call the public leaderboard function instead
-        const { data: weekTopSellers, error: weekError } = await supabase.rpc(
-          'get_public_leaderboard', 
-          { 
-            start_date: monday.toISOString(), 
-            end_date: sunday.toISOString(),
-            result_limit: 1
-          }
+        // Get sellers with sales data including free tickets
+        const { data: sellersWithStats, error: sellersError } = await supabase
+          .from('profiles')
+          .select(`
+            id,
+            username,
+            avatar_url,
+            verified
+          `)
+          .eq('role', 'seller')
+          .eq('approved', true)
+          .eq('suspended', false);
+
+        if (sellersError) throw sellersError;
+
+        // Get sales data for each seller including free tickets
+        const sellersWithSalesData = await Promise.all(
+          sellersWithStats.map(async (seller) => {
+            // Count all purchases (including free tickets) within the date range
+            const { count: salesCount } = await supabase
+              .from('purchases')
+              .select('*', { count: 'exact', head: true })
+              .eq('seller_id', seller.id)
+              .eq('payment_status', 'completed')
+              .gte('purchase_date', monday.toISOString())
+              .lte('purchase_date', sunday.toISOString());
+
+            // Get total sales value (excluding free tickets for monetary calculations)
+            const { data: salesData } = await supabase
+              .from('purchases')
+              .select('price')
+              .eq('seller_id', seller.id)
+              .eq('payment_status', 'completed')
+              .gte('purchase_date', monday.toISOString())
+              .lte('purchase_date', sunday.toISOString());
+
+            // Get average rating
+            const { data: ratingsData } = await supabase
+              .from('ratings')
+              .select('score')
+              .eq('seller_id', seller.id);
+
+            const totalSales = salesData?.reduce((sum, sale) => sum + (sale.price || 0), 0) || 0;
+            const averageRating = ratingsData?.length 
+              ? ratingsData.reduce((sum, rating) => sum + rating.score, 0) / ratingsData.length 
+              : 0;
+
+            return {
+              id: seller.id,
+              username: seller.username,
+              avatar_url: seller.avatar_url,
+              sales_count: salesCount || 0,
+              total_sales: totalSales,
+              average_rating: Number(averageRating.toFixed(1)),
+              rank: 0 // Will be assigned after sorting
+            };
+          })
         );
-          
-        if (weekError) {
-          console.error("Error fetching week top seller:", weekError);
-          throw weekError;
-        }
-        
-        console.log("Week top seller data:", weekTopSellers);
+
+        // Filter out sellers with no sales and sort by sales count (including free tickets)
+        const sellersWithSales = sellersWithSalesData
+          .filter(seller => seller.sales_count > 0)
+          .sort((a, b) => b.sales_count - a.sales_count)
+          .map((seller, index) => ({ ...seller, rank: index + 1 }));
+
+        console.log("Week top seller data:", sellersWithSales);
         
         // If no sales this week, try last month
-        if (!weekTopSellers || weekTopSellers.length === 0) {
+        if (!sellersWithSales || sellersWithSales.length === 0) {
           console.log("No top seller this week, trying last month");
           
           // Get sales from the last month
           const lastMonth = new Date();
           lastMonth.setMonth(lastMonth.getMonth() - 1);
           
-          const { data: monthTopSellers, error: monthError } = await supabase.rpc(
-            'get_public_leaderboard', 
-            { 
-              start_date: lastMonth.toISOString(), 
-              end_date: new Date().toISOString(),
-              result_limit: 1
-            }
+          const monthSellersWithSalesData = await Promise.all(
+            sellersWithStats.map(async (seller) => {
+              // Count all purchases (including free tickets) for the last month
+              const { count: salesCount } = await supabase
+                .from('purchases')
+                .select('*', { count: 'exact', head: true })
+                .eq('seller_id', seller.id)
+                .eq('payment_status', 'completed')
+                .gte('purchase_date', lastMonth.toISOString())
+                .lte('purchase_date', new Date().toISOString());
+
+              // Get total sales value
+              const { data: salesData } = await supabase
+                .from('purchases')
+                .select('price')
+                .eq('seller_id', seller.id)
+                .eq('payment_status', 'completed')
+                .gte('purchase_date', lastMonth.toISOString())
+                .lte('purchase_date', new Date().toISOString());
+
+              // Get average rating
+              const { data: ratingsData } = await supabase
+                .from('ratings')
+                .select('score')
+                .eq('seller_id', seller.id);
+
+              const totalSales = salesData?.reduce((sum, sale) => sum + (sale.price || 0), 0) || 0;
+              const averageRating = ratingsData?.length 
+                ? ratingsData.reduce((sum, rating) => sum + rating.score, 0) / ratingsData.length 
+                : 0;
+
+              return {
+                id: seller.id,
+                username: seller.username,
+                avatar_url: seller.avatar_url,
+                sales_count: salesCount || 0,
+                total_sales: totalSales,
+                average_rating: Number(averageRating.toFixed(1)),
+                rank: 0
+              };
+            })
           );
-            
-          if (monthError) {
-            console.error("Error fetching month top seller:", monthError);
-            throw monthError;
-          }
+
+          const monthSellersWithSales = monthSellersWithSalesData
+            .filter(seller => seller.sales_count > 0)
+            .sort((a, b) => b.sales_count - a.sales_count)
+            .map((seller, index) => ({ ...seller, rank: index + 1 }));
           
-          console.log("Month top seller data:", monthTopSellers);
+          console.log("Month top seller data:", monthSellersWithSales);
           
-          if (!monthTopSellers || monthTopSellers.length === 0) {
+          if (!monthSellersWithSales || monthSellersWithSales.length === 0) {
             console.log("No top seller in the last month either");
             setLoading(false);
             return;
           }
           
           // Process month top seller
-          const topSeller = monthTopSellers[0];
+          const topSeller = monthSellersWithSales[0];
           setFeaturedSeller(topSeller);
         } else {
           // Process week top seller
-          const topSeller = weekTopSellers[0];
+          const topSeller = sellersWithSales[0];
           setFeaturedSeller(topSeller);
         }
       } catch (error: any) {
@@ -148,7 +234,7 @@ const FeaturedSellerSection: React.FC = () => {
                   <div className="p-6">
                     <h3 className="text-2xl font-bold mb-2">{featuredSeller.username}</h3>
                     <p className="text-muted-foreground mb-6">
-                      Top performer with {featuredSeller.sales_count} sales this week
+                      Top performer with {featuredSeller.sales_count} tickets sold this week (including free tickets)
                     </p>
                     
                     <SellerStats 
