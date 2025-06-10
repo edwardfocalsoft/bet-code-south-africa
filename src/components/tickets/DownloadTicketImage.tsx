@@ -13,9 +13,10 @@ interface DownloadTicketImageProps {
 
 const DownloadTicketImage: React.FC<DownloadTicketImageProps> = ({ ticket, seller }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const qrRef = useRef<HTMLDivElement>(null);
 
   const generateTicketImage = async () => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || !qrRef.current) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -217,57 +218,44 @@ const DownloadTicketImage: React.FC<DownloadTicketImageProps> = ({ ticket, selle
 
     // Right section - QR Code area
     const qrSection = canvas.width - 280;
-    const qrSize = 120;
+    const qrSize = 140;
     const qrX = qrSection + 20;
     const qrY = 160;
 
-    // QR Code background with border
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20);
-    ctx.strokeStyle = '#CCCCCC';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(qrX - 10, qrY - 10, qrSize + 20, qrSize + 20);
-
-    // Generate QR code pattern (simplified for canvas)
-    const ticketUrl = `${window.location.origin}/tickets/${ticket.id}`;
-    
-    // Simple QR pattern placeholder
-    ctx.fillStyle = '#000000';
-    const blockSize = 4;
-    for (let i = 0; i < qrSize; i += blockSize) {
-      for (let j = 0; j < qrSize; j += blockSize) {
-        // Create a pseudo-random pattern based on position
-        if ((i + j + ticket.id.charCodeAt(0)) % 12 < 6) {
-          ctx.fillRect(qrX + j, qrY + i, blockSize - 1, blockSize - 1);
-        }
+    // Convert QR code SVG to canvas
+    try {
+      const qrSvg = qrRef.current.querySelector('svg');
+      if (qrSvg) {
+        const svgData = new XMLSerializer().serializeToString(qrSvg);
+        const img = new Image();
+        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+        
+        await new Promise((resolve) => {
+          img.onload = () => {
+            // White background with rounded corners effect
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(qrX - 15, qrY - 15, qrSize + 30, qrSize + 30);
+            
+            // Draw QR code
+            ctx.drawImage(img, qrX, qrY, qrSize, qrSize);
+            URL.revokeObjectURL(url);
+            resolve(true);
+          };
+          img.src = url;
+        });
       }
+    } catch (error) {
+      console.error('Error rendering QR code:', error);
+      // Fallback: draw a placeholder
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(qrX - 15, qrY - 15, qrSize + 30, qrSize + 30);
+      ctx.fillStyle = '#000000';
+      ctx.font = '16px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('QR CODE', qrX + qrSize/2, qrY + qrSize/2);
+      ctx.textAlign = 'left';
     }
-
-    // Corner markers for QR code
-    const markerSize = 20;
-    // Top-left
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(qrX, qrY, markerSize, markerSize);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(qrX + 4, qrY + 4, markerSize - 8, markerSize - 8);
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(qrX + 8, qrY + 8, markerSize - 16, markerSize - 16);
-
-    // Top-right
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(qrX + qrSize - markerSize, qrY, markerSize, markerSize);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(qrX + qrSize - markerSize + 4, qrY + 4, markerSize - 8, markerSize - 8);
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(qrX + qrSize - markerSize + 8, qrY + 8, markerSize - 16, markerSize - 16);
-
-    // Bottom-left
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(qrX, qrY + qrSize - markerSize, markerSize, markerSize);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(qrX + 4, qrY + qrSize - markerSize + 4, markerSize - 8, markerSize - 8);
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(qrX + 8, qrY + qrSize - markerSize + 8, markerSize - 16, markerSize - 16);
 
     // QR Code labels
     ctx.fillStyle = '#FFFFFF';
@@ -326,6 +314,8 @@ const DownloadTicketImage: React.FC<DownloadTicketImageProps> = ({ ticket, selle
     }, 100);
   };
 
+  const ticketUrl = `${window.location.origin}/tickets/${ticket.id}`;
+
   return (
     <>
       <Button
@@ -337,6 +327,19 @@ const DownloadTicketImage: React.FC<DownloadTicketImageProps> = ({ ticket, selle
         <Download className="h-4 w-4" />
         Download Ticket Image
       </Button>
+      
+      {/* Hidden QR code for rendering */}
+      <div ref={qrRef} style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+        <QRCodeSVG
+          value={ticketUrl}
+          size={140}
+          bgColor="#FFFFFF"
+          fgColor="#000000"
+          level="M"
+          includeMargin={false}
+        />
+      </div>
+      
       <canvas
         ref={canvasRef}
         style={{ display: 'none' }}
