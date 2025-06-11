@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth';
-import { LayoutDashboard, Wallet, Ticket, ShoppingBag, CreditCard, BellRing, UserCircle, Menu, ChevronDown, Receipt } from 'lucide-react';
+import { LayoutDashboard, Wallet, Ticket, ShoppingBag, CreditCard, BellRing, UserCircle, Menu, ChevronDown, Receipt, Gift } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +32,7 @@ const NavLinks: React.FC = () => {
     { to: "/seller/tickets", label: "My Tickets", icon: Ticket },
     { to: "/seller/transactions", label: "Transactions", icon: Receipt },
     { to: "/seller/withdrawals", label: "Withdrawals", icon: Wallet },
+    { to: "/vouchers", label: "Daily Vouchers", icon: Gift },
     { to: "/notifications", label: "Notifications", icon: BellRing },
   ];
 
@@ -40,11 +41,13 @@ const NavLinks: React.FC = () => {
     { to: "/user/wallet", label: "Wallet", icon: Wallet },
     { to: "/tickets", label: "Browse Tickets", icon: Ticket },
     { to: "/buyer/purchases", label: "My Purchases", icon: ShoppingBag },
+    { to: "/vouchers", label: "Daily Vouchers", icon: Gift },
     { to: "/notifications", label: "Notifications", icon: BellRing },
   ];
 
   const publicLinks = [
     { to: "/tickets", label: "Browse Tickets", icon: Ticket },
+    { to: "/vouchers", label: "Daily Vouchers", icon: Gift },
   ];
 
   const getLinksForRole = () => {
@@ -89,7 +92,7 @@ const NavLinks: React.FC = () => {
     );
   }
 
-  // Desktop navigation (existing code)
+  // Desktop navigation
   return (
     <div className="hidden md:flex space-x-6">
       {userRole === 'admin' && (
@@ -162,6 +165,12 @@ const NavLinks: React.FC = () => {
           }>
             Withdrawals
           </NavLink>
+          <NavLink to="/vouchers" className={({ isActive }) =>
+            isActive ? 'text-white border-b-2 border-betting-green pb-1' : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+          }>
+            <Gift className="h-4 w-4 inline mr-1" />
+            Daily Vouchers
+          </NavLink>
           <NavLink to="/notifications" className={({ isActive }) =>
             isActive ? 'text-white border-b-2 border-betting-green pb-1' : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
           }>
@@ -197,6 +206,12 @@ const NavLinks: React.FC = () => {
             <ShoppingBag className="h-4 w-4" />
             My Purchases
           </NavLink>
+          <NavLink to="/vouchers" className={({ isActive }) =>
+            isActive ? 'flex items-center gap-1.5 text-white border-b-2 border-betting-green pb-1' : 'flex items-center gap-1.5 text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+          }>
+            <Gift className="h-4 w-4" />
+            Daily Vouchers
+          </NavLink>
           <NavLink to="/notifications" className={({ isActive }) =>
             isActive ? 'flex items-center gap-1.5 text-white border-b-2 border-betting-green pb-1' : 'flex items-center gap-1.5 text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
           }>
@@ -212,6 +227,12 @@ const NavLinks: React.FC = () => {
             isActive ? 'text-white border-b-2 border-betting-green pb-1' : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
           }>
             Browse Tickets
+          </NavLink>
+          <NavLink to="/vouchers" className={({ isActive }) =>
+            isActive ? 'text-white border-b-2 border-betting-green pb-1' : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+          }>
+            <Gift className="h-4 w-4 inline mr-1" />
+            Daily Vouchers
           </NavLink>
         </>
       )}

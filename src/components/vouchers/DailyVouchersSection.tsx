@@ -3,10 +3,11 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Gift, Clock, CheckCircle, User } from "lucide-react";
+import { Loader2, Gift, Clock, CheckCircle, User, LogIn } from "lucide-react";
 import { useDailyVouchers } from "@/hooks/useDailyVouchers";
 import { useAuth } from "@/contexts/auth";
 import { formatDistanceToNow } from "date-fns";
+import { Link } from "react-router-dom";
 
 const DailyVouchersSection: React.FC = () => {
   const { currentUser } = useAuth();
@@ -21,10 +22,6 @@ const DailyVouchersSection: React.FC = () => {
 
     return () => clearInterval(timer);
   }, []);
-
-  if (!currentUser || currentUser.role !== 'buyer') {
-    return null;
-  }
 
   const today = new Date().toISOString().split('T')[0];
   const dropTime = new Date(`${today}T12:00:00`);
@@ -48,7 +45,21 @@ const DailyVouchersSection: React.FC = () => {
   }
 
   if (vouchers.length === 0) {
-    return null;
+    return (
+      <section className="py-8 px-4 bg-gradient-to-br from-betting-dark-gray to-betting-black">
+        <div className="container mx-auto">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold mb-4 flex items-center justify-center gap-2">
+              <Gift className="h-8 w-8 text-betting-green" />
+              Daily Voucher Drop
+            </h2>
+            <p className="text-muted-foreground">
+              No vouchers available at the moment. Check back later!
+            </p>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   const formatTimeUntilDrop = () => {
@@ -61,6 +72,8 @@ const DailyVouchersSection: React.FC = () => {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
+  const canClaim = currentUser && (currentUser.role === 'buyer' || currentUser.role === 'seller');
+
   return (
     <section className="py-8 px-4 bg-gradient-to-br from-betting-dark-gray to-betting-black">
       <div className="container mx-auto">
@@ -72,6 +85,20 @@ const DailyVouchersSection: React.FC = () => {
           <p className="text-muted-foreground mb-4">
             5 x R50 vouchers drop daily at 12:00 PM - First come, first served!
           </p>
+          
+          {!currentUser && (
+            <div className="mb-6 p-4 bg-betting-black rounded-lg">
+              <p className="text-sm text-muted-foreground mb-2">
+                You need to be logged in to claim vouchers
+              </p>
+              <Link to="/auth/login">
+                <Button className="bg-betting-green hover:bg-betting-green-dark">
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Login to Claim
+                </Button>
+              </Link>
+            </div>
+          )}
           
           {!isDropTime ? (
             <div className="flex items-center justify-center gap-2 text-lg font-mono">
@@ -133,22 +160,35 @@ const DailyVouchersSection: React.FC = () => {
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <Button
-                      onClick={() => claimVoucher(voucher.id)}
-                      disabled={!isDropTime || claiming === voucher.id}
-                      className="w-full bg-betting-green hover:bg-betting-green-dark"
-                    >
-                      {claiming === voucher.id ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Claiming...
-                        </>
-                      ) : !isDropTime ? (
-                        'Available at 12:00 PM'
-                      ) : (
-                        'Claim Now!'
-                      )}
-                    </Button>
+                    {!currentUser ? (
+                      <Link to="/auth/login">
+                        <Button className="w-full bg-betting-green hover:bg-betting-green-dark">
+                          <LogIn className="mr-2 h-4 w-4" />
+                          Login to Claim
+                        </Button>
+                      </Link>
+                    ) : !canClaim ? (
+                      <Button disabled className="w-full">
+                        Not Available for Your Role
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => claimVoucher(voucher.id)}
+                        disabled={!isDropTime || claiming === voucher.id}
+                        className="w-full bg-betting-green hover:bg-betting-green-dark"
+                      >
+                        {claiming === voucher.id ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Claiming...
+                          </>
+                        ) : !isDropTime ? (
+                          'Available at 12:00 PM'
+                        ) : (
+                          'Claim Now!'
+                        )}
+                      </Button>
+                    )}
                   </div>
                 )}
               </CardContent>
@@ -160,6 +200,7 @@ const DailyVouchersSection: React.FC = () => {
           <p>• One voucher per user per day</p>
           <p>• Vouchers add R50 credits to your account instantly</p>
           <p>• New vouchers drop every day at 12:00 PM</p>
+          {!currentUser && <p>• Login required to claim vouchers</p>}
         </div>
       </div>
     </section>

@@ -64,6 +64,9 @@ import AllSellers from "@/pages/sellers/AllSellers";
 import SellersLeaderboard from "@/pages/sellers/SellersLeaderboard";
 import SellerPublicProfile from "@/pages/sellers/SellerPublicProfile";
 
+// Vouchers pages
+import DailyVouchers from "@/pages/vouchers/DailyVouchers";
+
 // Payment pages
 import PaymentSuccess from "@/pages/payment/Success";
 import PaymentCancel from "@/pages/payment/Cancel";
@@ -141,6 +144,9 @@ function App() {
                     <Route path="/sellers" element={<AllSellers />} />
                     <Route path="/sellers/leaderboard" element={<SellersLeaderboard />} />
                     <Route path="/sellers/:id" element={<SellerPublicProfile />} />
+
+                    {/* Vouchers routes */}
+                    <Route path="/vouchers" element={<DailyVouchers />} />
 
                     {/* Payment routes */}
                     <Route path="/payment/success" element={<PaymentSuccess />} />
