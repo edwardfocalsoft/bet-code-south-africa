@@ -171,6 +171,47 @@ export type Database = {
           },
         ]
       }
+      daily_vouchers: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          drop_date: string
+          drop_time: string
+          id: string
+          is_active: boolean
+          value: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          drop_date: string
+          drop_time?: string
+          id?: string
+          is_active?: boolean
+          value: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          drop_date?: string
+          drop_time?: string
+          id?: string
+          is_active?: boolean
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_vouchers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -604,6 +645,42 @@ export type Database = {
           },
         ]
       }
+      voucher_claims: {
+        Row: {
+          claimed_at: string
+          id: string
+          user_id: string
+          voucher_id: string
+        }
+        Insert: {
+          claimed_at?: string
+          id?: string
+          user_id: string
+          voucher_id: string
+        }
+        Update: {
+          claimed_at?: string
+          id?: string
+          user_id?: string
+          voucher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voucher_claims_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voucher_claims_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: true
+            referencedRelation: "daily_vouchers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wallet_transactions: {
         Row: {
           amount: number
@@ -677,6 +754,10 @@ export type Database = {
       add_credits: {
         Args: { user_id: string; amount_to_add: number }
         Returns: number
+      }
+      claim_daily_voucher: {
+        Args: { p_voucher_id: string; p_user_id: string }
+        Returns: boolean
       }
       complete_ticket_purchase: {
         Args: {

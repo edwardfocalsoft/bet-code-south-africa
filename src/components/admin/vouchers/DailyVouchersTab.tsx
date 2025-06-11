@@ -16,35 +16,37 @@ const DailyVouchersTab: React.FC = () => {
     date: new Date().toISOString().split('T')[0],
     time: '12:00',
     value: 50,
-    count: 5
+    code: ''
   });
 
   const generateVoucherCode = () => {
     return 'DAILY' + Math.random().toString(36).substr(2, 8).toUpperCase();
   };
 
-  const handleCreateVouchers = async () => {
+  const handleCreateVoucher = async () => {
+    if (!formData.code.trim()) {
+      return;
+    }
+
     try {
       setIsCreating(true);
       
-      for (let i = 0; i < formData.count; i++) {
-        await createVoucher({
-          code: generateVoucherCode(),
-          value: formData.value,
-          drop_date: formData.date,
-          drop_time: formData.time
-        });
-      }
+      await createVoucher({
+        code: formData.code,
+        value: formData.value,
+        drop_date: formData.date,
+        drop_time: formData.time
+      });
       
       // Reset form
       setFormData({
         date: new Date().toISOString().split('T')[0],
         time: '12:00',
         value: 50,
-        count: 5
+        code: ''
       });
     } catch (error) {
-      console.error('Error creating vouchers:', error);
+      console.error('Error creating voucher:', error);
     } finally {
       setIsCreating(false);
     }
@@ -56,7 +58,7 @@ const DailyVouchersTab: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5" />
-            Create Daily Vouchers
+            Create Daily Voucher
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -96,33 +98,42 @@ const DailyVouchersTab: React.FC = () => {
             </div>
             
             <div>
-              <Label htmlFor="count">Number of Vouchers</Label>
-              <Input
-                id="count"
-                type="number"
-                min="1"
-                max="10"
-                value={formData.count}
-                onChange={(e) => setFormData({ ...formData, count: parseInt(e.target.value) || 5 })}
-                className="bg-betting-black border-betting-light-gray"
-              />
+              <Label htmlFor="code">Voucher Code</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="code"
+                  type="text"
+                  placeholder="Enter voucher code"
+                  value={formData.code}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                  className="bg-betting-black border-betting-light-gray"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setFormData({ ...formData, code: generateVoucherCode() })}
+                  className="whitespace-nowrap"
+                >
+                  Generate
+                </Button>
+              </div>
             </div>
           </div>
           
           <Button
-            onClick={handleCreateVouchers}
-            disabled={isCreating}
+            onClick={handleCreateVoucher}
+            disabled={isCreating || !formData.code.trim()}
             className="bg-betting-green hover:bg-betting-green-dark"
           >
             {isCreating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating Vouchers...
+                Creating Voucher...
               </>
             ) : (
               <>
                 <Plus className="mr-2 h-4 w-4" />
-                Create {formData.count} Vouchers for {format(new Date(formData.date), 'MMM dd, yyyy')}
+                Create Voucher for {format(new Date(formData.date), 'MMM dd, yyyy')}
               </>
             )}
           </Button>
