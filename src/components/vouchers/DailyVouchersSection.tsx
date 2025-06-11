@@ -9,7 +9,7 @@ import { useAuth } from "@/contexts/auth";
 import { formatDistanceToNow } from "date-fns";
 
 const DailyVouchersSection: React.FC = () => {
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
   const { vouchers, loading, claiming, claimVoucher } = useDailyVouchers();
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -22,7 +22,7 @@ const DailyVouchersSection: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  if (!user || user.role !== 'buyer') {
+  if (!currentUser || currentUser.role !== 'buyer') {
     return null;
   }
 
