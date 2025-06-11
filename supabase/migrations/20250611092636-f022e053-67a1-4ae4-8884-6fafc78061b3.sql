@@ -95,8 +95,8 @@ BEGIN
     RAISE EXCEPTION 'Voucher not found or not active';
   END IF;
   
-  -- Check if voucher drop time has passed
-  v_drop_datetime := (v_voucher.drop_date::text || ' ' || v_voucher.drop_time::text)::timestamp with time zone;
+  -- Check if voucher drop time has passed (using current timezone)
+  v_drop_datetime := (v_voucher.drop_date + v_voucher.drop_time) AT TIME ZONE current_setting('timezone');
   
   IF v_current_time < v_drop_datetime THEN
     RAISE EXCEPTION 'Voucher drop time has not arrived yet';
