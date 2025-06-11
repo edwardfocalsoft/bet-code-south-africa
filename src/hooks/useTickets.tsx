@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -11,23 +10,20 @@ import { useTicketActions } from "./tickets/useTicketActions";
 interface FilterOptions {
   bettingSite?: BettingSite | "all";
   isFree?: boolean;
-  isFeatured?: boolean;
   maxPrice?: number;
   showExpired?: boolean;
   sellerId?: string;
   sortBy?: string;
   sortOrder?: "asc" | "desc";
   showHidden?: boolean;
-  randomize?: boolean;
+  randomize?: boolean; // Add randomize option
 }
 
 interface UseTicketsOptions {
   fetchOnMount?: boolean;
   filterExpired?: boolean;
   role?: "buyer" | "seller" | "admin";
-  randomize?: boolean;
-  limit?: number;
-  filters?: FilterOptions;
+  randomize?: boolean; // Add randomize option
 }
 
 export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, filterExpired: true, role: "buyer", randomize: false }) {
@@ -41,15 +37,15 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
   const ticketActions = useTicketActions();
 
   // Add filter states
-  const [filters, setFilters] = useState<FilterOptions>(options.filters || {});
+  const [filters, setFilters] = useState<FilterOptions>({});
 
   const fetchTickets = useCallback(async (filterOptions?: FilterOptions) => {
     try {
       setLoading(true);
       setError(null);
 
-      // Merge the passed filters with the state filters and options filters
-      const mergedFilters = { ...filters, ...options.filters, ...filterOptions };
+      // Merge the passed filters with the state filters
+      const mergedFilters = { ...filters, ...filterOptions };
 
       let query = supabase.from("tickets").select(`
         id,
@@ -75,17 +71,6 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
       query = ticketFilters.applyExpiredFilter(query, mergedFilters, options.role || "buyer");
       query = ticketFilters.applySellerFilter(query, mergedFilters.sellerId);
       query = ticketFilters.applyHiddenFilter(query, mergedFilters.showHidden);
-      
-      // Apply featured filter if specified
-      if (mergedFilters.isFeatured) {
-        // For now, we'll simulate featured tickets by getting the most recent ones
-        query = query.order('created_at', { ascending: false });
-      }
-      
-      // Apply limit if specified
-      if (options.limit) {
-        query = query.limit(options.limit);
-      }
       
       // Apply random ordering if specified
       if (options.randomize || mergedFilters.randomize) {
@@ -126,8 +111,6 @@ export function useTickets(options: UseTicketsOptions = { fetchOnMount: true, fi
     }
   }, [
     filters,
-    options.filters,
-    options.limit,
     ticketFilters,
     ticketMapper,
     options.role,
