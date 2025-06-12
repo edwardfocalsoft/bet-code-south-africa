@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth';
@@ -34,7 +35,6 @@ const NavLinks: React.FC = () => {
     { to: "/seller/withdrawals", label: "Withdrawals", icon: Wallet },
     { to: "/vouchers", label: "Daily Vouchers", icon: Gift },
     { to: "/live-scores", label: "Live Scores", icon: Trophy },
-    { to: "/notifications", label: "Notifications", icon: BellRing },
   ];
 
   const buyerLinks = [
@@ -44,7 +44,6 @@ const NavLinks: React.FC = () => {
     { to: "/buyer/purchases", label: "My Purchases", icon: ShoppingBag },
     { to: "/vouchers", label: "Daily Vouchers", icon: Gift },
     { to: "/live-scores", label: "Live Scores", icon: Trophy },
-    { to: "/notifications", label: "Notifications", icon: BellRing },
   ];
 
   const publicLinks = [
@@ -186,12 +185,6 @@ const NavLinks: React.FC = () => {
             <Trophy className="h-4 w-4 inline mr-1" />
             Live Scores
           </NavLink>
-          <NavLink to="/notifications" className={({ isActive }) =>
-            isActive ? 'text-white border-b-2 border-betting-green pb-1' : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
-          }>
-            <BellRing className="h-4 w-4 inline mr-1" />
-            Notifications
-          </NavLink>
         </>
       )}
 
@@ -232,12 +225,6 @@ const NavLinks: React.FC = () => {
           }>
             <Trophy className="h-4 w-4" />
             Live Scores
-          </NavLink>
-          <NavLink to="/notifications" className={({ isActive }) =>
-            isActive ? 'flex items-center gap-1.5 text-white border-b-2 border-betting-green pb-1' : 'flex items-center gap-1.5 text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
-          }>
-            <BellRing className="h-4 w-4" />
-            Notifications
           </NavLink>
         </>
       )}
