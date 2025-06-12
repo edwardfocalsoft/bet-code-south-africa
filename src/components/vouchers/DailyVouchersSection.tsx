@@ -3,11 +3,12 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Gift, Clock, CheckCircle, User, LogIn } from "lucide-react";
+import { Loader2, Gift, Clock, CheckCircle, User, LogIn, Copy } from "lucide-react";
 import { useDailyVouchers } from "@/hooks/useDailyVouchers";
 import { useAuth } from "@/contexts/auth";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 const DailyVouchersSection: React.FC = () => {
   const { currentUser } = useAuth();
@@ -27,6 +28,11 @@ const DailyVouchersSection: React.FC = () => {
   const dropTime = new Date(`${today}T12:00:00`);
   const isDropTime = currentTime >= dropTime;
   const timeUntilDrop = dropTime.getTime() - currentTime.getTime();
+
+  const copyVoucherCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toast.success('Voucher code copied to clipboard!');
+  };
 
   if (loading) {
     return (
@@ -149,11 +155,23 @@ const DailyVouchersSection: React.FC = () => {
 
                     {voucher.claimed_by_current_user && (
                       <div className="text-center">
-                        <Badge variant="default" className="bg-betting-green text-white">
+                        <Badge variant="default" className="bg-betting-green text-white mb-3">
                           Your Voucher
                         </Badge>
-                        <div className="mt-2 p-2 bg-betting-black rounded text-xs font-mono">
-                          Code: {voucher.code}
+                        <div className="p-3 bg-betting-black rounded border border-betting-green">
+                          <div className="text-xs text-muted-foreground mb-1">Voucher Code:</div>
+                          <div className="font-mono text-sm text-betting-green mb-2">
+                            {voucher.code}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => copyVoucherCode(voucher.code)}
+                            className="w-full text-xs"
+                          >
+                            <Copy className="h-3 w-3 mr-1" />
+                            Copy Code
+                          </Button>
                         </div>
                       </div>
                     )}
