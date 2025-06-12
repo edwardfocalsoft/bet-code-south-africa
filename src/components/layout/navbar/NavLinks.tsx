@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@/contexts/auth';
-import { LayoutDashboard, Wallet, Ticket, ShoppingBag, CreditCard, BellRing, UserCircle, Menu, ChevronDown, Receipt, Gift } from 'lucide-react';
+import { LayoutDashboard, Wallet, Ticket, ShoppingBag, CreditCard, BellRing, UserCircle, Menu, ChevronDown, Receipt, Gift, Trophy } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +23,7 @@ const NavLinks: React.FC = () => {
     { to: "/admin/withdrawals", label: "Withdrawals", icon: Wallet },
     { to: "/admin/cases", label: "Cases", icon: Ticket },
     { to: "/admin/payment-settings", label: "Payment", icon: CreditCard },
+    { to: "/live-scores", label: "Live Scores", icon: Trophy },
   ];
 
   const sellerLinks = [
@@ -33,6 +33,7 @@ const NavLinks: React.FC = () => {
     { to: "/seller/transactions", label: "Transactions", icon: Receipt },
     { to: "/seller/withdrawals", label: "Withdrawals", icon: Wallet },
     { to: "/vouchers", label: "Daily Vouchers", icon: Gift },
+    { to: "/live-scores", label: "Live Scores", icon: Trophy },
     { to: "/notifications", label: "Notifications", icon: BellRing },
   ];
 
@@ -42,12 +43,14 @@ const NavLinks: React.FC = () => {
     { to: "/tickets", label: "Browse Tickets", icon: Ticket },
     { to: "/buyer/purchases", label: "My Purchases", icon: ShoppingBag },
     { to: "/vouchers", label: "Daily Vouchers", icon: Gift },
+    { to: "/live-scores", label: "Live Scores", icon: Trophy },
     { to: "/notifications", label: "Notifications", icon: BellRing },
   ];
 
   const publicLinks = [
     { to: "/tickets", label: "Browse Tickets", icon: Ticket },
     { to: "/vouchers", label: "Daily Vouchers", icon: Gift },
+    { to: "/live-scores", label: "Live Scores", icon: Trophy },
   ];
 
   const getLinksForRole = () => {
@@ -133,6 +136,12 @@ const NavLinks: React.FC = () => {
             <CreditCard className="h-4 w-4 inline mr-1" />
             Payment
           </NavLink>
+          <NavLink to="/live-scores" className={({ isActive }) =>
+            isActive ? 'text-white border-b-2 border-betting-green pb-1' : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+          }>
+            <Trophy className="h-4 w-4 inline mr-1" />
+            Live Scores
+          </NavLink>
         </>
       )}
 
@@ -170,6 +179,12 @@ const NavLinks: React.FC = () => {
           }>
             <Gift className="h-4 w-4 inline mr-1" />
             Daily Vouchers
+          </NavLink>
+          <NavLink to="/live-scores" className={({ isActive }) =>
+            isActive ? 'text-white border-b-2 border-betting-green pb-1' : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+          }>
+            <Trophy className="h-4 w-4 inline mr-1" />
+            Live Scores
           </NavLink>
           <NavLink to="/notifications" className={({ isActive }) =>
             isActive ? 'text-white border-b-2 border-betting-green pb-1' : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
@@ -212,6 +227,12 @@ const NavLinks: React.FC = () => {
             <Gift className="h-4 w-4" />
             Daily Vouchers
           </NavLink>
+          <NavLink to="/live-scores" className={({ isActive }) =>
+            isActive ? 'flex items-center gap-1.5 text-white border-b-2 border-betting-green pb-1' : 'flex items-center gap-1.5 text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+          }>
+            <Trophy className="h-4 w-4" />
+            Live Scores
+          </NavLink>
           <NavLink to="/notifications" className={({ isActive }) =>
             isActive ? 'flex items-center gap-1.5 text-white border-b-2 border-betting-green pb-1' : 'flex items-center gap-1.5 text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
           }>
@@ -233,6 +254,12 @@ const NavLinks: React.FC = () => {
           }>
             <Gift className="h-4 w-4 inline mr-1" />
             Daily Vouchers
+          </NavLink>
+          <NavLink to="/live-scores" className={({ isActive }) =>
+            isActive ? 'text-white border-b-2 border-betting-green pb-1' : 'text-gray-300 hover:text-white pb-1 hover:border-b-2 hover:border-betting-green/50'
+          }>
+            <Trophy className="h-4 w-4 inline mr-1" />
+            Live Scores
           </NavLink>
         </>
       )}

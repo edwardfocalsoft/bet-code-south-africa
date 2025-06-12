@@ -1,4 +1,3 @@
-
 import { Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -22,6 +21,7 @@ import Privacy from "@/pages/Privacy";
 import FAQ from "@/pages/FAQ";
 import Contact from "@/pages/Contact";
 import Maintenance from "@/pages/Maintenance";
+import LiveScores from "@/pages/LiveScores";
 
 // User pages
 import Wallet from "@/pages/user/Wallet";
@@ -103,6 +103,7 @@ function App() {
                     <Route path="/faq" element={<FAQ />} />
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/maintenance" element={<Maintenance />} />
+                    <Route path="/live-scores" element={<LiveScores />} />
 
                     {/* User routes */}
                     <Route path="/user/wallet" element={<Wallet />} />
