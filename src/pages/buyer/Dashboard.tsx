@@ -2,6 +2,7 @@
 import React from "react";
 import Layout from "@/components/layout/Layout";
 import { useAuth } from "@/contexts/auth";
+import { useWallet } from "@/hooks/useWallet";
 import StatCard from "@/components/buyer/dashboard/StatCard";
 import RecentPurchasesCard from "@/components/buyer/dashboard/RecentPurchasesCard";
 import SupportCard from "@/components/buyer/dashboard/SupportCard";
@@ -9,13 +10,14 @@ import { CreditCard, Ticket, Trophy } from "lucide-react";
 
 const BuyerDashboard: React.FC = () => {
   const { currentUser } = useAuth();
+  const { creditBalance, loading: walletLoading } = useWallet();
 
   const dashboardStats = [
     {
       title: "Available Credits",
-      value: currentUser?.credit_balance || currentUser?.creditBalance || 0,
+      value: creditBalance || 0,
       icon: <CreditCard className="h-8 w-8 text-betting-green" />,
-      loading: false,
+      loading: walletLoading,
       subtitle: <p className="text-xs text-muted-foreground">Your current balance</p>
     },
     {

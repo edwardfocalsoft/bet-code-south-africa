@@ -103,7 +103,7 @@ export function useDailyVouchers() {
 
       if (error) throw error;
 
-      toast.success('Voucher claimed successfully! R50 credits added to your account.');
+      toast.success('Voucher claimed successfully! Check your claimed vouchers below for the code.');
       await fetchTodaysVouchers(); // Refresh the list
     } catch (error: any) {
       console.error('Error claiming voucher:', error);
