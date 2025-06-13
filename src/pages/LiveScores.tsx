@@ -1,7 +1,6 @@
 
 import React, { useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trophy } from 'lucide-react';
 
 const LiveScores: React.FC = () => {
@@ -39,20 +38,13 @@ const LiveScores: React.FC = () => {
           </p>
         </div>
 
-        <Card className="betting-card">
-          <CardHeader>
-            <CardTitle className="text-center">Live Football Scores</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-center">
-              <div 
-                id="ls-widget" 
-                data-w="awo_w9144_6849e14318760" 
-                className="livescore-widget w-full"
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <div className="w-full">
+          <div 
+            id="ls-widget" 
+            data-w="awo_w9144_6849e14318760" 
+            className="livescore-widget w-full"
+          />
+        </div>
       </div>
     </Layout>
   );
