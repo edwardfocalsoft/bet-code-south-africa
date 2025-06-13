@@ -244,7 +244,7 @@ const FeaturedSellerSection: React.FC = () => {
                     />
                     
                     <Link to={`/sellers/${featuredSeller.id}`}>
-                      <Button className="mt-6 bg-betting-green hover:bg-betting-green-dark text-white">
+                      <Button className="mt-6 bg-betting-green hover:bg-betting-green-dark text-white w-full">
                         View Profile
                       </Button>
                     </Link>
