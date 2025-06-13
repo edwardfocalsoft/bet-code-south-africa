@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, Gift, Clock, CheckCircle, User, LogIn, Copy, Star, Zap } from "lucide-react";
 import { useDailyVouchers } from "@/hooks/useDailyVouchers";
 import { useAuth } from "@/contexts/auth";
@@ -36,7 +37,7 @@ const DailyVouchersSection: React.FC = () => {
 
   if (loading) {
     return (
-      <section className="min-h-screen bg-gradient-to-br from-betting-black via-betting-dark-gray to-betting-black py-12 px-4">
+      <section className="min-h-screen bg-betting-black py-12 px-4">
         <div className="container mx-auto">
           <div className="flex justify-center items-center min-h-[400px]">
             <div className="text-center">
@@ -51,19 +52,19 @@ const DailyVouchersSection: React.FC = () => {
 
   if (vouchers.length === 0) {
     return (
-      <section className="min-h-screen bg-gradient-to-br from-betting-black via-betting-dark-gray to-betting-black py-12 px-4">
+      <section className="min-h-screen bg-betting-black py-12 px-4">
         <div className="container mx-auto">
           <div className="text-center max-w-2xl mx-auto">
-            <div className="bg-gradient-to-br from-betting-green/20 to-betting-accent/20 rounded-full w-32 h-32 flex items-center justify-center mx-auto mb-8">
+            <div className="bg-betting-green/20 rounded-full w-32 h-32 flex items-center justify-center mx-auto mb-8">
               <Gift className="h-16 w-16 text-betting-green" />
             </div>
-            <h2 className="text-4xl font-bold mb-6 bg-gradient-to-r from-betting-green to-betting-accent bg-clip-text text-transparent">
+            <h2 className="text-4xl font-bold mb-6 text-white">
               Daily Voucher Drop
             </h2>
             <p className="text-xl text-muted-foreground mb-8">
               No vouchers available at the moment. Check back later for amazing deals!
             </p>
-            <div className="bg-betting-dark-gray/50 backdrop-blur-sm rounded-lg p-6 border border-betting-light-gray/30">
+            <div className="bg-betting-dark-gray rounded-lg p-6 border border-betting-light-gray">
               <p className="text-sm text-muted-foreground">
                 💡 New vouchers drop every day at 12:00 PM - Don't miss out!
               </p>
@@ -85,35 +86,32 @@ const DailyVouchersSection: React.FC = () => {
   };
 
   const canClaim = currentUser && (currentUser.role === 'buyer' || currentUser.role === 'seller');
+  const claimedVouchers = vouchers.filter(voucher => voucher.is_claimed);
+  const userClaimedVouchers = vouchers.filter(voucher => voucher.claimed_by_current_user);
 
   return (
-    <section className="min-h-screen bg-gradient-to-br from-betting-black via-betting-dark-gray to-betting-black py-12 px-4 relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-betting-green/5 via-transparent to-betting-accent/5 pointer-events-none" />
-      <div className="absolute top-20 left-10 w-72 h-72 bg-betting-green/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-20 right-10 w-96 h-96 bg-betting-accent/5 rounded-full blur-3xl pointer-events-none" />
-      
-      <div className="container mx-auto relative z-10">
+    <section className="min-h-screen bg-betting-black py-12 px-4">      
+      <div className="container mx-auto">
         {/* Header Section */}
         <div className="text-center mb-12 max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-3 bg-gradient-to-r from-betting-green/20 to-betting-accent/20 backdrop-blur-sm rounded-full px-6 py-3 mb-6 border border-betting-green/30">
+          <div className="inline-flex items-center gap-3 bg-betting-green/20 rounded-full px-6 py-3 mb-6 border border-betting-green/30">
             <Gift className="h-6 w-6 text-betting-green animate-pulse" />
             <span className="text-sm font-medium text-betting-green">Daily Voucher Drop</span>
-            <Star className="h-4 w-4 text-betting-accent" />
+            <Star className="h-4 w-4 text-betting-green" />
           </div>
           
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-betting-green via-white to-betting-accent bg-clip-text text-transparent">
-            Free Vouchers
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 text-white">
+            Free Betting Vouchers
           </h1>
           
           <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
-            5 x R50 vouchers drop daily at 12:00 PM
+            5 x R50 betting vouchers drop daily at 12:00 PM
             <br />
-            <span className="text-betting-green font-semibold">First come, first served!</span>
+            <span className="text-betting-green font-semibold">Use on your favorite betting platforms!</span>
           </p>
           
           {!currentUser && (
-            <div className="mb-8 p-6 bg-gradient-to-r from-betting-dark-gray/80 to-betting-light-gray/80 backdrop-blur-sm rounded-2xl border border-betting-light-gray/30 max-w-md mx-auto">
+            <div className="mb-8 p-6 bg-betting-dark-gray rounded-2xl border border-betting-light-gray max-w-md mx-auto">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 bg-betting-green/20 rounded-full flex items-center justify-center">
                   <LogIn className="h-6 w-6 text-betting-green" />
@@ -124,7 +122,7 @@ const DailyVouchersSection: React.FC = () => {
                 </div>
               </div>
               <Link to="/auth/login">
-                <Button className="w-full bg-gradient-to-r from-betting-green to-betting-green-dark hover:from-betting-green-dark hover:to-betting-green text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
+                <Button className="w-full bg-betting-green hover:bg-betting-green-dark text-white font-semibold py-3 rounded-xl">
                   <LogIn className="h-5 w-5 mr-2" />
                   Login to Claim Vouchers
                 </Button>
@@ -135,7 +133,7 @@ const DailyVouchersSection: React.FC = () => {
           {/* Countdown Timer */}
           <div className="mb-10">
             {!isDropTime ? (
-              <div className="bg-gradient-to-r from-betting-dark-gray/90 to-betting-light-gray/90 backdrop-blur-sm rounded-2xl p-6 border border-betting-light-gray/30 max-w-sm mx-auto">
+              <div className="bg-betting-dark-gray rounded-2xl p-6 border border-betting-light-gray max-w-sm mx-auto">
                 <div className="flex items-center justify-center gap-3 mb-3">
                   <Clock className="h-6 w-6 text-betting-green animate-pulse" />
                   <span className="text-lg font-semibold text-white">Next Drop In</span>
@@ -145,7 +143,7 @@ const DailyVouchersSection: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="inline-flex items-center gap-3 bg-gradient-to-r from-betting-green to-betting-accent rounded-2xl px-8 py-4 shadow-lg animate-pulse">
+              <div className="inline-flex items-center gap-3 bg-betting-green rounded-2xl px-8 py-4 animate-pulse">
                 <Zap className="h-6 w-6 text-white" />
                 <span className="text-xl font-bold text-white">Drop is LIVE! 🔥</span>
                 <Zap className="h-6 w-6 text-white" />
@@ -157,11 +155,8 @@ const DailyVouchersSection: React.FC = () => {
         {/* Vouchers Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 max-w-7xl mx-auto mb-12">
           {vouchers.map((voucher, index) => (
-            <Card key={voucher.id} className="group relative overflow-hidden bg-gradient-to-br from-betting-dark-gray/90 to-betting-light-gray/90 backdrop-blur-sm border border-betting-light-gray/30 hover:border-betting-green/50 transition-all duration-500 hover:shadow-2xl hover:shadow-betting-green/20 hover:scale-105">
-              {/* Card decoration */}
-              <div className="absolute inset-0 bg-gradient-to-br from-betting-green/5 to-betting-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              
-              <CardHeader className="pb-4 relative z-10">
+            <Card key={voucher.id} className="bg-betting-dark-gray border border-betting-light-gray hover:border-betting-green/50 transition-all duration-300 hover:shadow-lg">
+              <CardHeader className="pb-4">
                 <div className="flex items-center justify-between mb-2">
                   <Badge variant="outline" className={`text-xs font-bold ${voucher.is_claimed ? 'bg-gray-500/20 text-gray-400 border-gray-500/30' : 'bg-betting-green/20 text-betting-green border-betting-green/30'}`}>
                     #{index + 1}
@@ -175,12 +170,12 @@ const DailyVouchersSection: React.FC = () => {
                 </CardTitle>
               </CardHeader>
               
-              <CardContent className="space-y-4 relative z-10">
+              <CardContent className="space-y-4">
                 <div className="text-center">
-                  <div className="text-4xl font-bold bg-gradient-to-r from-betting-green to-betting-accent bg-clip-text text-transparent mb-2">
+                  <div className="text-4xl font-bold text-betting-green mb-2">
                     R{voucher.value}
                   </div>
-                  <p className="text-sm text-muted-foreground">Free Credits</p>
+                  <p className="text-sm text-muted-foreground">Betting Voucher</p>
                 </div>
 
                 {voucher.is_claimed ? (
@@ -201,34 +196,12 @@ const DailyVouchersSection: React.FC = () => {
                         }
                       </div>
                     </div>
-
-                    {voucher.claimed_by_current_user && (
-                      <div className="text-center space-y-3">
-                        <Badge className="bg-gradient-to-r from-betting-green to-betting-green-dark text-white px-4 py-1">
-                          Your Voucher ⭐
-                        </Badge>
-                        <div className="p-4 bg-gradient-to-br from-betting-black/80 to-betting-dark-gray/80 rounded-xl border border-betting-green/30">
-                          <div className="text-xs text-muted-foreground mb-2">Voucher Code:</div>
-                          <div className="font-mono text-sm text-betting-green mb-3 bg-betting-black/50 p-2 rounded border">
-                            {voucher.code}
-                          </div>
-                          <Button
-                            size="sm"
-                            onClick={() => copyVoucherCode(voucher.code)}
-                            className="w-full bg-gradient-to-r from-betting-green/20 to-betting-accent/20 hover:from-betting-green/30 hover:to-betting-accent/30 border border-betting-green/30 text-betting-green text-xs"
-                          >
-                            <Copy className="h-3 w-3 mr-2" />
-                            Copy Code
-                          </Button>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
                     {!currentUser ? (
                       <Link to="/auth/login">
-                        <Button className="w-full bg-gradient-to-r from-betting-green to-betting-green-dark hover:from-betting-green-dark hover:to-betting-green text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
+                        <Button className="w-full bg-betting-green hover:bg-betting-green-dark text-white font-semibold py-3 rounded-xl">
                           <LogIn className="mr-2 h-4 w-4" />
                           Login to Claim
                         </Button>
@@ -241,10 +214,10 @@ const DailyVouchersSection: React.FC = () => {
                       <Button
                         onClick={() => claimVoucher(voucher.id)}
                         disabled={!isDropTime || claiming === voucher.id}
-                        className={`w-full font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 ${
+                        className={`w-full font-semibold py-3 rounded-xl transition-all duration-300 ${
                           isDropTime && claiming !== voucher.id
-                            ? 'bg-gradient-to-r from-betting-green to-betting-accent hover:from-betting-green-dark hover:to-betting-accent text-white animate-pulse'
-                            : 'bg-gradient-to-r from-betting-dark-gray to-betting-light-gray text-muted-foreground border border-betting-light-gray/30'
+                            ? 'bg-betting-green hover:bg-betting-green-dark text-white'
+                            : 'bg-betting-dark-gray text-muted-foreground border border-betting-light-gray'
                         }`}
                       >
                         {claiming === voucher.id ? (
@@ -269,14 +242,99 @@ const DailyVouchersSection: React.FC = () => {
           ))}
         </div>
 
-        {/* Footer Info */}
-        <div className="text-center max-w-2xl mx-auto">
-          <div className="bg-gradient-to-r from-betting-dark-gray/80 to-betting-light-gray/80 backdrop-blur-sm rounded-2xl p-8 border border-betting-light-gray/30">
+        {/* Your Claimed Vouchers Section */}
+        {currentUser && userClaimedVouchers.length > 0 && (
+          <div className="mb-12 max-w-7xl mx-auto">
+            <h3 className="text-2xl font-bold text-white mb-6 text-center">Your Claimed Vouchers</h3>
+            <div className="bg-betting-dark-gray rounded-lg border border-betting-light-gray overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-betting-light-gray">
+                    <TableHead className="text-betting-green">Voucher</TableHead>
+                    <TableHead className="text-betting-green">Value</TableHead>
+                    <TableHead className="text-betting-green">Code</TableHead>
+                    <TableHead className="text-betting-green">Claimed</TableHead>
+                    <TableHead className="text-betting-green">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {userClaimedVouchers.map((voucher, index) => (
+                    <TableRow key={voucher.id} className="border-betting-light-gray">
+                      <TableCell className="text-white font-medium">
+                        Voucher #{vouchers.findIndex(v => v.id === voucher.id) + 1}
+                      </TableCell>
+                      <TableCell className="text-betting-green font-bold">R{voucher.value}</TableCell>
+                      <TableCell>
+                        <code className="bg-betting-black px-2 py-1 rounded text-betting-green font-mono text-sm">
+                          {voucher.code}
+                        </code>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {voucher.claim?.claimed_at && 
+                          formatDistanceToNow(new Date(voucher.claim.claimed_at), { addSuffix: true })
+                        }
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          onClick={() => copyVoucherCode(voucher.code)}
+                          className="bg-betting-green/20 hover:bg-betting-green/30 border border-betting-green/30 text-betting-green text-xs"
+                        >
+                          <Copy className="h-3 w-3 mr-1" />
+                          Copy
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        )}
+
+        {/* All Claimed Vouchers Section */}
+        {claimedVouchers.length > 0 && (
+          <div className="mb-12 max-w-7xl mx-auto">
+            <h3 className="text-2xl font-bold text-white mb-6 text-center">Recently Claimed</h3>
+            <div className="bg-betting-dark-gray rounded-lg border border-betting-light-gray overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-betting-light-gray">
+                    <TableHead className="text-betting-green">Voucher</TableHead>
+                    <TableHead className="text-betting-green">Value</TableHead>
+                    <TableHead className="text-betting-green">Claimed By</TableHead>
+                    <TableHead className="text-betting-green">When</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {claimedVouchers.map((voucher, index) => (
+                    <TableRow key={voucher.id} className="border-betting-light-gray">
+                      <TableCell className="text-white font-medium">
+                        Voucher #{vouchers.findIndex(v => v.id === voucher.id) + 1}
+                      </TableCell>
+                      <TableCell className="text-betting-green font-bold">R{voucher.value}</TableCell>
+                      <TableCell className="text-white">{voucher.claim?.claimer_username}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {voucher.claim?.claimed_at && 
+                          formatDistanceToNow(new Date(voucher.claim.claimed_at), { addSuffix: true })
+                        }
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        )}
+
+        {/* How It Works Section - Full Width */}
+        <div className="w-full">
+          <div className="bg-betting-dark-gray rounded-2xl p-8 border border-betting-light-gray">
             <h3 className="text-xl font-semibold text-white mb-6 flex items-center justify-center gap-2">
               <Star className="h-5 w-5 text-betting-green" />
               How It Works
             </h3>
-            <div className="grid md:grid-cols-2 gap-4 text-sm text-muted-foreground">
+            <div className="grid md:grid-cols-4 gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-3 p-3 bg-betting-black/30 rounded-lg">
                 <div className="w-8 h-8 bg-betting-green/20 rounded-full flex items-center justify-center flex-shrink-0">
                   <span className="text-betting-green font-bold text-xs">1</span>
@@ -287,22 +345,20 @@ const DailyVouchersSection: React.FC = () => {
                 <div className="w-8 h-8 bg-betting-green/20 rounded-full flex items-center justify-center flex-shrink-0">
                   <span className="text-betting-green font-bold text-xs">2</span>
                 </div>
-                <span>R50 credits added instantly</span>
+                <span>R50 betting vouchers</span>
               </div>
               <div className="flex items-center gap-3 p-3 bg-betting-black/30 rounded-lg">
                 <div className="w-8 h-8 bg-betting-green/20 rounded-full flex items-center justify-center flex-shrink-0">
                   <span className="text-betting-green font-bold text-xs">3</span>
                 </div>
-                <span>New vouchers daily at 12:00 PM</span>
+                <span>Use on betting platforms</span>
               </div>
-              {!currentUser && (
-                <div className="flex items-center gap-3 p-3 bg-betting-black/30 rounded-lg">
-                  <div className="w-8 h-8 bg-betting-accent/20 rounded-full flex items-center justify-center flex-shrink-0">
-                    <LogIn className="h-4 w-4 text-betting-accent" />
-                  </div>
-                  <span>Login required to claim</span>
+              <div className="flex items-center gap-3 p-3 bg-betting-black/30 rounded-lg">
+                <div className="w-8 h-8 bg-betting-green/20 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-betting-green font-bold text-xs">4</span>
                 </div>
-              )}
+                <span>New drops daily at 12:00 PM</span>
+              </div>
             </div>
           </div>
         </div>
