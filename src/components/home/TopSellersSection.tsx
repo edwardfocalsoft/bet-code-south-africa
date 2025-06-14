@@ -19,12 +19,9 @@ const TopSellersSection: React.FC<TopSellersSectionProps> = ({
     <section className="py-20 px-4 bg-gradient-to-br from-betting-black via-betting-dark-gray to-betting-black">
       <div className="container mx-auto">
         <div className="text-center mb-16">
-          <div className="flex items-center justify-center mb-6">
-            <Trophy className="h-8 w-8 mr-3 text-betting-green" />
-            <h2 className="text-3xl font-bold text-white">
-              Top Performing Sellers
-            </h2>
-          </div>
+          <h2 className="text-4xl font-bold text-white mb-6">
+            Top Performing Sellers
+          </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
             Discover our highest-rated sellers who consistently deliver winning predictions and exceptional value to our community.
           </p>
