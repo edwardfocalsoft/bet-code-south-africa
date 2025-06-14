@@ -10,7 +10,7 @@ import { CreditCard, Ticket, Trophy } from "lucide-react";
 
 const BuyerDashboard: React.FC = () => {
   const { currentUser } = useAuth();
-  const { creditBalance, loading: walletLoading } = useWallet();
+  const { creditBalance, isLoading: walletLoading } = useWallet();
 
   const dashboardStats = [
     {
