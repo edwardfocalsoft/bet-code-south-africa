@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ const CTASection: React.FC = () => {
   return (
     <section className="py-20 px-4 bg-betting-black">
       <div className="container mx-auto text-center max-w-3xl">
-        <h2 className="text-3xl font-bold mb-6">Ready to Win With BetCode South Africa?</h2>
+        <h2 className="text-2xl font-medium mb-6">Ready to Win With BetCode South Africa?</h2>
         <p className="text-lg text-muted-foreground mb-8">
           Join our community of smart bettors and get access to premium betting codes from South Africa's top predictors.
         </p>

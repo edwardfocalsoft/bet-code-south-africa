@@ -19,7 +19,7 @@ const TopSellersSection: React.FC<TopSellersSectionProps> = ({
     <section className="py-20 px-4 bg-gradient-to-br from-betting-black via-betting-dark-gray to-betting-black">
       <div className="container mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-white mb-6">
+          <h2 className="text-2xl font-medium text-white mb-6">
             Top Performing Sellers
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
