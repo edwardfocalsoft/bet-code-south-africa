@@ -24,7 +24,7 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
         Password
       </label>
       <div className="relative">
-        <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
         <Input
           id="password"
           type={showPassword ? "text" : "password"}
@@ -32,16 +32,15 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••••"
           required
-          className="bg-betting-light-gray border-betting-light-gray focus:border-betting-green text-white pl-10 pr-12"
+          className="bg-betting-light-gray border-betting-light-gray focus:border-betting-green text-white pl-10 pr-10"
           disabled={isDisabled}
         />
         <button 
           type="button"
-          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-white transition-colors p-1 rounded"
+          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-white transition-colors z-10 flex items-center justify-center w-4 h-4"
           onClick={toggleShowPassword}
           disabled={isDisabled}
           aria-label={showPassword ? "Hide password" : "Show password"}
-          style={{ right: '12px' }}
         >
           {showPassword ? 
             <EyeOff className="h-4 w-4" /> : 
