@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -93,7 +94,7 @@ const SellerCard: React.FC<SellerCardProps> = ({ seller, featured = false }) => 
         </div>
       </CardContent>
       
-      <CardFooter className="pt-0 px-6 pb-6">
+      <CardFooter className="pt-0 px-6 pb-6 flex justify-center">
         <Button 
           className="w-full bg-betting-green hover:bg-betting-green-dark text-white font-semibold py-2 transition-colors" 
           asChild
