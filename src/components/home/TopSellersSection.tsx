@@ -20,8 +20,8 @@ const TopSellersSection: React.FC<TopSellersSectionProps> = ({
       <div className="container mx-auto">
         <div className="text-center mb-16">
           <div className="flex items-center justify-center mb-6">
-            <Trophy className="h-10 w-10 mr-4 text-betting-green" />
-            <h2 className="text-5xl font-bold bg-gradient-to-r from-white to-betting-green bg-clip-text text-transparent">
+            <Trophy className="h-8 w-8 mr-3 text-betting-green" />
+            <h2 className="text-3xl font-bold text-white">
               Top Performing Sellers
             </h2>
           </div>
