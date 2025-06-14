@@ -12,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/auth";
+import { getLinksForRole } from "./navigationLinks";
 
 const UserDropdown: React.FC = () => {
   const { currentUser, logout, userRole } = useAuth();
@@ -22,6 +23,8 @@ const UserDropdown: React.FC = () => {
   };
 
   if (!currentUser) return null;
+
+  const navigationLinks = getLinksForRole(userRole);
 
   return (
     <DropdownMenu>
@@ -44,75 +47,22 @@ const UserDropdown: React.FC = () => {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         
-        {userRole === "buyer" && (
-          <>
-            <DropdownMenuItem>
-              <Link to="/buyer/dashboard" className="w-full">Dashboard</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Link to="/buyer/purchases" className="w-full">My Purchases</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Link to="/buyer/profile" className="w-full">Profile</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Link to="/notifications" className="w-full">Notifications</Link>
-            </DropdownMenuItem>
-          </>
-        )}
-        
-        {userRole === "seller" && (
-          <>
-            <DropdownMenuItem>
-              <Link to="/seller/dashboard" className="w-full">Dashboard</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Link to="/seller/tickets" className="w-full">My Tickets</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Link to="/seller/profile" className="w-full">Profile</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Link to="/seller/transactions" className="w-full">Transactions</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Link to="/seller/withdrawals" className="w-full">Withdrawals</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Link to="/notifications" className="w-full">Notifications</Link>
-            </DropdownMenuItem>
-          </>
-        )}
-        
-        {userRole === "admin" && (
-          <>
-            <DropdownMenuItem>
-              <Link to="/admin/dashboard" className="w-full">Dashboard</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Link to="/admin/tickets" className="w-full">Manage Tickets</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Link to="/admin/sellers" className="w-full">Manage Sellers</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Link to="/admin/buyers" className="w-full">Manage Buyers</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Link to="/admin/withdrawals" className="w-full">Withdrawals</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Link to="/admin/payment-settings" className="w-full">Payment Settings</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Link to="/notifications" className="w-full">Notifications</Link>
-            </DropdownMenuItem>
-          </>
-        )}
+        {navigationLinks.map((link) => (
+          <DropdownMenuItem key={link.to}>
+            <Link to={link.to} className="flex items-center gap-2 w-full">
+              <link.icon className="h-4 w-4" />
+              {link.label}
+            </Link>
+          </DropdownMenuItem>
+        ))}
         
         <DropdownMenuSeparator />
         <DropdownMenuItem>
           <Link to="/user/settings" className="w-full">Settings</Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem>
+          <Link to="/notifications" className="w-full">Notifications</Link>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={handleLogout}>
           Logout
