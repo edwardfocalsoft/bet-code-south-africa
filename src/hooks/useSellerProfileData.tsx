@@ -35,43 +35,67 @@ export const useSellerProfileData = (userId: string | undefined) => {
 
   // Enhanced file change handler that automatically uploads and saves
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    // First handle the file selection
-    originalHandleFileChange(e);
-    
     const file = e.target.files?.[0];
-    if (file && userId) {
-      try {
-        toast.loading("Uploading profile picture...");
+    if (!file || !userId) return;
+
+    // Check for valid image MIME types
+    const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    
+    if (!validImageTypes.includes(file.type)) {
+      toast.error("Invalid file type. Please select a valid image file (JPEG, PNG, GIF, or WebP)");
+      return;
+    }
+    
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("File too large. Image must be less than 2MB");
+      return;
+    }
+
+    try {
+      toast.loading("Uploading profile picture...");
+      
+      // Upload the file directly
+      const fileExt = file.name.split('.').pop();
+      const filePath = `avatars/${userId}/${Date.now()}.${fileExt}`;
+      
+      console.log(`[avatar-upload] Uploading to path: ${filePath}`);
+      console.log(`[avatar-upload] User ID: ${userId}`);
+      
+      const { error: uploadError } = await supabase.storage
+        .from("profiles")
+        .upload(filePath, file, {
+          contentType: file.type,
+          upsert: true
+        });
         
-        // Upload the avatar
-        const newAvatarUrl = await uploadAvatar();
-        
-        if (newAvatarUrl) {
-          // Update the profile data with new avatar URL
-          const updatedProfileData = {
-            ...profileData,
-            avatarUrl: newAvatarUrl
-          };
-          setProfileData(updatedProfileData);
-          
-          // Save the profile with new avatar URL
-          await saveProfileData(updatedProfileData);
-          
-          // Reset file data since upload is complete
-          resetFileData();
-          
-          // Refresh profile to ensure we have the latest data
-          await refreshProfile();
-          
-          toast.dismiss();
-          toast.success("Profile picture updated successfully!");
-        }
-      } catch (error: any) {
-        toast.dismiss();
-        toast.error(`Error updating profile picture: ${error.message}`);
-        // Reset file data on error
-        resetFileData();
+      if (uploadError) {
+        console.error("[avatar-upload] Upload error:", uploadError);
+        throw uploadError;
       }
+      
+      const { data } = supabase.storage.from("profiles").getPublicUrl(filePath);
+      const newAvatarUrl = data.publicUrl;
+      console.log(`[avatar-upload] Upload successful, public URL: ${newAvatarUrl}`);
+
+      // Update the profile data with new avatar URL
+      const updatedProfileData = {
+        ...profileData,
+        avatarUrl: newAvatarUrl
+      };
+      setProfileData(updatedProfileData);
+      
+      // Save the profile with new avatar URL
+      await saveProfileData(updatedProfileData);
+      
+      // Refresh profile to ensure we have the latest data
+      await refreshProfile();
+      
+      toast.dismiss();
+      toast.success("Profile picture updated successfully!");
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast.dismiss();
+      toast.error(`Error updating profile picture: ${error.message}`);
     }
   };
 
