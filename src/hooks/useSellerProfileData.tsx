@@ -54,40 +54,7 @@ export const useSellerProfileData = (userId: string | undefined) => {
     try {
       toast.loading("Uploading profile picture...");
       
-      // Try to create the bucket if it doesn't exist
-      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-      console.log('[avatar-upload] Available buckets:', buckets);
-      
-      if (bucketsError) {
-        console.error('[avatar-upload] Error listing buckets:', bucketsError);
-        toast.dismiss();
-        toast.error("Cannot access storage. Please try again later.");
-        return;
-      }
-      
-      let profilesBucket = buckets?.find(bucket => bucket.id === 'profiles');
-      
-      // If bucket doesn't exist, try to create it
-      if (!profilesBucket) {
-        console.log('[avatar-upload] Profiles bucket not found, attempting to create...');
-        
-        const { data: newBucket, error: createError } = await supabase.storage.createBucket('profiles', {
-          public: true,
-          fileSizeLimit: 2097152, // 2MB
-          allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
-        });
-        
-        if (createError) {
-          console.error('[avatar-upload] Error creating bucket:', createError);
-          toast.dismiss();
-          toast.error("Storage is not properly configured. Please contact an administrator.");
-          return;
-        }
-        
-        console.log('[avatar-upload] Bucket created successfully:', newBucket);
-      }
-      
-      // Upload the file directly
+      // Upload the file directly to the profiles bucket
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `avatars/${userId}/${fileName}`;
