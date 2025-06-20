@@ -54,14 +54,32 @@ export const useSellerProfileData = (userId: string | undefined) => {
     try {
       toast.loading("Uploading profile picture...");
       
+      // First, check if the profiles bucket exists
+      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      console.log('[avatar-upload] Available buckets:', buckets);
+      
+      if (bucketsError) {
+        console.error('[avatar-upload] Error listing buckets:', bucketsError);
+        throw new Error(`Cannot access storage: ${bucketsError.message}`);
+      }
+      
+      const profilesBucket = buckets?.find(bucket => bucket.id === 'profiles');
+      if (!profilesBucket) {
+        console.error('[avatar-upload] Profiles bucket not found');
+        throw new Error('Storage bucket not configured. Please contact support.');
+      }
+      
       // Upload the file directly
       const fileExt = file.name.split('.').pop();
-      const filePath = `avatars/${userId}/${Date.now()}.${fileExt}`;
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${userId}/${fileName}`;
       
       console.log(`[avatar-upload] Uploading to path: ${filePath}`);
+      console.log(`[avatar-upload] File type: ${file.type}`);
+      console.log(`[avatar-upload] File size: ${file.size} bytes`);
       console.log(`[avatar-upload] User ID: ${userId}`);
       
-      const { error: uploadError } = await supabase.storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from("profiles")
         .upload(filePath, file, {
           contentType: file.type,
@@ -70,8 +88,10 @@ export const useSellerProfileData = (userId: string | undefined) => {
         
       if (uploadError) {
         console.error("[avatar-upload] Upload error:", uploadError);
-        throw uploadError;
+        throw new Error(`Upload failed: ${uploadError.message}`);
       }
+      
+      console.log('[avatar-upload] Upload data:', uploadData);
       
       const { data } = supabase.storage.from("profiles").getPublicUrl(filePath);
       const newAvatarUrl = data.publicUrl;
