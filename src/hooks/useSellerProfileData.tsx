@@ -54,19 +54,37 @@ export const useSellerProfileData = (userId: string | undefined) => {
     try {
       toast.loading("Uploading profile picture...");
       
-      // First, check if the profiles bucket exists
+      // Try to create the bucket if it doesn't exist
       const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
       console.log('[avatar-upload] Available buckets:', buckets);
       
       if (bucketsError) {
         console.error('[avatar-upload] Error listing buckets:', bucketsError);
-        throw new Error(`Cannot access storage: ${bucketsError.message}`);
+        toast.dismiss();
+        toast.error("Cannot access storage. Please try again later.");
+        return;
       }
       
-      const profilesBucket = buckets?.find(bucket => bucket.id === 'profiles');
+      let profilesBucket = buckets?.find(bucket => bucket.id === 'profiles');
+      
+      // If bucket doesn't exist, try to create it
       if (!profilesBucket) {
-        console.error('[avatar-upload] Profiles bucket not found');
-        throw new Error('Storage bucket not configured. Please contact support.');
+        console.log('[avatar-upload] Profiles bucket not found, attempting to create...');
+        
+        const { data: newBucket, error: createError } = await supabase.storage.createBucket('profiles', {
+          public: true,
+          fileSizeLimit: 2097152, // 2MB
+          allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+        });
+        
+        if (createError) {
+          console.error('[avatar-upload] Error creating bucket:', createError);
+          toast.dismiss();
+          toast.error("Storage is not properly configured. Please contact an administrator.");
+          return;
+        }
+        
+        console.log('[avatar-upload] Bucket created successfully:', newBucket);
       }
       
       // Upload the file directly
@@ -88,7 +106,9 @@ export const useSellerProfileData = (userId: string | undefined) => {
         
       if (uploadError) {
         console.error("[avatar-upload] Upload error:", uploadError);
-        throw new Error(`Upload failed: ${uploadError.message}`);
+        toast.dismiss();
+        toast.error(`Upload failed: ${uploadError.message}`);
+        return;
       }
       
       console.log('[avatar-upload] Upload data:', uploadData);
