@@ -1,3 +1,4 @@
+
 import { Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -123,7 +124,7 @@ function App() {
                     <Route path="/seller/profile" element={<SellerProfile />} />
                     <Route path="/seller/tickets" element={<SellerTickets />} />
                     <Route path="/seller/tickets/create" element={<CreateTicket />} />
-                    <Route path="/seller/tickets/:id/edit" element={<EditTicket />} />
+                    <Route path="/seller/tickets/edit/:id" element={<EditTicket />} />
                     <Route path="/seller/withdrawals" element={<SellerWithdrawals />} />
                     <Route path="/seller/transactions" element={<SellerTransactions />} />
 
