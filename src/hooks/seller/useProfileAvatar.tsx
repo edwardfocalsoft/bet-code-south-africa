@@ -50,7 +50,6 @@ export const useProfileAvatar = (userId: string | undefined) => {
     setUploading(true);
     try {
       const fileExt = selectedFile.name.split('.').pop();
-      // Fix the path structure to match RLS policy: avatars/userId/filename
       const filePath = `avatars/${userId}/${Date.now()}.${fileExt}`;
       
       console.log(`[avatar-upload] Uploading to path: ${filePath}`);
@@ -60,7 +59,7 @@ export const useProfileAvatar = (userId: string | undefined) => {
         .from("profiles")
         .upload(filePath, selectedFile, {
           contentType: selectedFile.type,
-          upsert: true // Allow overwriting existing files
+          upsert: true
         });
         
       if (uploadError) {

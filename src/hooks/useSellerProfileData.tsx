@@ -2,6 +2,7 @@
 import { useSellerProfile } from "./seller/useSellerProfile";
 import { useSellerBankDetails } from "./seller/useSellerBankDetails";
 import { useProfileAvatar } from "./seller/useProfileAvatar";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const useSellerProfileData = (userId: string | undefined) => {
@@ -27,42 +28,78 @@ export const useSellerProfileData = (userId: string | undefined) => {
     uploading,
     selectedFile,
     filePreview,
-    handleFileChange,
+    handleFileChange: originalHandleFileChange,
     uploadAvatar,
     resetFileData
   } = useProfileAvatar(userId);
 
-  // Combined saveProfile function that handles avatar upload
+  // Enhanced file change handler that automatically uploads and saves
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    // First handle the file selection
+    originalHandleFileChange(e);
+    
+    const file = e.target.files?.[0];
+    if (file && userId) {
+      try {
+        toast.loading("Uploading profile picture...");
+        
+        // Upload the avatar
+        const newAvatarUrl = await uploadAvatar();
+        
+        if (newAvatarUrl) {
+          // Update the profile data with new avatar URL
+          const updatedProfileData = {
+            ...profileData,
+            avatarUrl: newAvatarUrl
+          };
+          setProfileData(updatedProfileData);
+          
+          // Save the profile with new avatar URL
+          await saveProfileData(updatedProfileData);
+          
+          // Reset file data since upload is complete
+          resetFileData();
+          
+          // Refresh profile to ensure we have the latest data
+          await refreshProfile();
+          
+          toast.dismiss();
+          toast.success("Profile picture updated successfully!");
+        }
+      } catch (error: any) {
+        toast.dismiss();
+        toast.error(`Error updating profile picture: ${error.message}`);
+        // Reset file data on error
+        resetFileData();
+      }
+    }
+  };
+
+  // Helper function to save profile data
+  const saveProfileData = async (dataToSave: typeof profileData) => {
+    if (!userId) return;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        username: dataToSave.username,
+        avatar_url: dataToSave.avatarUrl,
+        display_whatsapp: dataToSave.displayWhatsapp,
+        whatsapp_number: dataToSave.whatsappNumber,
+      })
+      .eq("id", userId);
+
+    if (error) throw error;
+  };
+
+  // Regular saveProfile function that handles profile details only
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) return;
     
     try {
-      let updatedProfileData = { ...profileData };
-      
-      // First handle avatar upload if a file is selected
-      if (selectedFile) {
-        toast.loading("Uploading profile picture...");
-        const newAvatarUrl = await uploadAvatar();
-        if (newAvatarUrl) {
-          updatedProfileData = {
-            ...updatedProfileData,
-            avatarUrl: newAvatarUrl
-          };
-          setProfileData(updatedProfileData);
-          toast.dismiss();
-          toast.success("Profile picture uploaded successfully!");
-        }
-      }
-      
-      // Then save the profile data (including new avatar URL if uploaded)
       toast.loading("Updating profile...");
       await saveProfile(e);
-      resetFileData();
-      
-      // Refresh profile to ensure we have the latest data
-      await refreshProfile();
-      
       toast.dismiss();
       toast.success("Profile updated successfully!");
     } catch (error: any) {
@@ -85,7 +122,7 @@ export const useSellerProfileData = (userId: string | undefined) => {
   };
 
   const isLoading = isLoadingProfile || isLoadingBankDetails;
-  const isSaving = isSavingProfile || uploading;
+  const isSaving = isSavingProfile;
 
   return {
     isLoading,
