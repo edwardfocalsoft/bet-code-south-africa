@@ -150,7 +150,7 @@ const ProfileSetup: React.FC = () => {
           <CardHeader>
             <CardTitle className="text-2xl">Complete Your Profile</CardTitle>
             <CardDescription>
-              Please choose a username to continue
+              Welcome! Please choose a unique username to get started
             </CardDescription>
           </CardHeader>
           <CardContent>

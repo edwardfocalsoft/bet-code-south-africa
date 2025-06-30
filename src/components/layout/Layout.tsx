@@ -5,7 +5,7 @@ import Navbar from "./Navbar";
 import Footer from "./Footer";
 import MarqueeNotice from "./MarqueeNotice";
 import SystemAdPopup from "./SystemAdPopup";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/auth";
 import { Loader2 } from "lucide-react";
 
 interface LayoutProps {
@@ -31,6 +31,12 @@ const Layout: React.FC<LayoutProps> = ({
   
   useEffect(() => {
     if (!loading) {
+      // Check if user needs to complete profile setup
+      if (currentUser && !currentUser.username && location.pathname !== "/auth/profile-setup") {
+        navigate("/auth/profile-setup", { replace: true });
+        return;
+      }
+      
       // Prevent sellers from accessing wallet page
       if (location.pathname === "/user/wallet" && userRole === "seller") {
         navigate("/seller/transactions", { replace: true });
@@ -52,18 +58,20 @@ const Layout: React.FC<LayoutProps> = ({
       
       // Redirect if authenticated but should redirect (e.g., login page)
       if (redirectIfAuth && currentUser) {
-        // Redirect to appropriate dashboard based on role
-        if (userRole === "admin") {
-          navigate("/admin/dashboard", { replace: true });
-        } else if (userRole === "seller") {
-          navigate("/seller/dashboard", { replace: true });
-        } else {
-          navigate("/buyer/dashboard", { replace: true });
+        // Only redirect if user has completed profile setup
+        if (currentUser.username) {
+          if (userRole === "admin") {
+            navigate("/admin/dashboard", { replace: true });
+          } else if (userRole === "seller") {
+            navigate("/seller/dashboard", { replace: true });
+          } else {
+            navigate("/buyer/dashboard", { replace: true });
+          }
         }
       }
       
       // Redirect authenticated users from home page to their respective dashboards
-      if (isHomePage && currentUser && userRole) {
+      if (isHomePage && currentUser && userRole && currentUser.username) {
         if (userRole === "admin") {
           navigate("/admin/dashboard", { replace: true });
         } else if (userRole === "seller") {

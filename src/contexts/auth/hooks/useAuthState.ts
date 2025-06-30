@@ -68,6 +68,12 @@ export const useAuthState = () => {
                 setCurrentUser(userProfile);
                 setUserRole(userProfile.role);
                 setIsAdmin(userProfile.role === 'admin');
+                
+                // Redirect to profile setup if user doesn't have a username
+                if (!userProfile.username && window.location.pathname !== '/auth/profile-setup') {
+                  window.location.href = '/auth/profile-setup';
+                  return;
+                }
               } else {
                 console.log("No user profile found for", session.user.id);
                 setCurrentUser(null);
@@ -146,6 +152,12 @@ export const useAuthState = () => {
             setCurrentUser(userProfile);
             setUserRole(userProfile.role);
             setIsAdmin(userProfile.role === 'admin');
+            
+            // Redirect to profile setup if user doesn't have a username
+            if (!userProfile.username && window.location.pathname !== '/auth/profile-setup') {
+              window.location.href = '/auth/profile-setup';
+              return;
+            }
           } else {
             console.log("No initial profile found for", sessionUser.id);
           }
