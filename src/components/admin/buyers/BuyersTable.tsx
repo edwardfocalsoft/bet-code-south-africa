@@ -128,13 +128,9 @@ export const BuyersTable = ({
                 <TableCell>
                   {buyer.suspended ? (
                     <Badge variant="destructive">Suspended</Badge>
-                  ) : buyer.approved ? (
+                  ) : (
                     <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
                       Verified
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="bg-orange-500/10 text-orange-500 border-orange-500/20">
-                      Pending Verification
                     </Badge>
                   )}
                 </TableCell>
@@ -149,20 +145,10 @@ export const BuyersTable = ({
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => handleApproveToggle(buyer.id, buyer.approved || false)}>
-                        <Check className="mr-2 h-4 w-4" />
-                        {buyer.approved ? "Mark as Unverified" : "Mark as Verified"}
-                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleSuspendToggle(buyer.id, buyer.suspended || false)}>
                         <Ban className="mr-2 h-4 w-4" />
                         {buyer.suspended ? "Unsuspend Account" : "Suspend Account"}
                       </DropdownMenuItem>
-                      {!buyer.approved && (
-                        <DropdownMenuItem onClick={() => handleResendVerification(buyer.email)}>
-                          <Mail className="mr-2 h-4 w-4" />
-                          Resend Verification Email
-                        </DropdownMenuItem>
-                      )}
                       <DropdownMenuItem onClick={() => viewBuyerProfile(buyer.id)}>
                         <UserIcon className="mr-2 h-4 w-4" />
                         View Profile

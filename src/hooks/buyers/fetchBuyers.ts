@@ -21,7 +21,7 @@ export function buildBuyersQuery(options: UseBuyersOptions) {
       query = query.lte("created_at", options.filters.joinDateRange.end.toISOString());
     }
     
-    // Status filter
+    // Status filter - since all users are now automatically verified, we can simplify this
     if (options.filters.status === "verified") {
       query = query.not("username", "is", null).not("username", "eq", "Anonymous");
     } else if (options.filters.status === "unverified") {
@@ -78,18 +78,15 @@ export async function fetchBuyersData(options: UseBuyersOptions): Promise<User[]
     });
   }
 
-  // Map the buyers with verification status determined by username presence
+  // Map the buyers - all buyers are now automatically verified
   return filteredData.map((buyer: any) => {
-    // Consider a buyer verified if they have a username that is not "Anonymous"
-    const isVerified = buyer.username && buyer.username !== "Anonymous";
-    
     return {
       id: buyer.id,
       email: buyer.email,
       role: buyer.role,
       username: buyer.username || "Anonymous",
       createdAt: new Date(buyer.created_at),
-      approved: isVerified,
+      approved: true, // Automatically verified
       suspended: buyer.suspended || false,
       lastActive: buyer.updated_at ? new Date(buyer.updated_at) : new Date(buyer.created_at),
       purchasesCount: purchaseCounts[buyer.id] || 0,

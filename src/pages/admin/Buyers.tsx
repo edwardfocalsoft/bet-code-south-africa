@@ -30,7 +30,7 @@ const AdminBuyers = () => {
     page: currentPage, 
     pageSize,
     filters,
-    fetchOnMount: true // Ensure data is fetched when component mounts
+    fetchOnMount: true
   });
 
   // Force data refresh when component mounts
@@ -61,7 +61,12 @@ const AdminBuyers = () => {
   return (
     <Layout requireAuth={true} allowedRoles={["admin"]}>
       <div className="container px-4 py-8 mx-auto">
-        <BuyersHeader error={error} onRetry={retryFetch} />
+        <BuyersHeader 
+          error={error} 
+          onRetry={retryFetch} 
+          buyers={buyers}
+          loading={loading}
+        />
         
         <BuyersStatsCards stats={stats} loading={loading} />
         
