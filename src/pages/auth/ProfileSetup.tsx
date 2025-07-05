@@ -62,11 +62,11 @@ const ProfileSetup: React.FC = () => {
 
   const redirectToDashboard = () => {
     if (userRole === "admin") {
-      navigate("/admin/dashboard");
+      navigate("/admin/dashboard", { replace: true });
     } else if (userRole === "seller") {
-      navigate("/seller/dashboard");
+      navigate("/seller/dashboard", { replace: true });
     } else {
-      navigate("/buyer/dashboard");
+      navigate("/buyer/dashboard", { replace: true });
     }
   };
 
@@ -109,8 +109,10 @@ const ProfileSetup: React.FC = () => {
 
       toast.success("Profile setup completed!");
       
-      // Redirect based on user role
-      redirectToDashboard();
+      // Force a page reload to ensure the auth context is updated with the new username
+      // This will trigger the auth state to refresh and then redirect to dashboard
+      window.location.reload();
+      
     } catch (error: any) {
       toast.error(`Error setting up profile: ${error.message}`);
       console.error("Profile setup error:", error);
