@@ -31,8 +31,16 @@ const Layout: React.FC<LayoutProps> = ({
   
   useEffect(() => {
     if (!loading) {
-      // Check if user needs to complete profile setup
-      if (currentUser && !currentUser.username && location.pathname !== "/auth/profile-setup") {
+      // Special handling for admin users - they don't need username setup
+      if (currentUser && userRole === "admin") {
+        if (location.pathname === "/auth/profile-setup") {
+          navigate("/admin/dashboard", { replace: true });
+          return;
+        }
+      }
+      
+      // Check if user needs to complete profile setup (only for non-admin users)
+      if (currentUser && userRole !== "admin" && !currentUser.username && location.pathname !== "/auth/profile-setup") {
         navigate("/auth/profile-setup", { replace: true });
         return;
       }
@@ -58,8 +66,8 @@ const Layout: React.FC<LayoutProps> = ({
       
       // Redirect if authenticated but should redirect (e.g., login page)
       if (redirectIfAuth && currentUser) {
-        // Only redirect if user has completed profile setup
-        if (currentUser.username) {
+        // Only redirect if user has completed profile setup (or is admin)
+        if (userRole === "admin" || currentUser.username) {
           if (userRole === "admin") {
             navigate("/admin/dashboard", { replace: true });
           } else if (userRole === "seller") {
@@ -71,7 +79,7 @@ const Layout: React.FC<LayoutProps> = ({
       }
       
       // Redirect authenticated users from home page to their respective dashboards
-      if (isHomePage && currentUser && userRole && currentUser.username) {
+      if (isHomePage && currentUser && userRole && (userRole === "admin" || currentUser.username)) {
         if (userRole === "admin") {
           navigate("/admin/dashboard", { replace: true });
         } else if (userRole === "seller") {

@@ -20,11 +20,20 @@ const ProfileSetup: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (loading) return;
+    
+    // Special handling for admin users
+    if (userRole === "admin") {
+      console.log("Admin user detected, redirecting to admin dashboard");
+      navigate("/admin/dashboard", { replace: true });
+      return;
+    }
+    
     if (currentUser?.username) {
       // User already has a profile setup, redirect to their dashboard
       redirectToDashboard();
     }
-  }, [currentUser]);
+  }, [currentUser, userRole, loading]);
   
   const checkUsernameAvailability = async (username: string) => {
     if (!username.trim()) return;
@@ -143,6 +152,11 @@ const ProfileSetup: React.FC = () => {
   if (!loading && !currentUser) {
     navigate("/auth/login");
     return null;
+  }
+
+  // Admin users should be redirected immediately
+  if (userRole === "admin") {
+    return null; // Component will redirect in useEffect
   }
 
   return (
