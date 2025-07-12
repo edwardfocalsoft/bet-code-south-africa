@@ -3,6 +3,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Download } from "lucide-react";
 import { downloadExcel, formatBuyersForExport } from "@/utils/excelExport";
+import { fetchBuyersData } from "@/hooks/buyers/fetchBuyers";
 
 interface BuyersHeaderProps {
   error: string | null;
@@ -12,10 +13,21 @@ interface BuyersHeaderProps {
 }
 
 export const BuyersHeader = ({ error, onRetry, buyers = [], loading = false }: BuyersHeaderProps) => {
-  const handleDownloadExcel = () => {
-    const formattedData = formatBuyersForExport(buyers);
-    const filename = `buyers-list-${new Date().toISOString().split('T')[0]}`;
-    downloadExcel(formattedData, filename);
+  const handleDownloadExcel = async () => {
+    try {
+      // Fetch ALL buyers without pagination for export
+      const allBuyers = await fetchBuyersData({ 
+        page: 1, 
+        pageSize: 10000, // Large number to get all buyers
+        fetchOnMount: false 
+      });
+      
+      const formattedData = formatBuyersForExport(allBuyers);
+      const filename = `buyers-list-${new Date().toISOString().split('T')[0]}`;
+      downloadExcel(formattedData, filename);
+    } catch (error) {
+      console.error('Error downloading buyers data:', error);
+    }
   };
 
   return (
@@ -30,7 +42,7 @@ export const BuyersHeader = ({ error, onRetry, buyers = [], loading = false }: B
       <div className="flex gap-2">
         <Button
           onClick={handleDownloadExcel}
-          disabled={loading || buyers.length === 0}
+          disabled={loading}
           className="bg-green-600 hover:bg-green-700"
         >
           <Download className="h-4 w-4 mr-2" />
