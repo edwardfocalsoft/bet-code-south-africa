@@ -5,6 +5,7 @@ import Navbar from "./Navbar";
 import Footer from "./Footer";
 import MarqueeNotice from "./MarqueeNotice";
 import SystemAdPopup from "./SystemAdPopup";
+import PlayabetsPopupAd from "./PlayabetsPopupAd";
 import { useAuth } from "@/contexts/auth";
 import { Loader2 } from "lucide-react";
 
@@ -115,6 +116,7 @@ const Layout: React.FC<LayoutProps> = ({
       </main>
       <Footer />
       {currentUser && userRole && (userRole === 'buyer' || userRole === 'seller') && <SystemAdPopup />}
+      <PlayabetsPopupAd />
     </div>
   );
 };
