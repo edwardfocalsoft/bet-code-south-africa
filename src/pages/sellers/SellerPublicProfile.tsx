@@ -12,6 +12,7 @@ import SellerProfileHeader from "@/components/sellers/profile/SellerProfileHeade
 import SellerTicketsTab from "@/components/sellers/profile/SellerTicketsTab";
 import SellerReviewsTab from "@/components/sellers/profile/SellerReviewsTab";
 import SellerStatsTab from "@/components/sellers/profile/SellerStatsTab";
+import PlayabetsSellerAd from "@/components/layout/PlayabetsSellerAd";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -80,6 +81,7 @@ const SellerPublicProfile: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
             <SellerProfileHeader seller={seller} stats={stats} />
+            <PlayabetsSellerAd />
           </div>
           
           <div className="md:col-span-2">
