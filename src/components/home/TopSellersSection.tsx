@@ -20,10 +20,10 @@ const TopSellersSection: React.FC<TopSellersSectionProps> = ({
       <div className="container mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-2xl font-medium text-white mb-6">
-            Top Performing Sellers
+            Top Performing Tipsters
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            Discover our highest-rated sellers who consistently deliver winning predictions and exceptional value to our community.
+            Discover our highest-rated tipsters who consistently deliver winning predictions and exceptional value to our community.
           </p>
         </div>
         
@@ -61,9 +61,9 @@ const TopSellersSection: React.FC<TopSellersSectionProps> = ({
                 <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-betting-light-gray/10 mb-8">
                   <Award className="h-12 w-12 text-betting-green/50" />
                 </div>
-                <h3 className="text-2xl font-semibold mb-4">No Top Sellers Yet</h3>
+                <h3 className="text-2xl font-semibold mb-4">No Top Tipsters Yet</h3>
                 <p className="text-muted-foreground mb-8 max-w-md mx-auto text-lg">
-                  Our sellers are working hard to establish their rankings. Check back soon to see our top performers!
+                  Our tipsters are working hard to establish their rankings. Check back soon to see our top performers!
                 </p>
               </div>
             )}

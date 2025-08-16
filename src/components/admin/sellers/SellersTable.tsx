@@ -27,7 +27,7 @@ const SellersTable: React.FC<SellersTableProps> = ({
   if (sellers.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-muted-foreground">No sellers found</p>
+        <p className="text-muted-foreground">No tipsters found</p>
       </div>
     );
   }
@@ -37,7 +37,7 @@ const SellersTable: React.FC<SellersTableProps> = ({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Seller</TableHead>
+            <TableHead>Tipster</TableHead>
             <TableHead>Email</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Verification</TableHead>

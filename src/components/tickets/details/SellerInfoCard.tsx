@@ -40,7 +40,7 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
   return (
     <Card className="betting-card mb-6">
       <CardHeader className="pb-2">
-        <CardTitle className="text-xl">Ticket Seller</CardTitle>
+        <CardTitle className="text-xl">Ticket Tipster</CardTitle>
         <CardDescription>Provided by</CardDescription>
       </CardHeader>
       <CardContent>
@@ -91,7 +91,7 @@ const SellerInfoCard: React.FC<SellerInfoCardProps> = ({ seller, ticket }) => {
           {!isSeller && currentUser && (
             <TipButton 
               sellerId={seller.id}
-              sellerName={seller.username || "Seller"}
+              sellerName={seller.username || "Tipster"}
               variant="outline"
               size="sm"
               className="w-full"

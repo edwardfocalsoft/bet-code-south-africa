@@ -4,151 +4,180 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, Loader2 } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Textarea } from "@/components/ui/textarea";
+import { Heart, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/auth";
+import { toast } from "sonner";
 
 interface TipDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  isOpen: boolean;
+  onClose: () => void;
+  sellerId: string;
   sellerName: string;
-  onConfirm: (amount: number) => Promise<void>;
-  userBalance: number;
 }
 
 const TipDialog: React.FC<TipDialogProps> = ({
-  open,
-  onOpenChange,
+  isOpen,
+  onClose,
+  sellerId,
   sellerName,
-  onConfirm,
-  userBalance,
 }) => {
-  const [amount, setAmount] = useState<string>("");
-  const [processing, setProcessing] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const { currentUser } = useAuth();
+  const [amount, setAmount] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Allow only numbers and decimals
-    const value = e.target.value.replace(/[^0-9.]/g, "");
-    // Ensure only one decimal point
-    const parts = value.split(".");
-    if (parts.length > 2) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!currentUser) {
+      toast.error("Please log in to send a tip");
       return;
     }
-    // Limit to 2 decimal places
-    if (parts.length > 1 && parts[1].length > 2) {
-      return;
-    }
-    setAmount(value);
-  };
 
-  const handleSubmit = async () => {
-    setError(null);
-    
-    if (!amount || parseFloat(amount) <= 0) {
-      setError("Please enter a valid amount");
-      return;
-    }
-    
     const tipAmount = parseFloat(amount);
-    
-    if (tipAmount > userBalance) {
-      setError("You don't have enough balance for this tip");
+    if (isNaN(tipAmount) || tipAmount <= 0) {
+      toast.error("Please enter a valid tip amount");
       return;
     }
-    
-    if (tipAmount < 5) {
-      setError("Minimum tip amount is R5");
-      return;
-    }
+
+    setLoading(true);
     
     try {
-      setProcessing(true);
-      await onConfirm(tipAmount);
-      setAmount("");
-      onOpenChange(false);
-    } catch (error: any) {
-      setError(error.message || "Failed to process tip");
-    } finally {
-      setProcessing(false);
-    }
-  };
+      // Check if user has sufficient credit balance
+      const { data: userProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('credit_balance')
+        .eq('id', currentUser.id)
+        .single();
 
-  const handleClose = () => {
-    if (!processing) {
+      if (profileError) throw profileError;
+
+      if (!userProfile || userProfile.credit_balance < tipAmount) {
+        toast.error("Insufficient credit balance to send this tip");
+        setLoading(false);
+        return;
+      }
+
+      // Create the tip transaction
+      const { error: tipError } = await supabase
+        .from('tips')
+        .insert({
+          tipper_id: currentUser.id,
+          seller_id: sellerId,
+          amount: tipAmount,
+          message: message.trim() || null,
+        });
+
+      if (tipError) throw tipError;
+
+      // Update tipper's balance (deduct tip amount)
+      const { error: tipperUpdateError } = await supabase
+        .from('profiles')
+        .update({ 
+          credit_balance: userProfile.credit_balance - tipAmount 
+        })
+        .eq('id', currentUser.id);
+
+      if (tipperUpdateError) throw tipperUpdateError;
+
+      // Update seller's balance (add tip amount)
+      const { error: sellerUpdateError } = await supabase
+        .rpc('increment_credit_balance', {
+          user_id: sellerId,
+          amount: tipAmount
+        });
+
+      if (sellerUpdateError) throw sellerUpdateError;
+
+      toast.success(`Tip sent successfully to ${sellerName}!`);
       setAmount("");
-      setError(null);
-      onOpenChange(false);
+      setMessage("");
+      onClose();
+    } catch (error: any) {
+      console.error("Error sending tip:", error);
+      toast.error(`Failed to send tip: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[425px] bg-betting-black border-betting-light-gray">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Tip {sellerName}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Heart className="h-5 w-5 text-red-500" />
+            Tip {sellerName}
+          </DialogTitle>
           <DialogDescription>
-            Show your appreciation by sending a tip to {sellerName}. Tips are deducted from your credit balance.
+            Show your appreciation for {sellerName}'s excellent tipster service by sending a tip.
           </DialogDescription>
         </DialogHeader>
-
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="amount" className="text-right">
-              Amount
-            </Label>
-            <div className="col-span-3 relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                R
-              </span>
-              <Input
-                id="amount"
-                type="text"
-                value={amount}
-                onChange={handleAmountChange}
-                className="pl-8 bg-betting-dark-gray"
-                placeholder="0.00"
-                disabled={processing}
-              />
-            </div>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="amount">Tip Amount (R)</Label>
+            <Input
+              id="amount"
+              type="number"
+              min="1"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="Enter tip amount"
+              required
+            />
           </div>
-          <div className="col-span-3 text-sm text-muted-foreground text-right">
-            Your balance: R{userBalance.toFixed(2)}
+          
+          <div>
+            <Label htmlFor="message">Message (Optional)</Label>
+            <Textarea
+              id="message"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Add a personal message..."
+              className="resize-none"
+              rows={3}
+            />
           </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={processing}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleSubmit} 
-            disabled={processing || !amount || parseFloat(amount) <= 0 || parseFloat(amount) > userBalance}
-            className="bg-betting-green hover:bg-betting-green-dark"
-          >
-            {processing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              "Send Tip"
-            )}
-          </Button>
-        </DialogFooter>
+          
+          <div className="flex gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="flex-1"
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1 bg-betting-green hover:bg-betting-green-dark"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Heart className="mr-2 h-4 w-4" />
+                  Send Tip
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );

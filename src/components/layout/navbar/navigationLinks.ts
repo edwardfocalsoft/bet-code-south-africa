@@ -11,7 +11,7 @@ export interface NavigationLink {
 export const adminLinks: NavigationLink[] = [
   { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/admin/tickets", label: "Tickets", icon: Ticket },
-  { to: "/admin/sellers", label: "Sellers", icon: UserCircle },
+  { to: "/admin/sellers", label: "Tipsters", icon: UserCircle },
   { to: "/admin/buyers", label: "Buyers", icon: UserCircle },
   { to: "/admin/withdrawals", label: "Withdrawals", icon: Wallet },
   { to: "/admin/cases", label: "Cases", icon: Ticket },

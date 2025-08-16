@@ -1,74 +1,54 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Gift } from "lucide-react";
-import TipDialog from "./TipDialog";
-import { useTipping } from "@/hooks/useTipping";
-import { useWallet } from "@/hooks/useWallet";
+import { Heart } from "lucide-react";
 import { useAuth } from "@/contexts/auth";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import TipDialog from "./TipDialog";
 
 interface TipButtonProps {
   sellerId: string;
   sellerName: string;
-  variant?: "default" | "outline" | "link" | "secondary" | "ghost";
-  size?: "default" | "sm" | "lg" | "icon";
+  variant?: "default" | "outline" | "secondary";
+  size?: "default" | "sm" | "lg";
   className?: string;
 }
 
 const TipButton: React.FC<TipButtonProps> = ({
   sellerId,
   sellerName,
-  variant = "outline",
-  size = "sm",
-  className = "",
+  variant = "default",
+  size = "default",
+  className = ""
 }) => {
-  const [tipDialogOpen, setTipDialogOpen] = useState(false);
-  const { sendTip } = useTipping();
-  const { creditBalance } = useWallet();
   const { currentUser } = useAuth();
-  const navigate = useNavigate();
-  
-  const handleOpenTipDialog = () => {
+  const [showTipDialog, setShowTipDialog] = useState(false);
+
+  const handleTipClick = () => {
     if (!currentUser) {
-      toast.error("Please log in to tip sellers", {
-        description: "You need to be logged in to send tips."
-      });
-      navigate("/auth/login");
+      // Could redirect to login or show a message
       return;
     }
-    
-    if (currentUser.id === sellerId) {
-      toast.error("You cannot tip yourself");
-      return;
-    }
-    
-    setTipDialogOpen(true);
+    setShowTipDialog(true);
   };
-  
-  const handleConfirmTip = async (amount: number) => {
-    await sendTip(sellerId, amount, sellerName);
-  };
-  
+
   return (
     <>
       <Button
+        onClick={handleTipClick}
         variant={variant}
         size={size}
-        onClick={handleOpenTipDialog}
-        className={`flex items-center gap-1 ${className}`}
+        disabled={!currentUser}
+        className={`flex items-center gap-2 ${className}`}
       >
-        <Gift className="h-4 w-4" />
-        <span>Tip Seller</span>
+        <Heart className="h-4 w-4" />
+        Tip Tipster
       </Button>
-      
+
       <TipDialog
-        open={tipDialogOpen}
-        onOpenChange={setTipDialogOpen}
+        isOpen={showTipDialog}
+        onClose={() => setShowTipDialog(false)}
+        sellerId={sellerId}
         sellerName={sellerName}
-        onConfirm={handleConfirmTip}
-        userBalance={creditBalance}
       />
     </>
   );

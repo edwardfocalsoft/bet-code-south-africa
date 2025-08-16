@@ -34,11 +34,11 @@ const AdminSellers = () => {
 
       if (error) throw error;
 
-      toast.success(`Seller ${action} successfully`);
+      toast.success(`Tipster ${action} successfully`);
       fetchSellers(); // Refresh the list
     } catch (error: any) {
-      console.error(`Error ${action} seller:`, error);
-      toast.error(`Failed to ${action} seller: ${error.message}`);
+      console.error(`Error ${action} tipster:`, error);
+      toast.error(`Failed to ${action} tipster: ${error.message}`);
     } finally {
       setUpdatingStatus(null);
     }
@@ -75,7 +75,7 @@ const AdminSellers = () => {
         <div className="container mx-auto py-8">
           <Card className="text-center">
             <CardContent className="pt-6">
-              <p className="text-red-500 mb-4">Error loading sellers: {error}</p>
+              <p className="text-red-500 mb-4">Error loading tipsters: {error}</p>
               <Button onClick={fetchSellers}>
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Try Again
@@ -91,7 +91,7 @@ const AdminSellers = () => {
     <Layout requireAuth={true} allowedRoles={["admin"]}>
       <div className="container mx-auto py-8 px-4">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Seller Management</h1>
+          <h1 className="text-3xl font-bold">Tipster Management</h1>
           <Button onClick={fetchSellers} disabled={loading}>
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
@@ -104,7 +104,7 @@ const AdminSellers = () => {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center">
                 <Users className="mr-2 h-4 w-4" />
-                Total Sellers
+                Total Tipsters
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -151,9 +151,9 @@ const AdminSellers = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Sellers</CardTitle>
+            <CardTitle>Tipsters</CardTitle>
             <CardDescription>
-              Manage seller accounts, approvals, verification status, and suspensions
+              Manage tipster accounts, approvals, verification status, and suspensions
             </CardDescription>
           </CardHeader>
           <CardContent>

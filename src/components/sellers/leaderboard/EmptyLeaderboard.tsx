@@ -6,7 +6,7 @@ interface EmptyLeaderboardProps {
 }
 
 const EmptyLeaderboard: React.FC<EmptyLeaderboardProps> = ({ 
-  message = "No sellers found for this period" 
+  message = "No tipsters found for this period" 
 }) => {
   return (
     <div className="text-center py-8">

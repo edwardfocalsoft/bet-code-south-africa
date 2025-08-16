@@ -83,7 +83,7 @@ const SimilarTicketsCard: React.FC<SimilarTicketsCardProps> = ({ ticketId, selle
           </div>
         ) : similarTickets.length === 0 ? (
           <p className="text-muted-foreground text-center py-4">
-            No similar tickets found for this seller.
+            No similar tickets found for this tipster.
           </p>
         ) : (
           <div className="space-y-4">
