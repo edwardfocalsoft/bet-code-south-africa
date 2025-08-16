@@ -33,7 +33,7 @@ const AdminSellers = () => {
         verified: seller.verified || false,
         loyaltyPoints: seller.loyalty_points || 0,
         avatar_url: seller.avatar_url,
-        credit_balance: selector.credit_balance,
+        credit_balance: seller.credit_balance,
       }));
 
       setSellers(mappedSellers);
