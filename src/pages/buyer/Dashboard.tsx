@@ -39,7 +39,7 @@ const BuyerDashboard: React.FC = () => {
   return (
     <Layout requireAuth={true} allowedRoles={["buyer"]}>
       <div className="container py-8">
-        <h1 className="text-2xl font-bold mb-6">Welcome, {currentUser?.username || 'Tipster'}</h1>
+        <h1 className="text-2xl font-bold mb-6">Welcome, {currentUser?.username || 'Buyer'}</h1>
         
         {/* Stats Section */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

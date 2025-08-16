@@ -42,7 +42,7 @@ const FeaturedSellerSection: React.FC = () => {
         sunday.setDate(monday.getDate() + 6);
         sunday.setHours(23, 59, 59, 999);
         
-        console.log(`Fetching top tipster for week: ${monday.toISOString()} to ${sunday.toISOString()}`);
+        console.log(`Fetching top seller for week: ${monday.toISOString()} to ${sunday.toISOString()}`);
 
         // Get sellers with sales data including free tickets
         const { data: sellersWithStats, error: sellersError } = await supabase
@@ -109,11 +109,11 @@ const FeaturedSellerSection: React.FC = () => {
           .sort((a, b) => b.sales_count - a.sales_count)
           .map((seller, index) => ({ ...seller, rank: index + 1 }));
 
-        console.log("Week top tipster data:", sellersWithSales);
+        console.log("Week top seller data:", sellersWithSales);
         
         // If no sales this week, try last month
         if (!sellersWithSales || sellersWithSales.length === 0) {
-          console.log("No top tipster this week, trying last month");
+          console.log("No top seller this week, trying last month");
           
           // Get sales from the last month
           const lastMonth = new Date();
@@ -167,10 +167,10 @@ const FeaturedSellerSection: React.FC = () => {
             .sort((a, b) => b.sales_count - a.sales_count)
             .map((seller, index) => ({ ...seller, rank: index + 1 }));
           
-          console.log("Month top tipster data:", monthSellersWithSales);
+          console.log("Month top seller data:", monthSellersWithSales);
           
           if (!monthSellersWithSales || monthSellersWithSales.length === 0) {
-            console.log("No top tipster in the last month either");
+            console.log("No top seller in the last month either");
             setLoading(false);
             return;
           }
@@ -184,8 +184,8 @@ const FeaturedSellerSection: React.FC = () => {
           setFeaturedSeller(topSeller);
         }
       } catch (error: any) {
-        console.error("Error fetching featured tipster:", error);
-        toast.error("Error loading featured tipster data");
+        console.error("Error fetching featured seller:", error);
+        toast.error("Error loading featured seller data");
       } finally {
         setLoading(false);
       }
@@ -197,7 +197,7 @@ const FeaturedSellerSection: React.FC = () => {
   return (
     <section className="py-16 px-4 bg-gradient-to-br from-betting-dark-gray to-betting-black">
       <div className="container mx-auto">
-        <h2 className="text-3xl font-bold mb-12 text-center">Featured Tipster of the Week</h2>
+        <h2 className="text-3xl font-bold mb-12 text-center">Featured Seller of the Week</h2>
         
         {loading ? (
           <div className="max-w-3xl mx-auto">
@@ -255,10 +255,10 @@ const FeaturedSellerSection: React.FC = () => {
           </div>
         ) : (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">No featured tipster data available at the moment.</p>
+            <p className="text-muted-foreground">No featured seller data available at the moment.</p>
             <Link to="/sellers/leaderboard" className="mt-6 inline-block">
               <Button className="bg-betting-green hover:bg-betting-green-dark text-white">
-                View Tipster Leaderboard
+                View Seller Leaderboard
               </Button>
             </Link>
           </div>

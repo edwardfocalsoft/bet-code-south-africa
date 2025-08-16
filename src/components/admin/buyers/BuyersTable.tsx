@@ -91,7 +91,7 @@ export const BuyersTable = ({
   return (
     <>
       <Table>
-        <TableCaption>List of platform tipsters</TableCaption>
+        <TableCaption>List of platform buyers</TableCaption>
         <TableHeader>
           <TableRow>
             <TableHead>User</TableHead>
@@ -107,7 +107,7 @@ export const BuyersTable = ({
           {buyers.length === 0 ? (
             <TableRow>
               <TableCell colSpan={7} className="text-center py-8">
-                No tipsters found
+                No buyers found
               </TableCell>
             </TableRow>
           ) : (

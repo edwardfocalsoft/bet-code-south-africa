@@ -23,19 +23,19 @@ export const BuyersHeader = ({ error, onRetry, buyers = [], loading = false }: B
       });
       
       const formattedData = formatBuyersForExport(allBuyers);
-      const filename = `tipsters-list-${new Date().toISOString().split('T')[0]}`;
+      const filename = `buyers-list-${new Date().toISOString().split('T')[0]}`;
       downloadExcel(formattedData, filename);
     } catch (error) {
-      console.error('Error downloading tipsters data:', error);
+      console.error('Error downloading buyers data:', error);
     }
   };
 
   return (
     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
       <div>
-        <h1 className="text-3xl font-bold">Tipsters Management</h1>
+        <h1 className="text-3xl font-bold">Buyers Management</h1>
         <p className="text-muted-foreground mt-2">
-          Manage and monitor all tipster accounts
+          Manage and monitor all buyer accounts
         </p>
       </div>
       

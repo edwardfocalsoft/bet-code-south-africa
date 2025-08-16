@@ -40,7 +40,7 @@ export const BuyerProfileModal = ({ isOpen, onClose, buyerId }: BuyerProfileModa
         {loading ? (
           <div className="flex justify-center items-center p-12">
             <Loader2 className="h-8 w-8 animate-spin text-betting-green mr-2" />
-            <span>Loading tipster data...</span>
+            <span>Loading buyer data...</span>
           </div>
         ) : buyer ? (
           <>
@@ -70,7 +70,7 @@ export const BuyerProfileModal = ({ isOpen, onClose, buyerId }: BuyerProfileModa
           </>
         ) : (
           <div className="text-center py-8">
-            <p>Tipster not found</p>
+            <p>Buyer not found</p>
           </div>
         )}
       </DialogContent>

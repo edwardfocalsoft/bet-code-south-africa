@@ -44,7 +44,7 @@ const LeaderboardTable: React.FC<LeaderboardTableProps> = ({ sellers }) => {
         <TableHeader>
           <TableRow>
             <TableHead>Rank</TableHead>
-            <TableHead>Tipster</TableHead>
+            <TableHead>Seller</TableHead>
             <TableHead className="text-center">Total Sales</TableHead>
             <TableHead className="text-center">Number of Sales</TableHead>
             <TableHead className="text-center">Rating</TableHead>
