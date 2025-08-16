@@ -25,7 +25,7 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
       setLoading(true);
       setError(null);
       
-      console.log("Fetching buyers - started");
+      console.log("Fetching punters - started");
 
       // Get total count for pagination
       const { count, error: countError } = await supabase
@@ -39,22 +39,22 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
         setTotalCount(count);
       }
 
-      // Fetch buyer statistics
+      // Fetch punter statistics
       const buyerStats = await fetchBuyerStats();
       setStats(buyerStats);
 
-      // Fetch buyer data with filters and pagination
+      // Fetch punter data with filters and pagination
       const buyerData = await fetchBuyersData(options);
       setBuyers(buyerData);
 
-      console.log(`Fetched ${buyerData.length} buyers`);
+      console.log(`Fetched ${buyerData.length} punters`);
       
     } catch (error: any) {
-      console.error("Error fetching buyers:", error);
-      setError(error.message || "Failed to fetch buyers");
+      console.error("Error fetching punters:", error);
+      setError(error.message || "Failed to fetch punters");
       toast({
         title: "Error",
-        description: "Failed to load buyers. Please try again later.",
+        description: "Failed to load punters. Please try again later.",
         variant: "destructive",
       });
       // Set empty array to prevent infinite loading state
@@ -62,7 +62,7 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
     } finally {
       // Ensure loading state is always set to false when done
       setLoading(false);
-      console.log("Buyers fetch complete, loading set to false");
+      console.log("Punters fetch complete, loading set to false");
     }
   }, [options.page, options.pageSize, options.filters, toast]);
 
@@ -118,7 +118,7 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
         if (isMounted) {
           console.error("Error in fetchBuyers effect:", err);
           setLoading(false);
-          setError("Failed to fetch buyers");
+          setError("Failed to fetch punters");
         }
       });
     }

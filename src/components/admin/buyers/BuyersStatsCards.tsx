@@ -17,7 +17,7 @@ export const BuyersStatsCards: React.FC<BuyersStatsCardsProps> = ({ stats, loadi
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-3 mb-6">
       <StatCard
-        title="Total Buyers"
+        title="Total Punters"
         value={stats.totalBuyers}
         icon={Users}
         loading={loading}
@@ -29,7 +29,7 @@ export const BuyersStatsCards: React.FC<BuyersStatsCardsProps> = ({ stats, loadi
         loading={loading}
       />
       <StatCard
-        title="New Buyers (Last 30 Days)"
+        title="New Punters (Last 30 Days)"
         value={stats.newBuyersLast30Days}
         icon={Clock}
         loading={loading}

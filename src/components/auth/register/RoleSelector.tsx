@@ -1,69 +1,50 @@
 
 import React from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UserCircle, Store } from "lucide-react";
-import { UserRole } from "@/types";
-
-// Only allow 'buyer' or 'seller' roles for registration form
-type RegisterFormRole = Extract<UserRole, 'buyer' | 'seller'>;
+import { Users, TrendingUp } from "lucide-react";
 
 interface RoleSelectorProps {
-  role: RegisterFormRole;
-  onChange: (role: RegisterFormRole) => void;
+  selectedRole: "buyer" | "seller";
+  onRoleChange: (role: "buyer" | "seller") => void;
 }
 
-const RoleSelector: React.FC<RoleSelectorProps> = ({ role, onChange }) => {
+const RoleSelector: React.FC<RoleSelectorProps> = ({ selectedRole, onRoleChange }) => {
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-2">
-        <Button
-          type="button"
-          variant={role === "buyer" ? "default" : "outline"}
-          className={`w-full sm:flex-1 ${
-            role === "buyer" ? "bg-betting-green hover:bg-betting-green-dark" : "bg-betting-light-gray border-betting-light-gray"
-          }`}
-          onClick={() => onChange("buyer")}
-        >
-          <UserCircle className="mr-2 h-4 w-4" />
-          Sign up as Buyer
-        </Button>
-        <Button
-          type="button"
-          variant={role === "seller" ? "default" : "outline"}
-          className={`w-full sm:flex-1 ${
-            role === "seller" ? "bg-betting-green hover:bg-betting-green-dark" : "bg-betting-light-gray border-betting-light-gray"
-          }`}
-          onClick={() => onChange("seller")}
-        >
-          <Store className="mr-2 h-4 w-4" />
-          Sign up as Seller
-        </Button>
-      </div>
-      
-      {role === 'buyer' && (
-        <div className="text-sm space-y-1">
-          <p className="text-sm mb-1">As a buyer, you can:</p>
-          <ul className="list-disc list-inside space-y-1 text-muted-foreground pl-1">
-            <li>Browse all available betting codes</li>
-            <li>Purchase premium predictions</li>
-            <li>Rate sellers and their tickets</li>
-            <li>Earn loyalty points for future discounts</li>
-          </ul>
-        </div>
-      )}
-      
-      {role === 'seller' && (
-        <div className="text-sm space-y-1">
-          <p className="text-sm mb-1">As a seller, you can:</p>
-          <ul className="list-disc list-inside space-y-1 text-muted-foreground pl-1">
-            <li>Share free and paid betting codes</li>
-            <li>Build your reputation with good predictions</li>
-            <li>Earn commission from your betting knowledge</li>
-            <li>Gain followers and visibility on the platform</li>
-          </ul>
-          <p className="text-amber-500 font-medium mt-2">Note: Seller accounts require admin approval before activation.</p>
-        </div>
-      )}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <Card 
+        className={`cursor-pointer transition-all hover:scale-105 ${
+          selectedRole === "buyer" 
+            ? "ring-2 ring-betting-green bg-betting-green/10" 
+            : "hover:border-betting-green/50"
+        }`}
+        onClick={() => onRoleChange("buyer")}
+      >
+        <CardContent className="p-6 text-center">
+          <Users className="mx-auto h-12 w-12 mb-4 text-betting-green" />
+          <h3 className="text-lg font-semibold mb-2">Sign up as Punter</h3>
+          <p className="text-sm text-muted-foreground">
+            Purchase betting tips and predictions from expert tipsters
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card 
+        className={`cursor-pointer transition-all hover:scale-105 ${
+          selectedRole === "seller" 
+            ? "ring-2 ring-betting-green bg-betting-green/10" 
+            : "hover:border-betting-green/50"
+        }`}
+        onClick={() => onRoleChange("seller")}
+      >
+        <CardContent className="p-6 text-center">
+          <TrendingUp className="mx-auto h-12 w-12 mb-4 text-betting-green" />
+          <h3 className="text-lg font-semibold mb-2">Sign up as Tipster</h3>
+          <p className="text-sm text-muted-foreground">
+            Share your betting expertise and earn from your predictions
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 };

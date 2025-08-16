@@ -6,7 +6,7 @@ export const BuyersLoading = () => {
   return (
     <div className="flex justify-center items-center p-12">
       <Loader2 className="h-8 w-8 animate-spin text-betting-green mr-2" />
-      <span>Loading buyers...</span>
+      <span>Loading punters...</span>
     </div>
   );
 };

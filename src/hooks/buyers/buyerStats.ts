@@ -4,7 +4,7 @@ import { subDays } from "date-fns";
 import { BuyerStats } from "./types";
 
 export async function fetchBuyerStats(): Promise<BuyerStats> {
-  // Get total count first for pagination - only buyers with role "buyer"
+  // Get total count first for pagination - only punters with role "buyer"
   const { count, error: countError } = await supabase
     .from("profiles")
     .select("*", { count: "exact" })
@@ -12,7 +12,7 @@ export async function fetchBuyerStats(): Promise<BuyerStats> {
 
   if (countError) throw countError;
   
-  // Calculate new buyers in the last 30 days - only buyers with role "buyer"
+  // Calculate new punters in the last 30 days - only punters with role "buyer"
   const thirtyDaysAgo = subDays(new Date(), 30).toISOString();
   const { count: newBuyersCount, error: newBuyersError } = await supabase
     .from("profiles")

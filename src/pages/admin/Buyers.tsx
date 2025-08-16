@@ -1,101 +1,117 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Layout from "@/components/layout/Layout";
-import { Pagination } from "@/components/ui/pagination";
+import { useBuyers } from "@/hooks/buyers/useBuyers";
 import { BuyersHeader } from "@/components/admin/buyers/BuyersHeader";
+import { BuyersStatsCards } from "@/components/admin/buyers/BuyersStatsCards";
+import { BuyersFilter } from "@/components/admin/buyers/BuyersFilter";
 import { BuyersTable } from "@/components/admin/buyers/BuyersTable";
 import { BuyersLoading } from "@/components/admin/buyers/BuyersLoading";
 import { BuyersError } from "@/components/admin/buyers/BuyersError";
-import { BuyersStatsCards } from "@/components/admin/buyers/BuyersStatsCards";
-import { BuyersFilter } from "@/components/admin/buyers/BuyersFilter";
-import { useBuyers } from "@/hooks/buyers/useBuyers";
-import { useToast } from "@/hooks/use-toast";
+import { BuyerProfileModal } from "@/components/admin/buyers/BuyerProfileModal";
+import { Pagination } from "@/components/ui/pagination";
+import { UseBuyersOptions } from "@/hooks/buyers/types";
 
-const AdminBuyers = () => {
-  const { toast } = useToast();
+const Buyers: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [filters, setFilters] = useState({});
-  const pageSize = 10;
-  
-  const { 
-    buyers, 
-    loading, 
-    error, 
-    totalCount,
-    stats,
-    updateBuyerStatus,
-    resendVerificationEmail,
-    fetchBuyers
-  } = useBuyers({ 
-    page: currentPage, 
-    pageSize,
-    filters,
-    fetchOnMount: true
+  const [pageSize] = useState(10);
+  const [selectedBuyerId, setSelectedBuyerId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<UseBuyersOptions["filters"]>({
+    joinDateRange: { start: null, end: null },
+    minPurchases: undefined,
+    maxPurchases: undefined,
+    status: "all"
   });
 
-  // Force data refresh when component mounts
-  useEffect(() => {
-    fetchBuyers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const {
+    buyers,
+    loading,
+    error,
+    totalCount,
+    stats,
+    fetchBuyers,
+    updateBuyerStatus,
+    resendVerificationEmail,
+  } = useBuyers({
+    fetchOnMount: true,
+    page: currentPage,
+    pageSize,
+    filters,
+  });
 
-  const retryFetch = () => {
-    fetchBuyers();
-    toast({
-      title: "Refreshing",
-      description: "Attempting to reload buyers data...",
-    });
-  };
-
-  const handleFilterChange = (newFilters) => {
-    setFilters(newFilters);
-    setCurrentPage(1); // Reset to first page when filters change
-  };
-
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
 
+  const handleFiltersChange = (newFilters: UseBuyersOptions["filters"]) => {
+    setFilters(newFilters);
+    setCurrentPage(1);
+  };
+
+  if (loading) {
+    return (
+      <Layout requireAuth={true} allowedRoles={["admin"]}>
+        <div className="container mx-auto py-8 px-4">
+          <BuyersLoading />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error) {
+    return (
+      <Layout requireAuth={true} allowedRoles={["admin"]}>
+        <div className="container mx-auto py-8 px-4">
+          <BuyersError error={error} onRetry={fetchBuyers} />
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout requireAuth={true} allowedRoles={["admin"]}>
-      <div className="container px-4 py-8 mx-auto">
+      <div className="container mx-auto py-8 px-4">
         <BuyersHeader 
           error={error} 
-          onRetry={retryFetch} 
+          onRetry={fetchBuyers}
           buyers={buyers}
           loading={loading}
         />
         
         <BuyersStatsCards stats={stats} loading={loading} />
         
-        <BuyersFilter onFilterChange={handleFilterChange} />
-
-        {error && <BuyersError error={error} onRetry={retryFetch} />}
-
-        <div className="bg-card rounded-md shadow">
-          {loading ? (
-            <BuyersLoading />
-          ) : (
-            <BuyersTable 
-              buyers={buyers} 
-              updateBuyerStatus={updateBuyerStatus}
-              resendVerificationEmail={resendVerificationEmail}
-            />
-          )}
-          
-          <div className="flex items-center justify-center py-4">
+        <BuyersFilter 
+          onFiltersChange={handleFiltersChange}
+          initialFilters={filters}
+        />
+        
+        <BuyersTable 
+          buyers={buyers}
+          onUpdateStatus={updateBuyerStatus}
+          onResendVerification={resendVerificationEmail}
+          onViewProfile={setSelectedBuyerId}
+        />
+        
+        {totalPages > 1 && (
+          <div className="mt-6 flex justify-center">
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
               onPageChange={handlePageChange}
             />
           </div>
-        </div>
+        )}
+
+        <BuyerProfileModal
+          isOpen={!!selectedBuyerId}
+          onClose={() => setSelectedBuyerId(null)}
+          buyerId={selectedBuyerId}
+        />
       </div>
     </Layout>
   );
 };
 
-export default AdminBuyers;
+export default Buyers;
