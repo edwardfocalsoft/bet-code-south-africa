@@ -43,7 +43,7 @@ const AdminBuyers = () => {
     fetchBuyers();
     toast({
       title: "Refreshing",
-      description: "Attempting to reload buyers data...",
+      description: "Attempting to reload tipsters data...",
     });
   };
 

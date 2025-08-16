@@ -25,7 +25,7 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
       setLoading(true);
       setError(null);
       
-      console.log("Fetching buyers - started");
+      console.log("Fetching tipsters - started");
 
       // Get total count for pagination
       const { count, error: countError } = await supabase
@@ -47,14 +47,14 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
       const buyerData = await fetchBuyersData(options);
       setBuyers(buyerData);
 
-      console.log(`Fetched ${buyerData.length} buyers`);
+      console.log(`Fetched ${buyerData.length} tipsters`);
       
     } catch (error: any) {
-      console.error("Error fetching buyers:", error);
-      setError(error.message || "Failed to fetch buyers");
+      console.error("Error fetching tipsters:", error);
+      setError(error.message || "Failed to fetch tipsters");
       toast({
         title: "Error",
-        description: "Failed to load buyers. Please try again later.",
+        description: "Failed to load tipsters. Please try again later.",
         variant: "destructive",
       });
       // Set empty array to prevent infinite loading state
@@ -62,7 +62,7 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
     } finally {
       // Ensure loading state is always set to false when done
       setLoading(false);
-      console.log("Buyers fetch complete, loading set to false");
+      console.log("Tipsters fetch complete, loading set to false");
     }
   }, [options.page, options.pageSize, options.filters, toast]);
 
@@ -118,7 +118,7 @@ export function useBuyers(options: UseBuyersOptions = { fetchOnMount: true, page
         if (isMounted) {
           console.error("Error in fetchBuyers effect:", err);
           setLoading(false);
-          setError("Failed to fetch buyers");
+          setError("Failed to fetch tipsters");
         }
       });
     }

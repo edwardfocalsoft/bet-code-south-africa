@@ -74,8 +74,8 @@ const BuyerProfile: React.FC = () => {
       // Fix the path structure to match RLS policy: avatars/userId/filename
       const filePath = `avatars/${currentUser.id}/${fileName}`;
 
-      console.log(`[buyer-avatar-upload] Uploading to path: ${filePath}`);
-      console.log(`[buyer-avatar-upload] User ID: ${currentUser.id}`);
+      console.log(`[tipster-avatar-upload] Uploading to path: ${filePath}`);
+      console.log(`[tipster-avatar-upload] User ID: ${currentUser.id}`);
 
       const { error: uploadError } = await supabase.storage
         .from("profiles")
@@ -85,7 +85,7 @@ const BuyerProfile: React.FC = () => {
         });
 
       if (uploadError) {
-        console.error("[buyer-avatar-upload] Upload error:", uploadError);
+        console.error("[tipster-avatar-upload] Upload error:", uploadError);
         throw uploadError;
       }
 
@@ -102,7 +102,7 @@ const BuyerProfile: React.FC = () => {
         .eq('id', currentUser.id);
 
       if (updateError) {
-        console.error("[buyer-avatar-upload] Database update error:", updateError);
+        console.error("[tipster-avatar-upload] Database update error:", updateError);
         throw updateError;
       }
 
