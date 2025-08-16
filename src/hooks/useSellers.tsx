@@ -90,7 +90,7 @@ export function useSellers(options: UseSellersOptions = { fetchOnMount: true, li
             ranking: index + 1
           }));
         
-        console.log("Fetched top sellers (including free tickets):", sortedSellers);
+        console.log("Fetched top tipsters (including free tickets):", sortedSellers);
         setSellers(sortedSellers);
       } else {
         // Default query if not sorting by sales
@@ -122,16 +122,16 @@ export function useSellers(options: UseSellersOptions = { fetchOnMount: true, li
           credit_balance: seller.credit_balance,
         }));
 
-        console.log("Fetched sellers:", mappedSellers);
+        console.log("Fetched tipsters:", mappedSellers);
         setSellers(mappedSellers);
       }
       
     } catch (error: any) {
-      console.error("Error fetching sellers:", error);
-      setError(error.message || "Failed to fetch sellers");
+      console.error("Error fetching tipsters:", error);
+      setError(error.message || "Failed to fetch tipsters");
       toast({
         title: "Error",
-        description: "Failed to load sellers. Please try again later.",
+        description: "Failed to load tipsters. Please try again later.",
         variant: "destructive",
       });
     } finally {
