@@ -83,13 +83,13 @@ const Buyers: React.FC = () => {
         <BuyersStatsCards stats={stats} loading={loading} />
         
         <BuyersFilter 
-          onFiltersChange={handleFiltersChange}
+          onFilterChange={handleFiltersChange}
           initialFilters={filters}
         />
         
         <BuyersTable 
           buyers={buyers}
-          onUpdateStatus={updateBuyerStatus}
+          onBuyerStatusUpdate={updateBuyerStatus}
           onResendVerification={resendVerificationEmail}
           onViewProfile={setSelectedBuyerId}
         />

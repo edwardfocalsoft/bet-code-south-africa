@@ -21,8 +21,8 @@ const RegisterForm: React.FC = () => {
     <Form {...form}>
       <form onSubmit={handleSubmit} className="space-y-6">
         <RoleSelector 
-          role={role} 
-          onChange={changeRole} 
+          selectedRole={role} 
+          onRoleChange={changeRole} 
         />
 
         {serverError && <ServerError error={serverError} />}
