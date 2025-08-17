@@ -84,14 +84,12 @@ const Buyers: React.FC = () => {
         
         <BuyersFilter 
           onFilterChange={handleFiltersChange}
-          initialFilters={filters}
         />
         
         <BuyersTable 
           buyers={buyers}
-          onBuyerStatusUpdate={updateBuyerStatus}
-          onResendVerification={resendVerificationEmail}
-          onViewProfile={setSelectedBuyerId}
+          updateBuyerStatus={updateBuyerStatus}
+          resendVerificationEmail={resendVerificationEmail}
         />
         
         {totalPages > 1 && (
