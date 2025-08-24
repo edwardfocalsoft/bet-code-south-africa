@@ -1,54 +1,178 @@
+import {
+  Home,
+  LayoutDashboard,
+  ListChecks,
+  LucideIcon,
+  Settings,
+  ShoppingBag,
+  User,
+  Users,
+  Trophy,
+  Wallet,
+  Contact2,
+  Coins,
+  PercentCircle,
+  CreditCard,
+} from "lucide-react";
 
-import { LayoutDashboard, Wallet, Ticket, ShoppingBag, CreditCard, UserCircle, Receipt, Gift, Trophy } from 'lucide-react';
-import { UserRole } from '@/types';
-
-export interface NavigationLink {
-  to: string;
+interface NavigationLink {
+  href: string;
   label: string;
-  icon: any;
+  icon?: LucideIcon;
 }
 
-export const adminLinks: NavigationLink[] = [
-  { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/admin/tickets", label: "Tickets", icon: Ticket },
-  { to: "/admin/sellers", label: "Tipsters", icon: UserCircle },
-  { to: "/admin/buyers", label: "Punters", icon: UserCircle },
-  { to: "/admin/withdrawals", label: "Withdrawals", icon: Wallet },
-  { to: "/admin/cases", label: "Cases", icon: Ticket },
-  { to: "/admin/payment-settings", label: "Payment", icon: CreditCard },
-  { to: "/live-scores", label: "Live Scores", icon: Trophy },
-];
-
-export const sellerLinks: NavigationLink[] = [
-  { to: "/seller/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/seller/profile", label: "Profile", icon: UserCircle },
-  { to: "/seller/tickets", label: "My Tickets", icon: Ticket },
-  { to: "/seller/transactions", label: "Transactions", icon: Receipt },
-  { to: "/seller/withdrawals", label: "Withdrawals", icon: Wallet },
-  { to: "/vouchers", label: "Daily Vouchers", icon: Gift },
-  { to: "/live-scores", label: "Live Scores", icon: Trophy },
-];
-
-export const buyerLinks: NavigationLink[] = [
-  { to: "/buyer/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/user/wallet", label: "Wallet", icon: Wallet },
-  { to: "/tickets", label: "Browse Tickets", icon: Ticket },
-  { to: "/buyer/purchases", label: "My Purchases", icon: ShoppingBag },
-  { to: "/vouchers", label: "Daily Vouchers", icon: Gift },
-  { to: "/live-scores", label: "Live Scores", icon: Trophy },
-];
-
-export const publicLinks: NavigationLink[] = [
-  { to: "/tickets", label: "Browse Tickets", icon: Ticket },
-  { to: "/vouchers", label: "Daily Vouchers", icon: Gift },
-  { to: "/live-scores", label: "Live Scores", icon: Trophy },
-];
-
-export const getLinksForRole = (userRole: UserRole | null): NavigationLink[] => {
-  switch (userRole) {
-    case 'admin': return adminLinks;
-    case 'seller': return sellerLinks;
-    case 'buyer': return buyerLinks;
-    default: return publicLinks;
+export const getLinksForRole = (userRole: string | null): NavigationLink[] => {
+  if (userRole === "admin") {
+    return [
+      { href: "/", label: "Home" },
+      { href: "/tickets", label: "All Tickets" },
+      { href: "/sellers", label: "All Sellers" },
+      { href: "/sellers/leaderboard", label: "Leaderboard" },
+      { href: "/admin/dashboard", label: "Admin Dashboard" },
+      { href: "/admin/sellers", label: "Manage Sellers" },
+      { href: "/admin/buyers", label: "Manage Buyers" },
+      { href: "/admin/tickets", label: "Manage Tickets" },
+      { href: "/admin/cases", label: "Manage Cases" },
+      { href: "/admin/withdrawals", label: "Withdrawals" },
+      { href: "/admin/weekly-rewards", label: "Weekly Rewards" },
+      { href: "/admin/payment-settings", label: "Payment Settings" },
+    ];
   }
+
+  if (userRole === "seller") {
+    return [
+      { href: "/", label: "Home" },
+      { href: "/tickets", label: "All Tickets" },
+      { href: "/sellers", label: "All Sellers" },
+      { href: "/sellers/leaderboard", label: "Leaderboard" },
+      { href: "/sellers/me", label: "My Profile" },
+      { href: "/tickets/create", label: "Create Ticket" },
+      { href: "/user/wallet", label: "My Wallet" },
+      { href: "/user/cases", label: "My Cases" },
+      { href: "/user/notifications", label: "Notifications" },
+      { href: "/contact", label: "Contact Support" },
+    ];
+  }
+
+  return [
+    { href: "/", label: "Home" },
+    { href: "/tickets", label: "All Tickets" },
+    { href: "/sellers", label: "All Sellers" },
+    { href: "/sellers/leaderboard", label: "Leaderboard" },
+    { href: "/user/wallet", label: "My Wallet" },
+    { href: "/user/purchases", label: "My Purchases" },
+    { href: "/user/subscriptions", label: "Subscriptions" },
+    { href: "/user/cases", label: "My Cases" },
+    { href: "/user/notifications", label: "Notifications" },
+    { href: "/contact", label: "Contact Support" },
+  ];
 };
+
+export const navigationLinks = [
+  {
+    href: "/",
+    label: "Home",
+    icon: Home,
+  },
+  {
+    href: "/tickets",
+    label: "Tickets",
+    icon: ListChecks,
+  },
+  {
+    href: "/sellers",
+    label: "Sellers",
+    icon: Users,
+  },
+  {
+    href: "/sellers/leaderboard",
+    label: "Leaderboard",
+    icon: Trophy,
+  },
+  {
+    href: "/contact",
+    label: "Contact",
+    icon: Contact2,
+  },
+];
+
+export const profileLinks = [
+  {
+    href: "/user/profile",
+    label: "Profile",
+    icon: User,
+  },
+  {
+    href: "/user/wallet",
+    label: "Wallet",
+    icon: Wallet,
+  },
+  {
+    href: "/user/purchases",
+    label: "Purchases",
+    icon: ShoppingBag,
+  },
+  {
+    href: "/user/subscriptions",
+    label: "Subscriptions",
+    icon: Users,
+  },
+  {
+    href: "/user/cases",
+    label: "Cases",
+    icon: Contact2,
+  },
+  {
+    href: "/user/notifications",
+    label: "Notifications",
+    icon: Settings,
+  },
+];
+
+export const adminLinks = [
+  {
+    href: "/admin/dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    href: "/admin/sellers",
+    label: "Sellers",
+    icon: Users,
+  },
+  {
+    href: "/admin/buyers",
+    label: "Buyers",
+    icon: Users,
+  },
+  {
+    href: "/admin/tickets",
+    label: "Tickets",
+    icon: ListChecks,
+  },
+  {
+    href: "/admin/cases",
+    label: "Cases",
+    icon: Contact2,
+  },
+  {
+    href: "/admin/withdrawals",
+    label: "Withdrawals",
+    icon: Coins,
+  },
+  {
+    href: "/admin/weekly-rewards",
+    label: "Weekly Rewards",
+    icon: Trophy,
+  },
+  {
+    href: "/admin/payment-settings",
+    label: "Payment Settings",
+    icon: CreditCard,
+  },
+  {
+    href: "/admin/promo-codes",
+    label: "Promo Codes",
+    icon: PercentCircle,
+  },
+];
