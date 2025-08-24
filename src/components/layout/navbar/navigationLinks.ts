@@ -1,18 +1,22 @@
+
 import {
-  Home,
+  Home as HomeIcon,
   LayoutDashboard,
   Users,
   Ticket,
   Contact2,
   Settings,
   Coins,
-  Percent,
-  Scale,
-  LucideIcon,
   Trophy,
   BadgeDollarSign,
+  Scale,
+  LucideIcon,
 } from "lucide-react";
+import { UserRole } from "@/types";
 
+/**
+ * Existing nav definitions kept for reference or other consumers
+ */
 interface NavLink {
   name: string;
   href: string;
@@ -20,7 +24,7 @@ interface NavLink {
 }
 
 export const mainNavigation: NavLink[] = [
-  { name: "Home", href: "/", icon: Home },
+  { name: "Home", href: "/", icon: HomeIcon },
   { name: "Tipsters", href: "/sellers", icon: Users },
   { name: "Tickets", href: "/tickets", icon: Ticket },
   { name: "Contact", href: "/contact", icon: Contact2 },
@@ -30,14 +34,12 @@ export const sellerNavigation: NavLink[] = [
   { name: "Dashboard", href: "/seller/dashboard", icon: LayoutDashboard },
   { name: "My Tickets", href: "/seller/tickets", icon: Ticket },
   { name: "Transactions", href: "/seller/transactions", icon: Coins },
-  { name: "Subscription Plans", href: "/seller/subscription-plans", icon: Percent },
-  { name: "Settings", href: "/seller/settings", icon: Settings },
 ];
 
 export const buyerNavigation: NavLink[] = [
-  { name: "My Tickets", href: "/user/tickets", icon: Ticket },
+  { name: "Dashboard", href: "/buyer/dashboard", icon: LayoutDashboard },
+  { name: "Purchases", href: "/buyer/purchases", icon: Ticket },
   { name: "Wallet", href: "/user/wallet", icon: Coins },
-  { name: "Subscriptions", href: "/user/subscriptions", icon: Users },
   { name: "Settings", href: "/user/settings", icon: Settings },
 ];
 
@@ -52,8 +54,53 @@ export const adminNavigation = [
   { name: "Payment Settings", href: "/admin/payment-settings" },
 ];
 
-export const settingsNavigation: NavLink[] = [
-  { name: "Profile", href: "/user/settings", icon: Users },
-  { name: "Account", href: "/account", icon: Settings },
-  { name: "Appearance", href: "/appearance", icon: Scale },
-];
+/**
+ * What navbar components expect
+ */
+export type NavigationLink = {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+};
+
+/**
+ * Returns links formatted for navbar based on role
+ */
+export const getLinksForRole = (role: UserRole | null): NavigationLink[] => {
+  if (role === "admin") {
+    return [
+      { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/admin/sellers", label: "Tipsters", icon: Users },
+      { to: "/admin/buyers", label: "Punters", icon: Users },
+      { to: "/admin/tickets", label: "Tickets", icon: Ticket },
+      { to: "/admin/cases", label: "Cases", icon: Scale },
+      { to: "/admin/withdrawals", label: "Withdrawals", icon: BadgeDollarSign },
+      { to: "/admin/weekly-rewards", label: "Weekly Rewards", icon: Trophy },
+      { to: "/admin/payment-settings", label: "Payment Settings", icon: Settings },
+    ];
+  }
+
+  if (role === "seller") {
+    return sellerNavigation.map((l) => ({
+      to: l.href,
+      label: l.name,
+      icon: l.icon || LayoutDashboard,
+    }));
+  }
+
+  if (role === "buyer") {
+    return buyerNavigation.map((l) => ({
+      to: l.href,
+      label: l.name,
+      icon: l.icon || LayoutDashboard,
+    }));
+  }
+
+  // Default (guest): show main navigation
+  return mainNavigation.map((l) => ({
+    to: l.href,
+    label: l.name,
+    icon: l.icon || HomeIcon,
+  }));
+};
+

@@ -1,37 +1,51 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/contexts/auth";
 import { useAuth } from "@/contexts/auth";
-import Home from "@/pages/Home";
+
+// Public pages
+import Home from "@/pages/Index";
 import Login from "@/pages/auth/Login";
 import Register from "@/pages/auth/Register";
-import Profile from "@/pages/user/Profile";
+import AllSellers from "@/pages/sellers/AllSellers";
+import SellerPublicProfile from "@/pages/sellers/SellerPublicProfile";
+import SellersLeaderboard from "@/pages/sellers/SellersLeaderboard";
+import AllTickets from "@/pages/tickets/AllTickets";
+import TicketDetails from "@/pages/tickets/TicketDetails";
+import Contact from "@/pages/Contact";
+
+// User pages
 import Settings from "@/pages/user/Settings";
-import Sellers from "@/pages/Sellers";
-import SellerProfile from "@/pages/SellerProfile";
-import Tickets from "@/pages/Tickets";
-import TicketDetails from "@/pages/TicketDetails";
+import UserWallet from "@/pages/user/Wallet";
+import Cases from "@/pages/user/Cases";
+import CaseDetails from "@/pages/user/CaseDetails";
+
+// Seller pages
+import CreateTicket from "@/pages/seller/CreateTicket";
+import SellerTickets from "@/pages/seller/Tickets";
+import EditTicket from "@/pages/seller/EditTicket";
+import SellerTransactions from "@/pages/seller/Transactions";
+import SellerDashboard from "@/pages/seller/Dashboard";
+
+// Buyer pages
+import BuyerDashboard from "@/pages/buyer/Dashboard";
+import BuyerPurchases from "@/pages/buyer/Purchases";
+
+// Admin pages
 import AdminDashboard from "@/pages/admin/Dashboard";
 import AdminSellers from "@/pages/admin/Sellers";
 import AdminBuyers from "@/pages/admin/Buyers";
 import AdminTickets from "@/pages/admin/Tickets";
 import AdminCases from "@/pages/admin/Cases";
 import AdminWithdrawals from "@/pages/admin/Withdrawals";
-import AdminPaymentSettings from "@/pages/admin/PaymentSettings";
-import Cases from "@/pages/Cases";
-import CaseDetails from "@/pages/CaseDetails";
-import CreateTicket from "@/pages/seller/CreateTicket";
-import MyTickets from "@/pages/seller/MyTickets";
-import EditTicket from "@/pages/seller/EditTicket";
-import SellerTransactions from "@/pages/seller/Transactions";
-import UserWallet from "@/pages/user/Wallet";
 import AdminWeeklyRewards from "@/pages/admin/WeeklyRewards";
+import AdminPaymentSettings from "@/pages/admin/PaymentSettings";
 
 const queryClient = new QueryClient();
 
 function ApplicationWrapper({ children }: { children: React.ReactNode }) {
-  const { isLoggedIn, loading } = useAuth();
+  const { loading } = useAuth();
 
   if (loading) {
     return <div>Loading...</div>;
@@ -49,23 +63,36 @@ function App() {
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
+              <Route path="/auth/login" element={<Login />} />
+              <Route path="/auth/register" element={<Register />} />
+              {/* Keep legacy aliases just in case other parts link to them */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/sellers" element={<Sellers />} />
-              <Route path="/sellers/:sellerId" element={<SellerProfile />} />
-              <Route path="/tickets" element={<Tickets />} />
+              <Route path="/contact" element={<Contact />} />
+
+              {/* Sellers (public) */}
+              <Route path="/sellers" element={<AllSellers />} />
+              <Route path="/sellers/leaderboard" element={<SellersLeaderboard />} />
+              <Route path="/sellers/:sellerId" element={<SellerPublicProfile />} />
+
+              {/* Tickets (public) */}
+              <Route path="/tickets" element={<AllTickets />} />
               <Route path="/tickets/:ticketId" element={<TicketDetails />} />
               
               {/* User Routes */}
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/wallet" element={<UserWallet />} />
-              <Route path="/cases" element={<Cases />} />
-              <Route path="/cases/:caseId" element={<CaseDetails />} />
+              <Route path="/user/settings" element={<Settings />} />
+              <Route path="/user/wallet" element={<UserWallet />} />
+              <Route path="/user/cases" element={<Cases />} />
+              <Route path="/user/cases/:caseId" element={<CaseDetails />} />
+
+              {/* Buyer Routes */}
+              <Route path="/buyer/dashboard" element={<BuyerDashboard />} />
+              <Route path="/buyer/purchases" element={<BuyerPurchases />} />
 
               {/* Seller Routes */}
+              <Route path="/seller/dashboard" element={<SellerDashboard />} />
               <Route path="/seller/tickets/create" element={<CreateTicket />} />
-              <Route path="/seller/tickets/me" element={<MyTickets />} />
+              <Route path="/seller/tickets" element={<SellerTickets />} />
               <Route path="/seller/tickets/edit/:ticketId" element={<EditTicket />} />
               <Route path="/seller/transactions" element={<SellerTransactions />} />
               
