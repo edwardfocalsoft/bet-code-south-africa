@@ -1,1 +1,5 @@
+
 project_id = "lvcbgoatolxgyuyuqyyr"
+
+[functions.process-weekly-rewards]
+verify_jwt = false
