@@ -1,3 +1,4 @@
+
 import {
   Home,
   LayoutDashboard,
@@ -15,7 +16,7 @@ import {
   CreditCard,
 } from "lucide-react";
 
-interface NavigationLink {
+export interface NavigationLink {
   href: string;
   label: string;
   icon?: LucideIcon;

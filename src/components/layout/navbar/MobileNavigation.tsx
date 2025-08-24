@@ -30,12 +30,12 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ links }) => {
         className="w-56 bg-betting-dark-gray border-betting-light-gray"
       >
         {links.map((link) => (
-          <DropdownMenuItem key={link.to} asChild>
+          <DropdownMenuItem key={link.href} asChild>
             <NavLink 
-              to={link.to}
+              to={link.href}
               className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:text-white hover:bg-betting-black w-full"
             >
-              <link.icon className="h-4 w-4" />
+              {link.icon && <link.icon className="h-4 w-4" />}
               {link.label}
             </NavLink>
           </DropdownMenuItem>

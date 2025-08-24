@@ -48,9 +48,9 @@ const UserDropdown: React.FC = () => {
         <DropdownMenuSeparator />
         
         {navigationLinks.map((link) => (
-          <DropdownMenuItem key={link.to}>
-            <Link to={link.to} className="flex items-center gap-2 w-full">
-              <link.icon className="h-4 w-4" />
+          <DropdownMenuItem key={link.href}>
+            <Link to={link.href} className="flex items-center gap-2 w-full">
+              {link.icon && <link.icon className="h-4 w-4" />}
               {link.label}
             </Link>
           </DropdownMenuItem>
