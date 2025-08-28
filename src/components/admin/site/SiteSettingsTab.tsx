@@ -21,9 +21,9 @@ interface SiteSettings {
 }
 
 const defaultSettings: SiteSettings = {
-  site_name: "BetCode",
-  favicon_url: "/lovable-uploads/fac54ed7-e7af-463e-852d-7a912e0e1631.png",
-  logo_url: "/lovable-uploads/fac54ed7-e7af-463e-852d-7a912e0e1631.png", 
+  site_name: "CODE",
+  favicon_url: "/lovable-uploads/cc72a31c-e286-4a9e-b900-b6f4839c3296.png",
+  logo_url: "/lovable-uploads/cc72a31c-e286-4a9e-b900-b6f4839c3296.png", 
   maintenance_mode: false,
   google_ads_code: "",
 };

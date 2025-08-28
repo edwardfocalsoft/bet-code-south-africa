@@ -4,8 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
 const MaintenancePage: React.FC = () => {
-  const [siteName, setSiteName] = useState<string>("BetCode");
-  const [logoUrl, setLogoUrl] = useState<string>("/lovable-uploads/fac54ed7-e7af-463e-852d-7a912e0e1631.png");
+  const [siteName, setSiteName] = useState<string>("CODE");
+  const [logoUrl, setLogoUrl] = useState<string>("/lovable-uploads/cc72a31c-e286-4a9e-b900-b6f4839c3296.png");
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {

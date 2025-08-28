@@ -6,8 +6,8 @@ const Logo = () => {
   return (
     <Link to="/" className="flex items-center gap-2">
       <img 
-        src="/lovable-uploads/fac54ed7-e7af-463e-852d-7a912e0e1631.png" 
-        alt="BetCode" 
+        src="/lovable-uploads/cc72a31c-e286-4a9e-b900-b6f4839c3296.png" 
+        alt="CODE" 
         className="h-8"
       />
     </Link>
