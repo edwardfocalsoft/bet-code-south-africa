@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -716,6 +716,50 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_rewards: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          position: number
+          processed_at: string
+          sales_count: number
+          seller_id: string
+          week_end_date: string
+          week_start_date: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          position: number
+          processed_at?: string
+          sales_count: number
+          seller_id: string
+          week_end_date: string
+          week_start_date: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          position?: number
+          processed_at?: string
+          sales_count?: number
+          seller_id?: string
+          week_end_date?: string
+          week_start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "weekly_rewards_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       withdrawals: {
         Row: {
           amount: number
@@ -757,26 +801,26 @@ export type Database = {
     }
     Functions: {
       add_credits: {
-        Args: { user_id: string; amount_to_add: number }
+        Args: { amount_to_add: number; user_id: string }
         Returns: number
       }
       claim_daily_voucher: {
-        Args: { p_voucher_id: string; p_user_id: string }
+        Args: { p_user_id: string; p_voucher_id: string }
         Returns: boolean
       }
       complete_ticket_purchase: {
         Args: {
-          p_purchase_id: string
-          p_payment_id: string
           p_payment_data?: Json
+          p_payment_id: string
+          p_purchase_id: string
         }
         Returns: boolean
       }
       complete_wallet_transaction: {
         Args: {
-          p_transaction_id: string
-          p_payment_id: string
           p_payment_data?: Json
+          p_payment_id: string
+          p_transaction_id: string
         }
         Returns: boolean
       }
@@ -785,15 +829,15 @@ export type Database = {
         Returns: string
       }
       get_public_leaderboard: {
-        Args: { start_date: string; end_date: string; result_limit?: number }
+        Args: { end_date: string; result_limit?: number; start_date: string }
         Returns: {
-          rank: number
-          id: string
-          username: string
           avatar_url: string
+          average_rating: number
+          id: string
+          rank: number
           sales_count: number
           total_sales: number
-          average_rating: number
+          username: string
         }[]
       }
       get_public_seller_stats: {
@@ -802,15 +846,15 @@ export type Database = {
       }
       get_seller_leaderboard: {
         Args:
-          | { start_date: string; end_date: string }
-          | { start_date: string; end_date: string; result_limit?: number }
+          | { end_date: string; result_limit?: number; start_date: string }
+          | { end_date: string; start_date: string }
         Returns: {
-          rank: number
-          id: string
-          username: string
           avatar_url: string
-          sales_count: number
           average_rating: number
+          id: string
+          rank: number
+          sales_count: number
+          username: string
         }[]
       }
       is_admin: {
@@ -818,11 +862,11 @@ export type Database = {
         Returns: boolean
       }
       process_tip: {
-        Args: { p_sender_id: string; p_receiver_id: string; p_amount: number }
+        Args: { p_amount: number; p_receiver_id: string; p_sender_id: string }
         Returns: boolean
       }
       purchase_ticket: {
-        Args: { p_ticket_id: string; p_buyer_id: string }
+        Args: { p_buyer_id: string; p_ticket_id: string }
         Returns: string
       }
     }
