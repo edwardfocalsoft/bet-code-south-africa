@@ -3,3 +3,6 @@ project_id = "lvcbgoatolxgyuyuqyyr"
 
 [functions.process-weekly-rewards]
 verify_jwt = false
+
+[functions.scrape-convertbetcodes]
+verify_jwt = false
