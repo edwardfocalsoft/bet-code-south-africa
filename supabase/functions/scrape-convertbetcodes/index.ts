@@ -14,41 +14,51 @@ interface ScrapedCode {
 
 function parseTimeText(timeText: string): number {
   console.log('Parsing time text:', timeText);
-  
-  // Clean the text and extract numbers
-  const cleanText = timeText.trim().toLowerCase();
-  
-  // Extract number followed by time unit
-  const matches = cleanText.match(/(\d+)\s*(minute|min|hour|hr|day|second|sec)/);
+  // Normalize text
+  const cleanText = (timeText || '').trim().toLowerCase();
+
+  if (!cleanText) return 999;
+
+  // Handle common phrases
+  if (/(just\s*now|now)/i.test(cleanText)) {
+    return 0;
+  }
+
+  // Accept short and long units: minute/min/m, hour/hr/h, day/d, second/sec/s
+  const matches = cleanText.match(/(\d+)\s*(minute|min|m|hour|hr|h|day|d|second|sec|s)/);
   if (!matches) {
     console.log('No time matches found in:', cleanText);
     return 999; // Return high number for non-matching text
   }
-  
+
   const num = parseInt(matches[1]);
   const unit = matches[2];
-  
-  let minutesAgo = 0;
+
+  let minutesAgo = 999;
   switch (unit) {
     case 'minute':
     case 'min':
+    case 'm':
       minutesAgo = num;
       break;
     case 'hour':
     case 'hr':
+    case 'h':
       minutesAgo = num * 60;
       break;
     case 'day':
+    case 'd':
       minutesAgo = num * 60 * 24;
       break;
     case 'second':
     case 'sec':
+    case 's':
       minutesAgo = Math.ceil(num / 60);
       break;
     default:
       minutesAgo = 999;
   }
-  
+
   console.log(`Parsed "${timeText}" as ${minutesAgo} minutes ago`);
   return minutesAgo;
 }
@@ -90,67 +100,106 @@ async function scrapeBetwayFreeCodesAndNotify() {
       throw new Error('Failed to parse HTML');
     }
     
-    // Find all betting code entries
-    const codeElements = doc.querySelectorAll('.bet-code-item, .code-item, [class*="code"], [data-code]');
-    console.log('Found', codeElements.length, 'potential code elements');
-    
-    const scrapedCodes: ScrapedCode[] = [];
-    
-    // Try multiple selectors to find codes and times
-    const allDivs = doc.querySelectorAll('div, span, p, li');
-    console.log('Scanning', allDivs.length, 'elements for BWD codes...');
-    
-    for (const element of allDivs) {
-      const text = element.textContent?.trim() || '';
-      
-      // Look for BWD codes
-      const bwdMatch = text.match(/BWD[A-Z0-9]+/gi);
-      if (bwdMatch) {
-        for (const code of bwdMatch) {
-          console.log('Found BWD code:', code);
-          
-          // Try to find time information in the same element or nearby
-          let timeText = '';
-          let minutesAgo = 0;
-          
-          // Check current element and parent elements for time info
-          let currentElement = element;
-          for (let i = 0; i < 3 && currentElement; i++) {
-            const elementText = currentElement.textContent?.trim() || '';
-            const timeMatch = elementText.match(/(\d+)\s*(minute|min|hour|hr|day|second|sec)s?\s*ago/i);
-            if (timeMatch) {
-              timeText = timeMatch[0];
-              minutesAgo = parseTimeText(timeText);
-              break;
-            }
-            currentElement = currentElement.parentElement;
+// Robust code discovery: regex over raw HTML first, then DOM fallback
+const scrapedCodes: ScrapedCode[] = [];
+const foundSet = new Set<string>();
+
+// 1) Regex scan on raw HTML (handles pages rendered with simple templating)
+const normalizedHtml = html.toUpperCase();
+// Betway codes typically start with 'B', include at least one digit, 6-12 chars total
+const codeRegex = /\bB(?=[A-Z0-9]*\d)[A-Z0-9]{5,12}\b/g;
+const timeWindow = 220;
+
+const htmlMatches = [...normalizedHtml.matchAll(codeRegex)];
+console.log('Regex scan found', htmlMatches.length, 'potential Betway codes in HTML');
+
+for (const match of htmlMatches) {
+  const code = match[0];
+  if (foundSet.has(code)) continue;
+
+  const idx = match.index ?? 0;
+  const start = Math.max(0, idx - timeWindow);
+  const end = Math.min(normalizedHtml.length, idx + timeWindow);
+  const windowText = normalizedHtml.slice(start, end);
+
+  // Look for nearby time context
+  let timeText = '';
+  let minutesAgo = 999;
+  const timeMatch =
+    windowText.match(/(\d+)\s*(MINUTE|MIN|M|HOUR|HR|H|DAY|D|SECOND|SEC|S)\s*(?:AGO)?/) ||
+    windowText.match(/JUST\s*NOW|NOW/);
+
+  if (timeMatch) {
+    timeText = Array.isArray(timeMatch) ? (timeMatch[0] as string) : 'now';
+    minutesAgo = parseTimeText(timeText);
+  }
+
+  scrapedCodes.push({
+    code,
+    addedTimeText: timeText || 'unknown',
+    addedMinutesAgo: minutesAgo,
+  });
+  foundSet.add(code);
+}
+
+// 2) DOM fallback if regex scan found nothing
+if (scrapedCodes.length === 0) {
+  const allNodes = doc.querySelectorAll('div, span, p, li');
+  console.log('DOM scan over', allNodes.length, 'elements');
+
+  for (const element of allNodes) {
+    const text = (element.textContent || '').toUpperCase().trim();
+    const matches = text.match(codeRegex);
+    if (!matches) continue;
+
+    for (const matchCode of matches) {
+      if (foundSet.has(matchCode)) continue;
+
+      let timeText = '';
+      let minutesAgo = 999;
+
+      // Check current element and up to 3 parents for time info
+      let currentElement: any = element;
+      for (let i = 0; i < 3 && currentElement; i++) {
+        const t = (currentElement.textContent || '').toUpperCase();
+        const tm = t.match(/(\d+)\s*(MINUTE|MIN|M|HOUR|HR|H|DAY|D|SECOND|SEC|S)\s*(?:AGO)?|JUST\s*NOW|NOW/);
+        if (tm) {
+          timeText = Array.isArray(tm) ? (tm[0] as string) : 'now';
+          minutesAgo = parseTimeText(timeText);
+          break;
+        }
+        currentElement = currentElement.parentElement;
+      }
+
+      // Also check up to 3 next siblings
+      if (minutesAgo === 999) {
+        let sibling: any = (element as any).nextElementSibling;
+        let checks = 0;
+        while (sibling && checks < 3) {
+          const st = (sibling.textContent || '').toUpperCase();
+          const tm = st.match(/(\d+)\s*(MINUTE|MIN|M|HOUR|HR|H|DAY|D|SECOND|SEC|S)\s*(?:AGO)?|JUST\s*NOW|NOW/);
+          if (tm) {
+            timeText = Array.isArray(tm) ? (tm[0] as string) : 'now';
+            minutesAgo = parseTimeText(timeText);
+            break;
           }
-          
-          // Also check next siblings
-          let sibling = element.nextElementSibling;
-          let siblingChecks = 0;
-          while (sibling && siblingChecks < 3) {
-            const siblingText = sibling.textContent?.trim() || '';
-            const timeMatch = siblingText.match(/(\d+)\s*(minute|min|hour|hr|day|second|sec)s?\s*ago/i);
-            if (timeMatch) {
-              timeText = timeMatch[0];
-              minutesAgo = parseTimeText(timeText);
-              break;
-            }
-            sibling = sibling.nextElementSibling;
-            siblingChecks++;
-          }
-          
-          scrapedCodes.push({
-            code: code.toUpperCase(),
-            addedTimeText: timeText || 'unknown',
-            addedMinutesAgo: minutesAgo
-          });
+          sibling = sibling.nextElementSibling;
+          checks++;
         }
       }
+
+      scrapedCodes.push({
+        code: matchCode,
+        addedTimeText: timeText || 'unknown',
+        addedMinutesAgo: minutesAgo,
+      });
+      foundSet.add(matchCode);
     }
-    
-    console.log('Found', scrapedCodes.length, 'BWD codes total');
+  }
+}
+
+console.log('Found', scrapedCodes.length, 'Betway-like codes total');
+
     
     // Filter for codes added within the last 30 minutes
     const recentCodes = scrapedCodes.filter(item => item.addedMinutesAgo <= 30);
