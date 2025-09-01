@@ -227,13 +227,32 @@ console.log('Found', scrapedCodes.length, 'Betway-like codes total');
       supabaseServiceKey
     );
     
-    // Get system seller ID from secret
-    const systemSellerId = Deno.env.get('SYSTEM_SELLER_ID');
+    // Get system seller ID with fallback logic
+    let systemSellerId = Deno.env.get('SYSTEM_SELLER_ID');
+    let sellerIdSource = 'environment';
+    
     if (!systemSellerId) {
-      throw new Error('SYSTEM_SELLER_ID secret not configured');
+      console.log('SYSTEM_SELLER_ID not found in environment, querying database for masterbet user...');
+      
+      // Try to find masterbet user in database
+      const { data: masterbetProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', 'masterbet')
+        .single();
+      
+      if (masterbetProfile && !profileError) {
+        systemSellerId = masterbetProfile.id;
+        sellerIdSource = 'database';
+        console.log('Found masterbet user ID in database:', systemSellerId);
+      } else {
+        console.log('Failed to find masterbet user in database, using hardcoded fallback');
+        systemSellerId = '65166241-9382-44e3-a40b-af9b62f6afb0'; // hardcoded masterbet UUID
+        sellerIdSource = 'hardcoded';
+      }
     }
     
-    console.log('Using system seller ID:', systemSellerId);
+    console.log(`Using system seller ID: ${systemSellerId} (source: ${sellerIdSource})`);
     
     let processed = 0;
     let skipped = 0;
