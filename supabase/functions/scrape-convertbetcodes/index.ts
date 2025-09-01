@@ -63,6 +63,14 @@ function parseTimeText(timeText: string): number {
   return minutesAgo;
 }
 
+function getTicketTitle(events?: number): string {
+  if (!events) return 'Standard Ticket';
+  
+  if (events >= 10) return 'High Stake';
+  if (events >= 5) return 'Long Ticket';
+  return 'Standard Ticket';
+}
+
 function getKickoffTime(): string {
   // Get current time in Africa/Johannesburg timezone
   const now = new Date();
@@ -100,14 +108,19 @@ async function scrapeBetwayFreeCodesAndNotify() {
       throw new Error('Failed to parse HTML');
     }
     
-// Robust code discovery: regex over raw HTML first, then DOM fallback
-const scrapedCodes: ScrapedCode[] = [];
+// Enhanced code discovery with events and odds extraction
+interface EnhancedScrapedCode extends ScrapedCode {
+  events?: number;
+  odds?: number;
+}
+
+const scrapedCodes: EnhancedScrapedCode[] = [];
 const foundSet = new Set<string>();
 
 // 1) Regex scan on raw HTML (handles pages rendered with simple templating)
 const normalizedHtml = html.toUpperCase();
-// Betway codes typically start with 'B', include at least one digit, 6-12 chars total
-const codeRegex = /\bB(?=[A-Z0-9]*\d)[A-Z0-9]{5,12}\b/g;
+// Look for BW codes that are exactly 9 characters long
+const codeRegex = /\bBW[A-Z0-9]{7}\b/g;
 const timeWindow = 220;
 
 const htmlMatches = [...normalizedHtml.matchAll(codeRegex)];
@@ -122,9 +135,12 @@ for (const match of htmlMatches) {
   const end = Math.min(normalizedHtml.length, idx + timeWindow);
   const windowText = normalizedHtml.slice(start, end);
 
-  // Look for nearby time context
+  // Look for nearby time context, events, and odds
   let timeText = '';
   let minutesAgo = 999;
+  let events: number | undefined;
+  let odds: number | undefined;
+  
   const timeMatch =
     windowText.match(/(\d+)\s*(MINUTE|MIN|M|HOUR|HR|H|DAY|D|SECOND|SEC|S)\s*(?:AGO)?/) ||
     windowText.match(/JUST\s*NOW|NOW/);
@@ -134,10 +150,23 @@ for (const match of htmlMatches) {
     minutesAgo = parseTimeText(timeText);
   }
 
+  // Extract events and odds from the context
+  const eventsMatch = windowText.match(/(\d+)\s*EVENTS?/);
+  if (eventsMatch) {
+    events = parseInt(eventsMatch[1]);
+  }
+
+  const oddsMatch = windowText.match(/(\d+(?:\.\d+)?)\s*ODDS?/);
+  if (oddsMatch) {
+    odds = parseFloat(oddsMatch[1]);
+  }
+
   scrapedCodes.push({
     code,
     addedTimeText: timeText || 'unknown',
     addedMinutesAgo: minutesAgo,
+    events,
+    odds,
   });
   foundSet.add(code);
 }
@@ -157,8 +186,10 @@ if (scrapedCodes.length === 0) {
 
       let timeText = '';
       let minutesAgo = 999;
+      let events: number | undefined;
+      let odds: number | undefined;
 
-      // Check current element and up to 3 parents for time info
+      // Check current element and up to 3 parents for time info, events, and odds
       let currentElement: any = element;
       for (let i = 0; i < 3 && currentElement; i++) {
         const t = (currentElement.textContent || '').toUpperCase();
@@ -166,23 +197,51 @@ if (scrapedCodes.length === 0) {
         if (tm) {
           timeText = Array.isArray(tm) ? (tm[0] as string) : 'now';
           minutesAgo = parseTimeText(timeText);
-          break;
         }
+        
+        // Extract events and odds
+        const eventsMatch = t.match(/(\d+)\s*EVENTS?/);
+        if (eventsMatch && !events) {
+          events = parseInt(eventsMatch[1]);
+        }
+
+        const oddsMatch = t.match(/(\d+(?:\.\d+)?)\s*ODDS?/);
+        if (oddsMatch && !odds) {
+          odds = parseFloat(oddsMatch[1]);
+        }
+        
         currentElement = currentElement.parentElement;
       }
 
       // Also check up to 3 next siblings
-      if (minutesAgo === 999) {
+      if (minutesAgo === 999 || !events || !odds) {
         let sibling: any = (element as any).nextElementSibling;
         let checks = 0;
         while (sibling && checks < 3) {
           const st = (sibling.textContent || '').toUpperCase();
-          const tm = st.match(/(\d+)\s*(MINUTE|MIN|M|HOUR|HR|H|DAY|D|SECOND|SEC|S)\s*(?:AGO)?|JUST\s*NOW|NOW/);
-          if (tm) {
-            timeText = Array.isArray(tm) ? (tm[0] as string) : 'now';
-            minutesAgo = parseTimeText(timeText);
-            break;
+          
+          if (minutesAgo === 999) {
+            const tm = st.match(/(\d+)\s*(MINUTE|MIN|M|HOUR|HR|H|DAY|D|SECOND|SEC|S)\s*(?:AGO)?|JUST\s*NOW|NOW/);
+            if (tm) {
+              timeText = Array.isArray(tm) ? (tm[0] as string) : 'now';
+              minutesAgo = parseTimeText(timeText);
+            }
           }
+          
+          if (!events) {
+            const eventsMatch = st.match(/(\d+)\s*EVENTS?/);
+            if (eventsMatch) {
+              events = parseInt(eventsMatch[1]);
+            }
+          }
+
+          if (!odds) {
+            const oddsMatch = st.match(/(\d+(?:\.\d+)?)\s*ODDS?/);
+            if (oddsMatch) {
+              odds = parseFloat(oddsMatch[1]);
+            }
+          }
+          
           sibling = sibling.nextElementSibling;
           checks++;
         }
@@ -192,6 +251,8 @@ if (scrapedCodes.length === 0) {
         code: matchCode,
         addedTimeText: timeText || 'unknown',
         addedMinutesAgo: minutesAgo,
+        events,
+        odds,
       });
       foundSet.add(matchCode);
     }
@@ -262,7 +323,7 @@ console.log('Found', scrapedCodes.length, 'Betway-like codes total');
     console.log('Using kickoff time:', kickoffTime);
     
     for (const codeItem of recentCodes) {
-      const { code, addedTimeText } = codeItem;
+      const { code, addedTimeText, events, odds } = codeItem;
       
       try {
         // Check if this code already exists today for the system seller
@@ -285,10 +346,14 @@ console.log('Found', scrapedCodes.length, 'Betway-like codes total');
           continue;
         }
         
-        // Insert new ticket
+        // Insert new ticket with new format
+        const ticketTitle = getTicketTitle(events);
+        const eventsText = events ? ` (${events} events)` : '';
+        const oddsText = odds ? ` - ${odds} odds` : '';
+        
         const ticketData = {
-          title: `Betway Free Code: ${code}`,
-          description: `Free Betway code from convertbetcodes.com. Added ${addedTimeText}. Kickoff time set to 8 hours from scrape time.`,
+          title: `${ticketTitle}${eventsText}${oddsText}`,
+          description: 'Big Boom Put Together By Masterbet.',
           seller_id: systemSellerId,
           price: 0,
           is_free: true,
@@ -296,7 +361,8 @@ console.log('Found', scrapedCodes.length, 'Betway-like codes total');
           kickoff_time: kickoffTime,
           is_hidden: false,
           is_expired: false,
-          ticket_code: code
+          ticket_code: code,
+          odds: odds || null
         };
         
         const { error: insertError } = await supabase
