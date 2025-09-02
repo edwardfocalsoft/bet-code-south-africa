@@ -1,6 +1,15 @@
 
-import { LayoutDashboard, Wallet, Ticket, ShoppingBag, CreditCard, UserCircle, Receipt, Gift, Trophy } from 'lucide-react';
+import { LayoutDashboard, Wallet, Ticket, ShoppingBag, CreditCard, UserCircle, Receipt, Gift, Trophy, Heart } from 'lucide-react';
 import { UserRole } from '@/types';
+
+export const navigationLinks = [
+  { label: "Home", href: "/" },
+  { label: "Feed", href: "/feed" },
+  { label: "All Tickets", href: "/tickets" },
+  { label: "Sellers", href: "/sellers" },
+  { label: "Leaderboard", href: "/sellers/leaderboard" },
+  { label: "Daily Vouchers", href: "/vouchers" },
+];
 
 export interface NavigationLink {
   to: string;
@@ -21,6 +30,7 @@ export const adminLinks: NavigationLink[] = [
 
 export const sellerLinks: NavigationLink[] = [
   { to: "/seller/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/feed", label: "Feed", icon: Heart },
   { to: "/seller/profile", label: "Profile", icon: UserCircle },
   { to: "/seller/tickets", label: "My Tickets", icon: Ticket },
   { to: "/seller/transactions", label: "Transactions", icon: Receipt },
@@ -31,6 +41,7 @@ export const sellerLinks: NavigationLink[] = [
 
 export const buyerLinks: NavigationLink[] = [
   { to: "/buyer/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/feed", label: "Feed", icon: Heart },
   { to: "/user/wallet", label: "Wallet", icon: Wallet },
   { to: "/tickets", label: "Browse Tickets", icon: Ticket },
   { to: "/buyer/purchases", label: "My Purchases", icon: ShoppingBag },

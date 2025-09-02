@@ -23,6 +23,7 @@ import FAQ from "@/pages/FAQ";
 import Contact from "@/pages/Contact";
 import Maintenance from "@/pages/Maintenance";
 import LiveScores from "@/pages/LiveScores";
+import Feed from "@/pages/Feed";
 
 // User pages
 import Wallet from "@/pages/user/Wallet";
@@ -105,6 +106,7 @@ function App() {
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/maintenance" element={<Maintenance />} />
                     <Route path="/live-scores" element={<LiveScores />} />
+                    <Route path="/feed" element={<Feed />} />
 
                     {/* User routes */}
                     <Route path="/user/wallet" element={<Wallet />} />

@@ -280,6 +280,90 @@ export type Database = {
         }
         Relationships: []
       }
+      post_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          reaction_type: Database["public"]["Enums"]["reaction_type"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          reaction_type: Database["public"]["Enums"]["reaction_type"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          reaction_type?: Database["public"]["Enums"]["reaction_type"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      post_reports: {
+        Row: {
+          created_at: string
+          id: string
+          post_id: string
+          reason: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["report_status"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          post_id: string
+          reason: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          post_id?: string
+          reason?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      posts: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_hidden: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_hidden?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_hidden?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           approved: boolean
@@ -878,6 +962,8 @@ export type Database = {
         | "Playa"
         | "10bet"
         | "Easybet"
+      reaction_type: "heart" | "thumbs_up" | "thumbs_down"
+      report_status: "pending" | "reviewed" | "dismissed"
       user_role: "buyer" | "seller" | "admin"
     }
     CompositeTypes: {
@@ -1014,6 +1100,8 @@ export const Constants = {
         "10bet",
         "Easybet",
       ],
+      reaction_type: ["heart", "thumbs_up", "thumbs_down"],
+      report_status: ["pending", "reviewed", "dismissed"],
       user_role: ["buyer", "seller", "admin"],
     },
   },

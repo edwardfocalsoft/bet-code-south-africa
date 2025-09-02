@@ -181,3 +181,46 @@ export interface Notification {
   type: "subscription" | "ticket" | "system" | "free_ticket" | "case" | "seller_notification" | "admin_notification";
   relatedId?: string;
 }
+
+export type ReactionType = 'heart' | 'thumbs_up' | 'thumbs_down';
+
+export interface Post {
+  id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  is_hidden: boolean;
+  profiles?: {
+    id: string;
+    username: string;
+    avatar_url?: string;
+    role: UserRole;
+  };
+  reactions?: PostReaction[];
+  reaction_counts?: {
+    heart: number;
+    thumbs_up: number;
+    thumbs_down: number;
+  };
+  user_reaction?: ReactionType | null;
+}
+
+export interface PostReaction {
+  id: string;
+  post_id: string;
+  user_id: string;
+  reaction_type: ReactionType;
+  created_at: string;
+}
+
+export interface PostReport {
+  id: string;
+  post_id: string;
+  user_id: string;
+  reason: string;
+  created_at: string;
+  status: 'pending' | 'reviewed' | 'dismissed';
+  reviewed_by?: string;
+  reviewed_at?: string;
+}
