@@ -23,6 +23,7 @@ export const useTicketMapper = () => {
         kickoffTime: kickoffTime,
         createdAt: new Date(ticket.created_at),
         odds: ticket.odds ? parseFloat(String(ticket.odds)) : undefined,
+        legs: ticket.legs || undefined,
         isHidden: ticket.is_hidden,
         // Critical fix: Mark as expired either if explicitly marked in DB or if kickoff time has passed
         isExpired: ticket.is_expired || isExpiredByDate,

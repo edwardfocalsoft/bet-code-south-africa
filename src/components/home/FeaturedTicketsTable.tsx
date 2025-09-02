@@ -41,6 +41,8 @@ const FeaturedTicketsTable: React.FC<FeaturedTicketsTableProps> = ({
               <th className="text-left p-4 font-medium">Tipster</th>
               <th className="text-left p-4 font-medium">Bookie</th>
               <th className="text-left p-4 font-medium">Price</th>
+              <th className="text-left p-4 font-medium">Legs</th>
+              <th className="text-left p-4 font-medium">Odds</th>
               <th className="text-left p-4 font-medium">Kickoff</th>
               <th className="text-left p-4 font-medium">Action</th>
             </tr>
@@ -72,6 +74,12 @@ const FeaturedTicketsTable: React.FC<FeaturedTicketsTableProps> = ({
                     </Badge> : <span className="font-medium text-betting-green">
                       R{ticket.price.toFixed(2)}
                     </span>}
+                </td>
+                <td className="p-4">
+                  <span className="text-sm">{ticket.legs || '-'}</span>
+                </td>
+                <td className="p-4">
+                  <span className="text-sm">{ticket.odds ? ticket.odds.toFixed(2) : '-'}</span>
                 </td>
                 <td className="p-4">
                   <div className="text-sm">

@@ -57,6 +57,7 @@ export interface BettingTicket {
   kickoffTime: Date;
   createdAt: Date;
   odds?: number;
+  legs?: number;
   isHidden?: boolean;
   isExpired?: boolean;
   eventResults?: string;
