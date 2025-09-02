@@ -93,6 +93,7 @@ const TicketContent: React.FC<TicketContentProps> = ({
               price={ticket.price}
               isFree={ticket.is_free}
               odds={ticket.odds}
+              legs={ticket.legs}
             />
             
             <TicketDescription description={ticket.description} />
