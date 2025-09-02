@@ -50,9 +50,7 @@ const FeaturedTicketsTable: React.FC<FeaturedTicketsTableProps> = ({
                 <td className="p-4">
                   <Link to={`/tickets/${ticket.id}`} className="hover:text-betting-green transition-colors">
                     <div className="font-medium">{ticket.title}</div>
-                    <div className="text-sm text-muted-foreground line-clamp-1">
-                      {ticket.description}
-                    </div>
+                    
                   </Link>
                 </td>
                 <td className="p-4">
