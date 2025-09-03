@@ -2,12 +2,24 @@ import React, { useCallback } from 'react';
 import { useInView } from 'react-intersection-observer';
 import Layout from '@/components/layout/Layout';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
 import { useFeed } from '@/hooks/useFeed';
 import CreatePostDialog from '@/components/feed/CreatePostDialog';
 import PostCard from '@/components/feed/PostCard';
+import FeedSidebar from '@/components/feed/FeedSidebar';
 
 const Feed: React.FC = () => {
-  const { posts, loading, hasMore, loadMore, createPost, toggleReaction, reportPost } = useFeed();
+  const { 
+    posts, 
+    loading, 
+    hasMore, 
+    loadMore, 
+    createPost, 
+    toggleReaction, 
+    reportPost,
+    searchQuery,
+    setSearchQuery 
+  } = useFeed();
   
   const { ref } = useInView({
     threshold: 0,
@@ -45,45 +57,69 @@ const Feed: React.FC = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-6 max-w-2xl">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-2">Feed</h1>
-          <p className="text-muted-foreground">
-            Stay updated with the latest from your favorite tipsters
-          </p>
-        </div>
-
-        <CreatePostDialog onCreatePost={createPost} />
-
-        <div className="space-y-4">
-          {posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              onToggleReaction={toggleReaction}
-              onReportPost={reportPost}
-            />
-          ))}
-
-          {loading && <LoadingSkeleton />}
-
-          {!loading && posts.length === 0 && (
-            <div className="text-center py-12">
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex gap-6">
+          {/* Sidebar */}
+          <FeedSidebar 
+            searchQuery={searchQuery} 
+            onSearchChange={setSearchQuery} 
+          />
+          
+          {/* Main Feed */}
+          <div className="flex-1 max-w-2xl space-y-6">
+            <div className="mb-6">
+              <h1 className="text-2xl font-bold mb-2">Feed</h1>
               <p className="text-muted-foreground">
-                No posts yet. Follow some tipsters to see their updates here!
+                Stay updated with the latest from your favorite tipsters
               </p>
             </div>
-          )}
 
-          {hasMore && !loading && <div ref={ref} className="h-4" />}
+            <CreatePostDialog onCreatePost={createPost} />
+            
+            {searchQuery && (
+              <Card>
+                <CardContent className="py-4">
+                  <p className="text-sm text-muted-foreground">
+                    {posts.length > 0 
+                      ? `Found ${posts.length} post${posts.length === 1 ? '' : 's'} matching "${searchQuery}"`
+                      : `No posts found matching "${searchQuery}"`
+                    }
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
-          {!hasMore && posts.length > 0 && (
-            <div className="text-center py-6">
-              <p className="text-muted-foreground text-sm">
-                You've reached the end of the feed
-              </p>
+            <div className="space-y-4">
+              {posts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onToggleReaction={toggleReaction}
+                  onReportPost={reportPost}
+                />
+              ))}
+
+              {loading && <LoadingSkeleton />}
+
+              {!loading && posts.length === 0 && !searchQuery && (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">
+                    No posts yet. Follow some tipsters to see their updates here!
+                  </p>
+                </div>
+              )}
+
+              {hasMore && !loading && <div ref={ref} className="h-4" />}
+
+              {!hasMore && posts.length > 0 && (
+                <div className="text-center py-6">
+                  <p className="text-muted-foreground text-sm">
+                    You've reached the end of the feed
+                  </p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
     </Layout>

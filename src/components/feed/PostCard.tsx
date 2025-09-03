@@ -66,6 +66,16 @@ const PostCard: React.FC<PostCardProps> = ({ post, onToggleReaction, onReportPos
             <p className="text-sm leading-relaxed whitespace-pre-wrap">
               {post.content}
             </p>
+            
+            {post.image_url && (
+              <div className="mt-3 rounded-lg overflow-hidden border">
+                <img 
+                  src={post.image_url} 
+                  alt="Post image" 
+                  className="w-full h-auto max-h-96 object-cover"
+                />
+              </div>
+            )}
           </div>
           
           {currentUser && (

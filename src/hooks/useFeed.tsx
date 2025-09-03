@@ -9,6 +9,7 @@ export const useFeed = () => {
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
   const { currentUser } = useAuth();
   const { toast } = useToast();
 
@@ -34,6 +35,11 @@ export const useFeed = () => {
         .eq('is_hidden', false)
         .order('created_at', { ascending: false })
         .range(offset, offset + 19);
+
+      // Apply search filter if query exists
+      if (searchQuery.trim()) {
+        query = query.ilike('content', `%${searchQuery}%`);
+      }
 
       const { data: postsData, error } = await query;
 
@@ -92,6 +98,7 @@ export const useFeed = () => {
             id: post.id,
             user_id: post.user_id,
             content: post.content,
+            image_url: post.image_url,
             created_at: post.created_at,
             updated_at: post.updated_at,
             is_hidden: post.is_hidden,
@@ -137,7 +144,7 @@ export const useFeed = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentUser?.id]);
+  }, [currentUser?.id, searchQuery]);
 
   const loadMore = useCallback(() => {
     if (!loading && hasMore) {
@@ -147,7 +154,7 @@ export const useFeed = () => {
     }
   }, [loading, hasMore, page, fetchPosts]);
 
-  const createPost = useCallback(async (content: string) => {
+  const createPost = useCallback(async (content: string, imageUrl?: string) => {
     if (!currentUser) return false;
 
     try {
@@ -156,6 +163,7 @@ export const useFeed = () => {
         .insert({
           user_id: currentUser.id,
           content: content.trim(),
+          image_url: imageUrl,
         });
 
       if (error) throw error;
@@ -286,8 +294,9 @@ export const useFeed = () => {
   }, [currentUser, toast]);
 
   useEffect(() => {
+    setPage(0);
     fetchPosts(0, true);
-  }, [currentUser?.id]);
+  }, [currentUser?.id, searchQuery]);
 
   return {
     posts,
@@ -297,6 +306,8 @@ export const useFeed = () => {
     createPost,
     toggleReaction,
     reportPost,
+    searchQuery,
+    setSearchQuery,
     refetch: () => {
       setPage(0);
       fetchPosts(0, true);
