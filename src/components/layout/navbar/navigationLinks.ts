@@ -50,6 +50,7 @@ export const buyerLinks: NavigationLink[] = [
 ];
 
 export const publicLinks: NavigationLink[] = [
+  { to: "/feed", label: "Feed", icon: Heart },
   { to: "/tickets", label: "Browse Tickets", icon: Ticket },
   { to: "/vouchers", label: "Daily Vouchers", icon: Gift },
   { to: "/live-scores", label: "Live Scores", icon: Trophy },

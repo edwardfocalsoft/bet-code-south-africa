@@ -133,7 +133,7 @@ export const useFeed = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentUser, toast]);
+  }, [currentUser?.id]);
 
   const loadMore = useCallback(() => {
     if (!loading && hasMore) {
@@ -177,7 +177,10 @@ export const useFeed = () => {
   }, [currentUser, toast, fetchPosts]);
 
   const toggleReaction = useCallback(async (postId: string, reactionType: ReactionType) => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      toast({ title: "Login required", description: "Please log in to react to posts.", variant: "destructive" });
+      return;
+    }
 
     try {
       // Check if user already has this reaction
@@ -280,7 +283,7 @@ export const useFeed = () => {
 
   useEffect(() => {
     fetchPosts(0, true);
-  }, [fetchPosts]);
+  }, [currentUser?.id]);
 
   return {
     posts,
