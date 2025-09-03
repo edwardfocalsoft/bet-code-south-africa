@@ -30,15 +30,7 @@ export const useFeed = () => {
 
       let query = supabase
         .from('posts')
-        .select(`
-          *,
-          profiles:user_id (
-            id,
-            username,
-            avatar_url,
-            role
-          )
-        `)
+        .select('*')
         .eq('is_hidden', false)
         .order('created_at', { ascending: false })
         .range(offset, offset + 19);
@@ -52,6 +44,18 @@ export const useFeed = () => {
         if (reset) setPosts([]);
         return;
       }
+
+      // Get unique user IDs from posts
+      const userIds = [...new Set(postsData.map(post => post.user_id))];
+      
+      // Fetch profiles for all users
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url, role')
+        .in('id', userIds);
+
+      // Create a map for quick profile lookup
+      const profilesMap = new Map(profilesData?.map(profile => [profile.id, profile]) || []);
 
       // Get reaction counts and user reactions for each post
       const postsWithReactions = await Promise.all(
@@ -76,13 +80,13 @@ export const useFeed = () => {
               .select('reaction_type')
               .eq('post_id', post.id)
               .eq('user_id', currentUser.id)
-              .single();
+              .maybeSingle();
             
             userReaction = userReactionData?.reaction_type || null;
           }
 
-          // Type the profiles safely
-          const profiles = (post as any).profiles as { id: string; username: string; avatar_url?: string; role: UserRole; } | undefined;
+          // Get profile for this post
+          const profiles = profilesMap.get(post.user_id);
 
           return {
             id: post.id,
