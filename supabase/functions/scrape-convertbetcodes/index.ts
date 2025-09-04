@@ -150,13 +150,17 @@ for (const match of htmlMatches) {
     minutesAgo = parseTimeText(timeText);
   }
 
-  // Extract events and odds from the context
-  const eventsMatch = windowText.match(/(\d+)\s*EVENTS?/);
+  // Extract events and odds from the context - improved patterns
+  const eventsMatch = windowText.match(/(\d+)\s*EVENTS?/) || 
+                      windowText.match(/@(\d+)\s*EVENTS?/) ||
+                      windowText.match(/(\d+)EVENTS?/);
   if (eventsMatch) {
     events = parseInt(eventsMatch[1]);
   }
 
-  const oddsMatch = windowText.match(/(\d+(?:\.\d+)?)\s*ODDS?/);
+  const oddsMatch = windowText.match(/@(\d+(?:\.\d+)?)\s*ODDS?/) || 
+                    windowText.match(/(\d+(?:\.\d+)?)\s*ODDS?/) ||
+                    windowText.match(/@(\d+(?:\.\d+)?)/);
   if (oddsMatch) {
     odds = parseFloat(oddsMatch[1]);
   }
@@ -199,13 +203,17 @@ if (scrapedCodes.length === 0) {
           minutesAgo = parseTimeText(timeText);
         }
         
-        // Extract events and odds
-        const eventsMatch = t.match(/(\d+)\s*EVENTS?/);
+        // Extract events and odds - improved patterns
+        const eventsMatch = t.match(/(\d+)\s*EVENTS?/) || 
+                            t.match(/@(\d+)\s*EVENTS?/) ||
+                            t.match(/(\d+)EVENTS?/);
         if (eventsMatch && !events) {
           events = parseInt(eventsMatch[1]);
         }
 
-        const oddsMatch = t.match(/(\d+(?:\.\d+)?)\s*ODDS?/);
+        const oddsMatch = t.match(/@(\d+(?:\.\d+)?)\s*ODDS?/) || 
+                          t.match(/(\d+(?:\.\d+)?)\s*ODDS?/) ||
+                          t.match(/@(\d+(?:\.\d+)?)/);
         if (oddsMatch && !odds) {
           odds = parseFloat(oddsMatch[1]);
         }
@@ -229,14 +237,18 @@ if (scrapedCodes.length === 0) {
           }
           
           if (!events) {
-            const eventsMatch = st.match(/(\d+)\s*EVENTS?/);
+            const eventsMatch = st.match(/(\d+)\s*EVENTS?/) || 
+                                st.match(/@(\d+)\s*EVENTS?/) ||
+                                st.match(/(\d+)EVENTS?/);
             if (eventsMatch) {
               events = parseInt(eventsMatch[1]);
             }
           }
 
           if (!odds) {
-            const oddsMatch = st.match(/(\d+(?:\.\d+)?)\s*ODDS?/);
+            const oddsMatch = st.match(/@(\d+(?:\.\d+)?)\s*ODDS?/) || 
+                              st.match(/(\d+(?:\.\d+)?)\s*ODDS?/) ||
+                              st.match(/@(\d+(?:\.\d+)?)/);
             if (oddsMatch) {
               odds = parseFloat(oddsMatch[1]);
             }
