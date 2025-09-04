@@ -293,6 +293,81 @@ export const useFeed = () => {
     }
   }, [currentUser, toast]);
 
+  const deletePost = useCallback(async (postId: string) => {
+    if (!currentUser) return;
+
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', postId)
+        .eq('user_id', currentUser.id);
+
+      if (error) throw error;
+
+      // Remove from local state
+      setPosts(prev => prev.filter(post => post.id !== postId));
+
+      toast({
+        title: "Success",
+        description: "Post deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete post",
+        variant: "destructive",
+      });
+    }
+  }, [currentUser, toast]);
+
+  // Setup realtime subscription for reactions
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const channel = supabase
+      .channel('post-reactions-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'post_reactions'
+        },
+        (payload) => {
+          // Update reaction counts in real time
+          const { eventType, new: newRecord, old: oldRecord } = payload;
+          const postId = (newRecord as any)?.post_id || (oldRecord as any)?.post_id;
+          
+          if (postId) {
+            setPosts(prev => prev.map(post => {
+              if (post.id !== postId) return post;
+              
+              const newCounts = { ...post.reaction_counts };
+              
+              if (eventType === 'INSERT' && newRecord) {
+                newCounts[(newRecord as any).reaction_type as ReactionType]++;
+              } else if (eventType === 'DELETE' && oldRecord) {
+                newCounts[(oldRecord as any).reaction_type as ReactionType]--;
+              }
+              
+              return {
+                ...post,
+                reaction_counts: newCounts,
+                user_reaction: (newRecord as any)?.user_id === currentUser.id ? (newRecord as any).reaction_type : post.user_reaction
+              };
+            }));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser?.id]);
+
   useEffect(() => {
     setPage(0);
     fetchPosts(0, true);
@@ -306,6 +381,7 @@ export const useFeed = () => {
     createPost,
     toggleReaction,
     reportPost,
+    deletePost,
     searchQuery,
     setSearchQuery,
     refetch: () => {

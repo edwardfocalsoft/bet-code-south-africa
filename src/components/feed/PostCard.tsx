@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Heart, ThumbsUp, ThumbsDown, Flag, MoreHorizontal } from 'lucide-react';
+import { Heart, ThumbsUp, ThumbsDown, Flag, MoreHorizontal, Trash2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { formatDistanceToNow } from 'date-fns';
 import { Post, ReactionType } from '@/types';
@@ -15,9 +15,10 @@ interface PostCardProps {
   post: Post;
   onToggleReaction: (postId: string, reactionType: ReactionType) => void;
   onReportPost: (postId: string, reason: string) => Promise<boolean>;
+  onDeletePost: (postId: string) => void;
 }
 
-const PostCard: React.FC<PostCardProps> = ({ post, onToggleReaction, onReportPost }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, onToggleReaction, onReportPost, onDeletePost }) => {
   const { currentUser } = useAuth();
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
 
@@ -86,6 +87,15 @@ const PostCard: React.FC<PostCardProps> = ({ post, onToggleReaction, onReportPos
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {currentUser?.id === post.user_id && (
+                  <DropdownMenuItem 
+                    onClick={() => onDeletePost(post.id)}
+                    className="text-red-600 focus:text-red-600"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Post
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => setReportDialogOpen(true)}>
                   <Flag className="h-4 w-4 mr-2" />
                   Report Post
@@ -109,7 +119,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onToggleReaction, onReportPos
                   size="sm"
                   className={cn(
                     "flex items-center gap-1 h-8 px-2",
-                    isActive && "bg-accent"
+                    isActive && "bg-muted"
                   )}
                   onClick={() => onToggleReaction(post.id, reactionType)}
                 >

@@ -8,16 +8,17 @@ import CreatePostDialog from '@/components/feed/CreatePostDialog';
 import PostCard from '@/components/feed/PostCard';
 import FeedSidebar from '@/components/feed/FeedSidebar';
 const Feed: React.FC = () => {
-  const {
-    posts,
-    loading,
-    hasMore,
-    loadMore,
-    createPost,
-    toggleReaction,
+  const { 
+    posts, 
+    loading, 
+    hasMore, 
+    loadMore, 
+    createPost, 
+    toggleReaction, 
     reportPost,
+    deletePost,
     searchQuery,
-    setSearchQuery
+    setSearchQuery 
   } = useFeed();
   const {
     ref
@@ -75,7 +76,7 @@ const Feed: React.FC = () => {
               </Card>}
 
             <div className="space-y-4">
-              {posts.map(post => <PostCard key={post.id} post={post} onToggleReaction={toggleReaction} onReportPost={reportPost} />)}
+              {posts.map(post => <PostCard key={post.id} post={post} onToggleReaction={toggleReaction} onReportPost={reportPost} onDeletePost={deletePost} />)}
 
               {loading && <LoadingSkeleton />}
 

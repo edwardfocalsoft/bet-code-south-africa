@@ -34,8 +34,32 @@ const CreatePostDialog: React.FC<CreatePostDialogProps> = ({ onCreatePost }) => 
     setImagePreview(null);
   };
 
+  const validateContent = (text: string) => {
+    // Check for links (http, https, www)
+    const linkPattern = /(https?:\/\/[^\s]+)|(www\.[^\s]+)|([a-zA-Z0-9-]+\.[a-zA-Z]{2,})/i;
+    if (linkPattern.test(text)) {
+      return 'Links are not allowed in posts';
+    }
+
+    // Check if content is mostly numbers (more than 50% numbers)
+    const numbersOnly = text.replace(/[^0-9]/g, '');
+    const totalChars = text.replace(/\s/g, '').length;
+    if (totalChars > 0 && (numbersOnly.length / totalChars) > 0.5) {
+      return 'Posts should be text-based, not primarily numbers';
+    }
+
+    return null;
+  };
+
   const handleSubmit = async () => {
     if (!content.trim() || loading) return;
+
+    // Validate content
+    const validationError = validateContent(content);
+    if (validationError) {
+      console.error('Content validation failed:', validationError);
+      return;
+    }
 
     setLoading(true);
     let imageUrl = '';
@@ -48,13 +72,13 @@ const CreatePostDialog: React.FC<CreatePostDialogProps> = ({ onCreatePost }) => 
         
         const { data, error } = await supabase.storage
           .from('profiles')
-          .upload(fileName, selectedImage);
+          .upload(`avatars/${fileName}`, selectedImage);
 
         if (error) throw error;
 
         const { data: { publicUrl } } = supabase.storage
           .from('profiles')
-          .getPublicUrl(fileName);
+          .getPublicUrl(`avatars/${fileName}`);
 
         imageUrl = publicUrl;
       }
@@ -90,13 +114,18 @@ const CreatePostDialog: React.FC<CreatePostDialogProps> = ({ onCreatePost }) => 
           <DialogTitle>Share an Update</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
-          <Textarea
-            placeholder="What's on your mind? Share your thoughts, tips, or predictions! 😊"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="min-h-[100px]"
-            maxLength={500}
-          />
+          <div className="space-y-2">
+            <Textarea
+              placeholder="What's on your mind? Share your thoughts, tips, or predictions! 😊"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="min-h-[100px]"
+              maxLength={500}
+            />
+            {content && validateContent(content) && (
+              <p className="text-sm text-red-500">{validateContent(content)}</p>
+            )}
+          </div>
           
           {imagePreview && (
             <div className="relative">
@@ -145,7 +174,7 @@ const CreatePostDialog: React.FC<CreatePostDialogProps> = ({ onCreatePost }) => 
             </Button>
             <Button 
               onClick={handleSubmit}
-              disabled={!content.trim() || loading}
+              disabled={!content.trim() || loading || !!validateContent(content)}
             >
               {loading ? 'Posting...' : 'Post'}
             </Button>
