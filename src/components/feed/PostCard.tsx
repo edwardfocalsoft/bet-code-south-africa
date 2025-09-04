@@ -105,39 +105,44 @@ const PostCard: React.FC<PostCardProps> = ({ post, onToggleReaction, onReportPos
           )}
         </div>
 
-        {currentUser && (
-          <div className="flex items-center gap-1 pt-2 border-t">
-            {reactions.map((reactionType) => {
-              const Icon = getReactionIcon(reactionType);
-              const count = post.reaction_counts?.[reactionType] || 0;
-              const isActive = post.user_reaction === reactionType;
+        <div className="flex items-center gap-1 pt-2 border-t">
+          {reactions.map((reactionType) => {
+            const Icon = getReactionIcon(reactionType);
+            const count = post.reaction_counts?.[reactionType] || 0;
+            const isActive = post.user_reaction === reactionType;
 
-              return (
-                <Button
-                  key={reactionType}
-                  variant="ghost"
-                  size="sm"
+            return (
+              <Button
+                key={reactionType}
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "flex items-center gap-1 h-8 px-2 hover:bg-transparent",
+                  currentUser ? "cursor-pointer" : "cursor-default"
+                )}
+                onClick={() => {
+                  if (!currentUser) {
+                    // Prompt to login
+                    alert('Please log in to react to posts');
+                    return;
+                  }
+                  onToggleReaction(post.id, reactionType);
+                }}
+              >
+                <Icon 
                   className={cn(
-                    "flex items-center gap-1 h-8 px-2",
-                    isActive && "bg-muted"
+                    "h-4 w-4",
+                    getReactionColor(reactionType, isActive)
                   )}
-                  onClick={() => onToggleReaction(post.id, reactionType)}
-                >
-                  <Icon 
-                    className={cn(
-                      "h-4 w-4",
-                      getReactionColor(reactionType, isActive)
-                    )}
-                    fill={isActive ? "currentColor" : "none"}
-                  />
-                  {count > 0 && (
-                    <span className="text-xs font-medium">{count}</span>
-                  )}
-                </Button>
-              );
-            })}
-          </div>
-        )}
+                  fill={isActive ? "currentColor" : "none"}
+                />
+                {count > 0 && (
+                  <span className="text-xs font-medium">{count}</span>
+                )}
+              </Button>
+            );
+          })}
+        </div>
       </Card>
 
       <ReportPostDialog

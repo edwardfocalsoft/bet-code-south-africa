@@ -228,30 +228,9 @@ export const useFeed = () => {
           });
       }
 
-      // Update local state
-      setPosts(prev => prev.map(post => {
-        if (post.id !== postId) return post;
-
-        const newCounts = { ...post.reaction_counts };
-        const wasUserReaction = post.user_reaction === reactionType;
-
-        // Update counts
-        if (wasUserReaction) {
-          newCounts[reactionType]--;
-        } else {
-          if (post.user_reaction) {
-            newCounts[post.user_reaction]--;
-          }
-          newCounts[reactionType]++;
-        }
-
-        return {
-          ...post,
-          reaction_counts: newCounts,
-          user_reaction: wasUserReaction ? null : reactionType,
-        };
-      }));
-
+      // Don't update local state here - let realtime handle it
+      // The realtime subscription will update the counts automatically
+      
     } catch (error) {
       console.error('Error toggling reaction:', error);
       toast({
@@ -324,8 +303,6 @@ export const useFeed = () => {
 
   // Setup realtime subscription for reactions
   useEffect(() => {
-    if (!currentUser) return;
-
     const channel = supabase
       .channel('post-reactions-changes')
       .on(
@@ -347,15 +324,25 @@ export const useFeed = () => {
               const newCounts = { ...post.reaction_counts };
               
               if (eventType === 'INSERT' && newRecord) {
-                newCounts[(newRecord as any).reaction_type as ReactionType]++;
+                newCounts[(newRecord as any).reaction_type as ReactionType] = (newCounts[(newRecord as any).reaction_type as ReactionType] || 0) + 1;
               } else if (eventType === 'DELETE' && oldRecord) {
-                newCounts[(oldRecord as any).reaction_type as ReactionType]--;
+                newCounts[(oldRecord as any).reaction_type as ReactionType] = Math.max(0, (newCounts[(oldRecord as any).reaction_type as ReactionType] || 0) - 1);
+              }
+              
+              // Update user reaction only if it's the current user's action
+              let userReaction = post.user_reaction;
+              if (currentUser) {
+                if (eventType === 'INSERT' && (newRecord as any)?.user_id === currentUser.id) {
+                  userReaction = (newRecord as any).reaction_type;
+                } else if (eventType === 'DELETE' && (oldRecord as any)?.user_id === currentUser.id) {
+                  userReaction = null;
+                }
               }
               
               return {
                 ...post,
                 reaction_counts: newCounts,
-                user_reaction: (newRecord as any)?.user_id === currentUser.id ? (newRecord as any).reaction_type : post.user_reaction
+                user_reaction: userReaction
               };
             }));
           }
@@ -366,7 +353,7 @@ export const useFeed = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [currentUser?.id]);
+  }, [currentUser]);
 
   useEffect(() => {
     setPage(0);
