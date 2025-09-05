@@ -121,7 +121,7 @@ const foundSet = new Set<string>();
 const normalizedHtml = html.toUpperCase();
 // Look for BW codes that are exactly 9 characters long
 const codeRegex = /\bBW[A-Z0-9]{7}\b/g;
-const timeWindow = 220;
+const timeWindow = 800;
 
 const htmlMatches = [...normalizedHtml.matchAll(codeRegex)];
 console.log('Regex scan found', htmlMatches.length, 'potential Betway codes in HTML');
@@ -151,16 +151,21 @@ for (const match of htmlMatches) {
   }
 
   // Extract events and odds from the context - improved patterns
-  const eventsMatch = windowText.match(/(\d+)\s*EVENTS?/) || 
-                      windowText.match(/@(\d+)\s*EVENTS?/) ||
-                      windowText.match(/(\d+)EVENTS?/);
+  // Extract events/legs/selections/games near the code
+  let eventsMatch = windowText.match(/(\d+)\s*(EVENTS?|LEGS?|SELECTIONS?|MATCHES?|GAMES?)/);
+  if (!eventsMatch) {
+    eventsMatch = windowText.match(/(EVENTS?|LEGS?|SELECTIONS?|MATCHES?|GAMES?)[:\s]*?(\d+)/);
+  }
   if (eventsMatch) {
-    events = parseInt(eventsMatch[1]);
+    const val = eventsMatch[1] && /^\d+$/.test(eventsMatch[1]) ? eventsMatch[1] : eventsMatch[2];
+    if (val) events = parseInt(val);
   }
 
-  const oddsMatch = windowText.match(/@(\d+(?:\.\d+)?)\s*ODDS?/) || 
-                    windowText.match(/(\d+(?:\.\d+)?)\s*ODDS?/) ||
-                    windowText.match(/@(\d+(?:\.\d+)?)/);
+  // Extract odds including formats like "ODDS: 5.2", "TOTAL ODDS 5.2", or "@5.2"
+  const oddsMatch = windowText.match(/TOTAL\s*ODDS[:\s]*?(\d+(?:\.\d+)?)/) ||
+                    windowText.match(/ODDS[:\s]*?(\d+(?:\.\d+)?)/) ||
+                    windowText.match(/@(\d+(?:\.\d+)?)/) ||
+                    windowText.match(/(\d+(?:\.\d+)?)\s*ODDS?/);
   if (oddsMatch) {
     odds = parseFloat(oddsMatch[1]);
   }
@@ -203,19 +208,22 @@ if (scrapedCodes.length === 0) {
           minutesAgo = parseTimeText(timeText);
         }
         
-        // Extract events and odds - improved patterns
-        const eventsMatch = t.match(/(\d+)\s*EVENTS?/) || 
-                            t.match(/@(\d+)\s*EVENTS?/) ||
-                            t.match(/(\d+)EVENTS?/);
-        if (eventsMatch && !events) {
-          events = parseInt(eventsMatch[1]);
+        // Extract events and odds - broadened patterns
+        if (!events) {
+          let em = t.match(/(\d+)\s*(EVENTS?|LEGS?|SELECTIONS?|MATCHES?|GAMES?)/) ||
+                   t.match(/(EVENTS?|LEGS?|SELECTIONS?|MATCHES?|GAMES?)[:\s]*?(\d+)/);
+          if (em) {
+            const val = em[1] && /^\d+$/.test(em[1]) ? em[1] : em[2];
+            if (val) events = parseInt(val);
+          }
         }
 
-        const oddsMatch = t.match(/@(\d+(?:\.\d+)?)\s*ODDS?/) || 
-                          t.match(/(\d+(?:\.\d+)?)\s*ODDS?/) ||
-                          t.match(/@(\d+(?:\.\d+)?)/);
-        if (oddsMatch && !odds) {
-          odds = parseFloat(oddsMatch[1]);
+        if (!odds) {
+          const om = t.match(/TOTAL\s*ODDS[:\s]*?(\d+(?:\.\d+)?)/) ||
+                     t.match(/ODDS[:\s]*?(\d+(?:\.\d+)?)/) ||
+                     t.match(/@(\d+(?:\.\d+)?)/) ||
+                     t.match(/(\d+(?:\.\d+)?)\s*ODDS?/);
+          if (om) odds = parseFloat(om[1]);
         }
         
         currentElement = currentElement.parentElement;
@@ -237,20 +245,21 @@ if (scrapedCodes.length === 0) {
           }
           
           if (!events) {
-            const eventsMatch = st.match(/(\d+)\s*EVENTS?/) || 
-                                st.match(/@(\d+)\s*EVENTS?/) ||
-                                st.match(/(\d+)EVENTS?/);
-            if (eventsMatch) {
-              events = parseInt(eventsMatch[1]);
+            const em = st.match(/(\d+)\s*(EVENTS?|LEGS?|SELECTIONS?|MATCHES?|GAMES?)/) ||
+                       st.match(/(EVENTS?|LEGS?|SELECTIONS?|MATCHES?|GAMES?)[:\s]*?(\d+)/);
+            if (em) {
+              const val = em[1] && /^\d+$/.test(em[1]) ? em[1] : em[2];
+              if (val) events = parseInt(val);
             }
           }
 
           if (!odds) {
-            const oddsMatch = st.match(/@(\d+(?:\.\d+)?)\s*ODDS?/) || 
-                              st.match(/(\d+(?:\.\d+)?)\s*ODDS?/) ||
-                              st.match(/@(\d+(?:\.\d+)?)/);
-            if (oddsMatch) {
-              odds = parseFloat(oddsMatch[1]);
+            const om = st.match(/TOTAL\s*ODDS[:\s]*?(\d+(?:\.\d+)?)/) || 
+                       st.match(/ODDS[:\s]*?(\d+(?:\.\d+)?)/) ||
+                       st.match(/@(\d+(?:\.\d+)?)/) ||
+                       st.match(/(\d+(?:\.\d+)?)\s*ODDS?/);
+            if (om) {
+              odds = parseFloat(om[1]);
             }
           }
           
@@ -374,7 +383,8 @@ console.log('Found', scrapedCodes.length, 'Betway-like codes total');
           is_hidden: false,
           is_expired: false,
           ticket_code: code,
-          odds: odds || null
+          odds: odds || null,
+          legs: events || null
         };
         
         const { error: insertError } = await supabase
