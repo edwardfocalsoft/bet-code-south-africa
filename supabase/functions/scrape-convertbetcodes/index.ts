@@ -12,6 +12,12 @@ interface ScrapedCode {
   addedMinutesAgo: number;
 }
 
+// Enhanced code discovery with events and odds extraction
+interface EnhancedScrapedCode extends ScrapedCode {
+  events?: number;
+  odds?: number;
+}
+
 function parseTimeText(timeText: string): number {
   console.log('Parsing time text:', timeText);
   // Normalize text
@@ -93,97 +99,115 @@ async function scrapeBetwayFreeCodesAndNotify() {
   console.log('Starting scrape of Betway free codes...');
   
   try {
-    // Fetch the page
-    const response = await fetch('https://convertbetcodes.com/c/free-bet-codes-for-today/Betway');
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+    const allScrapedCodes: EnhancedScrapedCode[] = [];
+    const foundSet = new Set<string>();
     
-    const html = await response.text();
-    console.log('Fetched HTML, length:', html.length);
+    // Sources to scrape
+    const sources = [
+      {
+        name: 'ConvertBetCodes',
+        url: 'https://convertbetcodes.com/c/free-bet-codes-for-today/Betway'
+      },
+      {
+        name: 'Facebook Group',
+        url: 'https://web.facebook.com/groups/424775676342670'
+      }
+    ];
     
-    // Parse the HTML
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    if (!doc) {
-      throw new Error('Failed to parse HTML');
-    }
+    for (const source of sources) {
+      console.log(`Scraping ${source.name}...`);
+      
+      try {
+        // Fetch the page
+        const response = await fetch(source.url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+          }
+        });
+        
+        if (!response.ok) {
+          console.log(`Failed to fetch ${source.name}: ${response.status}`);
+          continue;
+        }
+        
+        const html = await response.text();
+        console.log(`Fetched ${source.name} HTML, length:`, html.length);
     
-// Enhanced code discovery with events and odds extraction
-interface EnhancedScrapedCode extends ScrapedCode {
-  events?: number;
-  odds?: number;
-}
+        // Parse the HTML
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        if (!doc) {
+          console.log(`Failed to parse ${source.name} HTML`);
+          continue;
+        }
 
-const scrapedCodes: EnhancedScrapedCode[] = [];
-const foundSet = new Set<string>();
+        // 1) Regex scan on raw HTML (handles pages rendered with simple templating)
+        const normalizedHtml = html.toUpperCase();
+        // Look for BW codes that are exactly 9 characters long
+        const codeRegex = /\bBW[A-Z0-9]{7}\b/g;
+        const timeWindow = 800;
 
-// 1) Regex scan on raw HTML (handles pages rendered with simple templating)
-const normalizedHtml = html.toUpperCase();
-// Look for BW codes that are exactly 9 characters long
-const codeRegex = /\bBW[A-Z0-9]{7}\b/g;
-const timeWindow = 800;
+        const htmlMatches = [...normalizedHtml.matchAll(codeRegex)];
+        console.log(`${source.name} regex scan found`, htmlMatches.length, 'potential Betway codes in HTML');
 
-const htmlMatches = [...normalizedHtml.matchAll(codeRegex)];
-console.log('Regex scan found', htmlMatches.length, 'potential Betway codes in HTML');
+        for (const match of htmlMatches) {
+          const code = match[0];
+          if (foundSet.has(code)) continue;
 
-for (const match of htmlMatches) {
-  const code = match[0];
-  if (foundSet.has(code)) continue;
+          const idx = match.index ?? 0;
+          const start = Math.max(0, idx - timeWindow);
+          const end = Math.min(normalizedHtml.length, idx + timeWindow);
+          const windowText = normalizedHtml.slice(start, end);
 
-  const idx = match.index ?? 0;
-  const start = Math.max(0, idx - timeWindow);
-  const end = Math.min(normalizedHtml.length, idx + timeWindow);
-  const windowText = normalizedHtml.slice(start, end);
+          // Look for nearby time context, events, and odds
+          let timeText = '';
+          let minutesAgo = 999;
+          let events: number | undefined;
+          let odds: number | undefined;
+          
+          const timeMatch =
+            windowText.match(/(\d+)\s*(MINUTE|MIN|M|HOUR|HR|H|DAY|D|SECOND|SEC|S)\s*(?:AGO)?/) ||
+            windowText.match(/JUST\s*NOW|NOW/);
 
-  // Look for nearby time context, events, and odds
-  let timeText = '';
-  let minutesAgo = 999;
-  let events: number | undefined;
-  let odds: number | undefined;
-  
-  const timeMatch =
-    windowText.match(/(\d+)\s*(MINUTE|MIN|M|HOUR|HR|H|DAY|D|SECOND|SEC|S)\s*(?:AGO)?/) ||
-    windowText.match(/JUST\s*NOW|NOW/);
+          if (timeMatch) {
+            timeText = Array.isArray(timeMatch) ? (timeMatch[0] as string) : 'now';
+            minutesAgo = parseTimeText(timeText);
+          }
 
-  if (timeMatch) {
-    timeText = Array.isArray(timeMatch) ? (timeMatch[0] as string) : 'now';
-    minutesAgo = parseTimeText(timeText);
-  }
+          // Extract events and odds from the context - improved patterns
+          // Extract events/legs/selections/games near the code
+          let eventsMatch = windowText.match(/(\d+)\s*(EVENTS?|LEGS?|SELECTIONS?|MATCHES?|GAMES?)/);
+          if (!eventsMatch) {
+            eventsMatch = windowText.match(/(EVENTS?|LEGS?|SELECTIONS?|MATCHES?|GAMES?)[:\s]*?(\d+)/);
+          }
+          if (eventsMatch) {
+            const val = eventsMatch[1] && /^\d+$/.test(eventsMatch[1]) ? eventsMatch[1] : eventsMatch[2];
+            if (val) events = parseInt(val);
+          }
 
-  // Extract events and odds from the context - improved patterns
-  // Extract events/legs/selections/games near the code
-  let eventsMatch = windowText.match(/(\d+)\s*(EVENTS?|LEGS?|SELECTIONS?|MATCHES?|GAMES?)/);
-  if (!eventsMatch) {
-    eventsMatch = windowText.match(/(EVENTS?|LEGS?|SELECTIONS?|MATCHES?|GAMES?)[:\s]*?(\d+)/);
-  }
-  if (eventsMatch) {
-    const val = eventsMatch[1] && /^\d+$/.test(eventsMatch[1]) ? eventsMatch[1] : eventsMatch[2];
-    if (val) events = parseInt(val);
-  }
+          // Extract odds including formats like "ODDS: 5.2", "TOTAL ODDS 5.2", or "@5.2"
+          const oddsMatch = windowText.match(/TOTAL\s*ODDS[:\s]*?(\d+(?:\.\d+)?)/) ||
+                            windowText.match(/ODDS[:\s]*?(\d+(?:\.\d+)?)/) ||
+                            windowText.match(/@(\d+(?:\.\d+)?)/) ||
+                            windowText.match(/(\d+(?:\.\d+)?)\s*ODDS?/);
+          if (oddsMatch) {
+            odds = parseFloat(oddsMatch[1]);
+          }
 
-  // Extract odds including formats like "ODDS: 5.2", "TOTAL ODDS 5.2", or "@5.2"
-  const oddsMatch = windowText.match(/TOTAL\s*ODDS[:\s]*?(\d+(?:\.\d+)?)/) ||
-                    windowText.match(/ODDS[:\s]*?(\d+(?:\.\d+)?)/) ||
-                    windowText.match(/@(\d+(?:\.\d+)?)/) ||
-                    windowText.match(/(\d+(?:\.\d+)?)\s*ODDS?/);
-  if (oddsMatch) {
-    odds = parseFloat(oddsMatch[1]);
-  }
+          allScrapedCodes.push({
+            code,
+            addedTimeText: timeText || 'unknown',
+            addedMinutesAgo: minutesAgo,
+            events,
+            odds,
+          });
+          foundSet.add(code);
+        }
 
-  scrapedCodes.push({
-    code,
-    addedTimeText: timeText || 'unknown',
-    addedMinutesAgo: minutesAgo,
-    events,
-    odds,
-  });
-  foundSet.add(code);
-}
-
-// 2) DOM fallback if regex scan found nothing
-if (scrapedCodes.length === 0) {
-  const allNodes = doc.querySelectorAll('div, span, p, li');
-  console.log('DOM scan over', allNodes.length, 'elements');
+        // 2) DOM fallback if no codes found in regex scan
+        if (htmlMatches.length === 0) {
+          console.log(`${source.name} - trying DOM scan...`);
+          const allNodes = doc.querySelectorAll('div, span, p, li, article');
+          console.log(`${source.name} DOM scan over`, allNodes.length, 'elements');
 
   for (const element of allNodes) {
     const text = (element.textContent || '').toUpperCase().trim();
@@ -268,23 +292,31 @@ if (scrapedCodes.length === 0) {
         }
       }
 
-      scrapedCodes.push({
-        code: matchCode,
-        addedTimeText: timeText || 'unknown',
-        addedMinutesAgo: minutesAgo,
-        events,
-        odds,
-      });
-      foundSet.add(matchCode);
+          allScrapedCodes.push({
+            code: matchCode,
+            addedTimeText: timeText || 'unknown',
+            addedMinutesAgo: minutesAgo,
+            events,
+            odds,
+          });
+          foundSet.add(matchCode);
+        }
+      }
     }
+    
+    const sourceCount = allScrapedCodes.length;
+    console.log(`${source.name} completed scraping`);
+    
+  } catch (sourceError) {
+    console.error(`Error scraping ${source.name}:`, sourceError);
   }
 }
 
-console.log('Found', scrapedCodes.length, 'Betway-like codes total');
+console.log('Total found', allScrapedCodes.length, 'Betway-like codes from all sources');
 
     
     // Filter for codes added within the last 30 minutes
-    const recentCodes = scrapedCodes.filter(item => item.addedMinutesAgo <= 30);
+    const recentCodes = allScrapedCodes.filter(item => item.addedMinutesAgo <= 30);
     console.log('Found', recentCodes.length, 'codes added within last 30 minutes');
     
     if (recentCodes.length === 0) {
@@ -412,7 +444,7 @@ console.log('Found', scrapedCodes.length, 'Betway-like codes total');
       processed,
       skipped,
       errors,
-      totalFound: scrapedCodes.length,
+      totalFound: allScrapedCodes.length,
       recentFound: recentCodes.length,
       kickoffTime,
       codes: recentCodes.map(c => ({ code: c.code, timeText: c.addedTimeText, minutesAgo: c.addedMinutesAgo }))
