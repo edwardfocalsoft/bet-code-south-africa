@@ -143,7 +143,7 @@ async function scrapeBetwayFreeCodesAndNotify() {
 
         // 1) Regex scan on raw HTML (handles pages rendered with simple templating)
         const normalizedHtml = html.toUpperCase();
-        // Look for BW codes that are exactly 9 characters long
+        // Look for BW codes that are exactly 9 characters long (BW + 7 characters)
         const codeRegex = /\bBW[A-Z0-9]{7}\b/g;
         const timeWindow = 1200; // Larger window for Facebook posts
 
@@ -183,7 +183,7 @@ async function scrapeBetwayFreeCodesAndNotify() {
           }
           if (eventsMatch) {
             const val = eventsMatch[1] && /^\d+$/.test(eventsMatch[1]) ? eventsMatch[1] : eventsMatch[2];
-            if (val) events = parseInt(val);
+            if (val && !isNaN(parseInt(val))) events = parseInt(val);
           }
 
           // Extract odds including formats like "ODDS: 5.2", "TOTAL ODDS 5.2", or "@5.2"
@@ -191,7 +191,7 @@ async function scrapeBetwayFreeCodesAndNotify() {
                             windowText.match(/ODDS[:\s]*?(\d+(?:\.\d+)?)/) ||
                             windowText.match(/@(\d+(?:\.\d+)?)/) ||
                             windowText.match(/(\d+(?:\.\d+)?)\s*ODDS?/);
-          if (oddsMatch) {
+          if (oddsMatch && !isNaN(parseFloat(oddsMatch[1]))) {
             odds = parseFloat(oddsMatch[1]);
           }
 
@@ -417,8 +417,7 @@ console.log('Total found', allScrapedCodes.length, 'Betway-like codes from all s
           is_hidden: false,
           is_expired: false,
           ticket_code: code,
-          odds: odds || null,
-          legs: events || null
+          odds: odds || null
         };
         
         const { error: insertError } = await supabase
