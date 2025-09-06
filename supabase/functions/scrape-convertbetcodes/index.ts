@@ -73,8 +73,9 @@ function parseTimeText(timeText: string): number {
 function getTicketTitle(events?: number): string {
   if (!events) return 'Standard Ticket';
   
-  if (events >= 10) return 'High Stake';
-  if (events >= 5) return 'Long Ticket';
+  if (events >= 16) return 'Long Ticket';
+  if (events >= 6) return 'Standard Ticket';
+  if (events >= 3) return 'High Stake';
   return 'Standard Ticket';
 }
 
@@ -403,11 +404,9 @@ console.log('Total found', allScrapedCodes.length, 'Betway-like codes from all s
         
         // Insert new ticket with new format
         const ticketTitle = getTicketTitle(events);
-        const eventsText = events ? ` (${events} events)` : '';
-        const oddsText = odds ? ` - ${odds} odds` : '';
         
         const ticketData = {
-          title: `${ticketTitle}${eventsText}${oddsText}`,
+          title: ticketTitle,
           description: 'Big Boom Put Together By Masterbet.',
           seller_id: systemSellerId,
           price: 0,
@@ -417,7 +416,8 @@ console.log('Total found', allScrapedCodes.length, 'Betway-like codes from all s
           is_hidden: false,
           is_expired: false,
           ticket_code: code,
-          odds: odds || null
+          odds: odds || null,
+          legs: events || null
         };
         
         const { error: insertError } = await supabase
