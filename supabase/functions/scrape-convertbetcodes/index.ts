@@ -30,8 +30,9 @@ function parseTimeText(timeText: string): number {
     return 0;
   }
 
-  // Accept short and long units: minute/min/m, hour/hr/h, day/d, second/sec/s
-  const matches = cleanText.match(/(\d+)\s*(minute|min|m|hour|hr|h|day|d|second|sec|s)/);
+  // Accept Facebook format (12m, 1h, etc.) and long units
+  const matches = cleanText.match(/(\d+)\s*(minute|min|m|hour|hr|h|day|d|second|sec|s)/) ||
+                  cleanText.match(/(\d+)(m|h|d|s)(?:\s|$)/); // Facebook format like "12m", "1h"
   if (!matches) {
     console.log('No time matches found in:', cleanText);
     return 999; // Return high number for non-matching text
@@ -144,7 +145,7 @@ async function scrapeBetwayFreeCodesAndNotify() {
         const normalizedHtml = html.toUpperCase();
         // Look for BW codes that are exactly 9 characters long
         const codeRegex = /\bBW[A-Z0-9]{7}\b/g;
-        const timeWindow = 800;
+        const timeWindow = 1200; // Larger window for Facebook posts
 
         const htmlMatches = [...normalizedHtml.matchAll(codeRegex)];
         console.log(`${source.name} regex scan found`, htmlMatches.length, 'potential Betway codes in HTML');
@@ -166,6 +167,7 @@ async function scrapeBetwayFreeCodesAndNotify() {
           
           const timeMatch =
             windowText.match(/(\d+)\s*(MINUTE|MIN|M|HOUR|HR|H|DAY|D|SECOND|SEC|S)\s*(?:AGO)?/) ||
+            windowText.match(/(\d+)(M|H|D|S)(?:\s|$)/) || // Facebook format
             windowText.match(/JUST\s*NOW|NOW/);
 
           if (timeMatch) {
@@ -315,9 +317,9 @@ async function scrapeBetwayFreeCodesAndNotify() {
 console.log('Total found', allScrapedCodes.length, 'Betway-like codes from all sources');
 
     
-    // Filter for codes added within the last 30 minutes
-    const recentCodes = allScrapedCodes.filter(item => item.addedMinutesAgo <= 30);
-    console.log('Found', recentCodes.length, 'codes added within last 30 minutes');
+    // Filter for codes added within the last 2 hours (120 minutes)
+    const recentCodes = allScrapedCodes.filter(item => item.addedMinutesAgo <= 120);
+    console.log('Found', recentCodes.length, 'codes added within last 2 hours');
     
     if (recentCodes.length === 0) {
       console.log('No recent BWD codes found');
