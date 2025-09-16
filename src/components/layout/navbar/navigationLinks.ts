@@ -8,7 +8,6 @@ export const navigationLinks = [
   { label: "All Tickets", href: "/tickets" },
   { label: "Sellers", href: "/sellers" },
   { label: "Leaderboard", href: "/sellers/leaderboard" },
-  { label: "Daily Vouchers", href: "/vouchers" },
 ];
 
 export interface NavigationLink {
@@ -35,7 +34,6 @@ export const sellerLinks: NavigationLink[] = [
   { to: "/seller/tickets", label: "My Tickets", icon: Ticket },
   { to: "/seller/transactions", label: "Transactions", icon: Receipt },
   { to: "/seller/withdrawals", label: "Withdrawals", icon: Wallet },
-  { to: "/vouchers", label: "Daily Vouchers", icon: Gift },
   { to: "/live-scores", label: "Live Scores", icon: Trophy },
 ];
 
@@ -45,14 +43,12 @@ export const buyerLinks: NavigationLink[] = [
   { to: "/user/wallet", label: "Wallet", icon: Wallet },
   { to: "/tickets", label: "Browse Tickets", icon: Ticket },
   { to: "/buyer/purchases", label: "My Purchases", icon: ShoppingBag },
-  { to: "/vouchers", label: "Daily Vouchers", icon: Gift },
   { to: "/live-scores", label: "Live Scores", icon: Trophy },
 ];
 
 export const publicLinks: NavigationLink[] = [
   { to: "/feed", label: "Feed", icon: Heart },
   { to: "/tickets", label: "Browse Tickets", icon: Ticket },
-  { to: "/vouchers", label: "Daily Vouchers", icon: Gift },
   { to: "/live-scores", label: "Live Scores", icon: Trophy },
 ];
 
