@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { SellerStats } from '@/types';
 import { getPublicSellerStats } from '@/utils/sqlFunctions';
 
-export const useSellerProfile = (id: string | undefined) => {
+export const useSellerProfile = (identifier: string | undefined) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [seller, setSeller] = useState<any>(null);
   const [reviews, setReviews] = useState<any[]>([]);
@@ -13,17 +13,21 @@ export const useSellerProfile = (id: string | undefined) => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchSeller = async () => {
-    if (!id) return;
+    if (!identifier) return;
     
     setLoading(true);
     setError(null);
     
     try {
+      // Determine if identifier is a UUID (legacy support) or username
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+      
       // Fetch seller profile including WhatsApp information and verified status
       const { data: sellerData, error: sellerError } = await supabase
         .from('profiles')
         .select('id, username, avatar_url, created_at, display_whatsapp, whatsapp_number, verified')
-        .eq('id', id)
+        .eq(isUUID ? 'id' : 'username', identifier)
+        .eq('role', 'seller')
         .single();
         
       if (sellerError) {
@@ -42,14 +46,14 @@ export const useSellerProfile = (id: string | undefined) => {
       const { count: subscribersCount, error: subscribersError } = await supabase
         .from('subscriptions')
         .select('*', { count: 'exact', head: true })
-        .eq('seller_id', id);
+        .eq('seller_id', sellerData.id);
       
       if (subscribersError) {
         console.error('Error fetching subscribers count:', subscribersError);
       }
       
       // Fetch seller stats using public function
-      const statsData = await getPublicSellerStats(id);
+      const statsData = await getPublicSellerStats(sellerData.id);
       
       if (statsData) {
         // Parse the response and ensure we're working with the right types
@@ -93,7 +97,7 @@ export const useSellerProfile = (id: string | undefined) => {
           buyer_id,
           profiles:buyer_id (username, avatar_url)
         `)
-        .eq('seller_id', id)
+        .eq('seller_id', sellerData.id)
         .order('created_at', { ascending: false });
         
       if (reviewsError) {
@@ -113,7 +117,7 @@ export const useSellerProfile = (id: string | undefined) => {
 
   useEffect(() => {
     fetchSeller();
-  }, [id]);
+  }, [identifier]);
 
   return { loading, seller, reviews, stats, error };
 };

@@ -147,7 +147,7 @@ function App() {
                     {/* Sellers routes */}
                     <Route path="/sellers" element={<AllSellers />} />
                     <Route path="/sellers/leaderboard" element={<SellersLeaderboard />} />
-                    <Route path="/sellers/:id" element={<SellerPublicProfile />} />
+                    <Route path="/sellers/:username" element={<SellerPublicProfile />} />
 
                     {/* Vouchers routes */}
                     <Route path="/vouchers" element={<DailyVouchers />} />

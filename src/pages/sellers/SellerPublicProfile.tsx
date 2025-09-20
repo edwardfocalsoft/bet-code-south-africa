@@ -24,10 +24,10 @@ import { ChevronDown } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const SellerPublicProfile: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { username } = useParams<{ username: string }>();
   const [activeTab, setActiveTab] = useState("tickets");
   const { currentUser } = useAuth();
-  const { loading, seller, reviews, stats } = useSellerProfile(id);
+  const { loading, seller, reviews, stats } = useSellerProfile(username);
   const isMobile = useIsMobile();
   
   // Get seller tickets using the useTickets hook
@@ -38,10 +38,10 @@ const SellerPublicProfile: React.FC = () => {
   });
 
   // Filter tickets to only show those from this seller
-  const filteredTickets = sellerTickets.filter(ticket => ticket.sellerId === id);
+  const filteredTickets = sellerTickets.filter(ticket => ticket.sellerId === seller?.id);
   
   // Redirect seller to their own seller dashboard if they try to view their own profile
-  if (currentUser?.id === id && currentUser?.role === 'seller') {
+  if (currentUser?.id === seller?.id && currentUser?.role === 'seller') {
     return <Navigate to="/seller/dashboard" replace />;
   }
 
