@@ -9,6 +9,8 @@ import RememberMeOption from "./login/RememberMeOption";
 import LoginButton from "./login/LoginButton";
 import ServiceDownMessage from "./login/ServiceDownMessage";
 import RegisterLink from "./login/RegisterLink";
+import GoogleAuthButton from "./GoogleAuthButton";
+import AuthDivider from "./AuthDivider";
 import { Button } from "@/components/ui/button";
 import { Database } from "lucide-react";
 
@@ -47,6 +49,14 @@ const LoginForm: React.FC = () => {
         isServiceDown={isServiceDown} 
         errorMessage={errorMessage} 
       />
+      
+      <GoogleAuthButton 
+        mode="login" 
+        isLoading={isLoading}
+        disabled={isFormDisabled}
+      />
+      
+      <AuthDivider />
       
       <EmailInput 
         email={email} 

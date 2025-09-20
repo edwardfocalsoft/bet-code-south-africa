@@ -6,6 +6,8 @@ import RoleSelector from "./register/RoleSelector";
 import RegisterFormFields from "./register/RegisterFormFields";
 import ServerError from "./register/ServerError";
 import RegisterFormFooter from "./register/RegisterFormFooter";
+import GoogleAuthButton from "./GoogleAuthButton";
+import AuthDivider from "./AuthDivider";
 
 const RegisterForm: React.FC = () => {
   const {
@@ -26,6 +28,14 @@ const RegisterForm: React.FC = () => {
         />
 
         {serverError && <ServerError error={serverError} />}
+        
+        <GoogleAuthButton 
+          mode="signup" 
+          role={role}
+          isLoading={isLoading}
+        />
+        
+        <AuthDivider />
         
         <RegisterFormFields />
         
