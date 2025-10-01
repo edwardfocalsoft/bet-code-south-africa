@@ -66,19 +66,19 @@ const CreatePostDialog: React.FC<CreatePostDialogProps> = ({ onCreatePost }) => 
 
     try {
       // Upload image if selected
-      if (selectedImage) {
+      if (selectedImage && currentUser) {
         const fileExt = selectedImage.name.split('.').pop();
-        const fileName = `post_${Date.now()}.${fileExt}`;
+        const fileName = `${currentUser.id}/post_${Date.now()}.${fileExt}`;
         
         const { data, error } = await supabase.storage
-          .from('profiles')
-          .upload(`avatars/${fileName}`, selectedImage);
+          .from('post-images')
+          .upload(fileName, selectedImage);
 
         if (error) throw error;
 
         const { data: { publicUrl } } = supabase.storage
-          .from('profiles')
-          .getPublicUrl(`avatars/${fileName}`);
+          .from('post-images')
+          .getPublicUrl(fileName);
 
         imageUrl = publicUrl;
       }

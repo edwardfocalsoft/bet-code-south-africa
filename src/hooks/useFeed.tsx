@@ -109,23 +109,8 @@ export const useFeed = () => {
         })
       );
 
-      // Apply feed algorithm - prioritize followed sellers
-      const sortedPosts = postsWithReactions.sort((a, b) => {
-        const aIsFollowed = followedSellerIds.includes(a.user_id);
-        const bIsFollowed = followedSellerIds.includes(b.user_id);
-        
-        if (aIsFollowed && !bIsFollowed) return -1;
-        if (!aIsFollowed && bIsFollowed) return 1;
-        
-        // For non-followed, prioritize posts with more reactions
-        if (!aIsFollowed && !bIsFollowed) {
-          const aTotal = Object.values(a.reaction_counts || {}).reduce((sum, count) => sum + count, 0);
-          const bTotal = Object.values(b.reaction_counts || {}).reduce((sum, count) => sum + count, 0);
-          return bTotal - aTotal;
-        }
-        
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      });
+      // Posts are already sorted by created_at desc from the query
+      const sortedPosts = postsWithReactions;
 
       if (reset) {
         setPosts(sortedPosts);
