@@ -24,7 +24,8 @@ const SellerWithdrawals: React.FC = () => {
     isLoading: walletLoading, 
     currentPage, 
     totalPages, 
-    setCurrentPage 
+    setCurrentPage,
+    refetch 
   } = useWallet();
   const { settings, isLoading: settingsLoading } = useSystemSettings();
   const [amount, setAmount] = useState("");
@@ -113,6 +114,9 @@ const SellerWithdrawals: React.FC = () => {
 
       // Clear the form
       setAmount("");
+      
+      // Refresh wallet data to show updated balance and transaction
+      await refetch();
 
     } catch (error) {
       console.error("Error processing withdrawal:", error);

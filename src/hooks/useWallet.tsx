@@ -10,7 +10,7 @@ export type WalletTransaction = {
   id: string;
   user_id: string;
   amount: number;
-  type: "topup" | "purchase" | "refund";
+  type: "topup" | "purchase" | "refund" | "withdrawal" | "sale" | "tip" | "voucher" | "bonus";
   description?: string;
   created_at: string;
   reference_id?: string;
@@ -76,7 +76,7 @@ export const useWallet = () => {
           // Cast the transaction types appropriately
           setTransactions(transactionsData?.map(transaction => ({
             ...transaction,
-            type: transaction.type as "topup" | "purchase" | "refund"
+            type: transaction.type as "topup" | "purchase" | "refund" | "withdrawal" | "sale" | "tip" | "voucher" | "bonus"
           })) || []);
           console.log("Fetched transactions:", transactionsData?.length || 0);
         }
@@ -238,6 +238,52 @@ export const useWallet = () => {
     }
   };
 
+  // Add refetch function to manually refresh wallet data
+  const refetch = async () => {
+    if (!currentUser) return;
+    
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Fetch credit balance
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('credit_balance')
+        .eq('id', currentUser.id)
+        .single();
+      
+      if (profileError) {
+        console.error("Error fetching credit balance:", profileError);
+      } else {
+        const balance = profileData?.credit_balance !== undefined && 
+                       profileData?.credit_balance !== null ? 
+                       Number(profileData.credit_balance) : 0;
+        setCreditBalance(balance);
+      }
+      
+      // Fetch transactions
+      const { data: transactionsData, error: transactionsError } = await supabase
+        .from('wallet_transactions')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false });
+      
+      if (transactionsError) {
+        console.error("Error fetching transactions:", transactionsError);
+      } else {
+        setTransactions(transactionsData?.map(transaction => ({
+          ...transaction,
+          type: transaction.type as "topup" | "purchase" | "refund" | "withdrawal" | "sale" | "tip" | "voucher" | "bonus"
+        })) || []);
+      }
+    } catch (error: any) {
+      console.error("Exception in refetch:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return { 
     creditBalance: creditBalance ?? 0, 
     transactions, 
@@ -246,6 +292,7 @@ export const useWallet = () => {
     error, 
     topUpWallet,
     cancelTransaction,
+    refetch,
     currentPage,
     totalPages,
     setCurrentPage
