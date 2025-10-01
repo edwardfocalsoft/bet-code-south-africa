@@ -2,12 +2,15 @@
 import React from "react";
 import Layout from "@/components/layout/Layout";
 import { useWallet } from "@/hooks/useWallet";
+import { useAuth } from "@/contexts/auth";
 import CreditBalanceCard from "@/components/wallet/CreditBalanceCard";
 import TransactionHistoryCard from "@/components/wallet/TransactionHistoryCard";
+import LoyaltyPointsCard from "@/components/buyer/dashboard/LoyaltyPointsCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
 const UserWallet: React.FC = () => {
+  const { currentUser } = useAuth();
   const { 
     creditBalance, 
     transactions, 
@@ -17,8 +20,11 @@ const UserWallet: React.FC = () => {
     error, 
     currentPage, 
     totalPages, 
-    setCurrentPage 
+    setCurrentPage,
+    refetch
   } = useWallet();
+  
+  const isBuyer = currentUser?.role === 'buyer';
 
   return (
     <Layout requireAuth={true}>
@@ -33,13 +39,20 @@ const UserWallet: React.FC = () => {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-6">
             <CreditBalanceCard 
               creditBalance={creditBalance}
               isLoading={isLoading}
               onTopUp={topUpWallet}
               error={error}
             />
+            
+            {isBuyer && (
+              <LoyaltyPointsCard 
+                loyaltyPoints={currentUser?.loyaltyPoints || 0}
+                onPointsClaimed={refetch}
+              />
+            )}
           </div>
 
           <div className="lg:col-span-2">

@@ -891,6 +891,10 @@ export type Database = {
         Args: { amount_to_add: number; user_id: string }
         Returns: number
       }
+      claim_bc_points: {
+        Args: { p_points_to_claim: number; p_user_id: string }
+        Returns: boolean
+      }
       claim_daily_voucher: {
         Args: { p_user_id: string; p_voucher_id: string }
         Returns: boolean

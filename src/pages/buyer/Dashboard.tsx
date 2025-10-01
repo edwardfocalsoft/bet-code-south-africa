@@ -6,11 +6,12 @@ import { useWallet } from "@/hooks/useWallet";
 import StatCard from "@/components/buyer/dashboard/StatCard";
 import RecentPurchasesCard from "@/components/buyer/dashboard/RecentPurchasesCard";
 import SupportCard from "@/components/buyer/dashboard/SupportCard";
+import LoyaltyPointsCard from "@/components/buyer/dashboard/LoyaltyPointsCard";
 import { CreditCard, Ticket, Trophy } from "lucide-react";
 
 const BuyerDashboard: React.FC = () => {
   const { currentUser } = useAuth();
-  const { creditBalance, isLoading: walletLoading } = useWallet();
+  const { creditBalance, isLoading: walletLoading, refetch } = useWallet();
 
   const dashboardStats = [
     {
@@ -53,6 +54,14 @@ const BuyerDashboard: React.FC = () => {
               subtitle={stat.subtitle}
             />
           ))}
+        </div>
+        
+        {/* BC Points Card */}
+        <div className="mb-6">
+          <LoyaltyPointsCard 
+            loyaltyPoints={currentUser?.loyaltyPoints || 0}
+            onPointsClaimed={refetch}
+          />
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">

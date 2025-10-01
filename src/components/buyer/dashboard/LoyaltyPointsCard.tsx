@@ -1,100 +1,82 @@
-
-import React from "react";
-import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Award } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Gift, Coins } from "lucide-react";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/auth";
 
 interface LoyaltyPointsCardProps {
-  points: number;
-  loading: boolean;
+  loyaltyPoints: number;
+  onPointsClaimed?: () => void;
 }
 
-const LoyaltyPointsCard: React.FC<LoyaltyPointsCardProps> = ({ points, loading }) => {
-  // Define the reward levels
-  const LEVELS = [
-    { threshold: 0, name: "Bronze" },
-    { threshold: 100, name: "Silver" },
-    { threshold: 250, name: "Gold" },
-    { threshold: 500, name: "Platinum" },
-    { threshold: 1000, name: "Diamond" }
-  ];
-
-  // Calculate current level and progress to next level
-  const getCurrentLevel = () => {
-    for (let i = LEVELS.length - 1; i >= 0; i--) {
-      if (points >= LEVELS[i].threshold) {
-        return i;
-      }
-    }
-    return 0;
-  };
-
-  const currentLevelIndex = getCurrentLevel();
-  const currentLevel = LEVELS[currentLevelIndex];
-  const nextLevelIndex = currentLevelIndex < LEVELS.length - 1 ? currentLevelIndex + 1 : currentLevelIndex;
-  const nextLevel = LEVELS[nextLevelIndex];
+const LoyaltyPointsCard = ({ loyaltyPoints, onPointsClaimed }: LoyaltyPointsCardProps) => {
+  const { currentUser } = useAuth();
+  const [isClaiming, setIsClaiming] = useState(false);
   
-  // Calculate progress percentage to next level
-  const calculateProgress = () => {
-    if (currentLevelIndex === LEVELS.length - 1) {
-      return 100; // Max level reached
+  const cashValue = (loyaltyPoints * 0.20).toFixed(2);
+  const canClaim = loyaltyPoints >= 2500;
+  
+  const handleClaimPoints = async () => {
+    if (!currentUser || !canClaim) return;
+    
+    setIsClaiming(true);
+    try {
+      const { error } = await supabase.rpc('claim_bc_points', {
+        p_user_id: currentUser.id,
+        p_points_to_claim: loyaltyPoints
+      });
+      
+      if (error) throw error;
+      
+      toast.success("BC Points claimed successfully!", {
+        description: `R${cashValue} has been added to your wallet`
+      });
+      
+      onPointsClaimed?.();
+    } catch (error: any) {
+      console.error("Error claiming BC points:", error);
+      toast.error(error.message || "Failed to claim BC points");
+    } finally {
+      setIsClaiming(false);
     }
-    
-    const pointsInCurrentLevel = points - currentLevel.threshold;
-    const pointsNeededForNextLevel = nextLevel.threshold - currentLevel.threshold;
-    const progressPercent = Math.min(Math.round((pointsInCurrentLevel / pointsNeededForNextLevel) * 100), 100);
-    
-    return progressPercent;
   };
-
-  const progressPercent = calculateProgress();
 
   return (
-    <Card className="betting-card">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center justify-between">
-          <span>Loyalty Rewards</span>
-          <Award className="h-5 w-5 text-purple-500" />
-        </CardTitle>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">BC Points</CardTitle>
+        <Gift className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="space-y-2">
-            <div className="h-6 w-20 bg-muted rounded animate-pulse"></div>
-            <div className="h-4 w-full bg-muted rounded animate-pulse"></div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-3xl font-bold">{points}</span>
-                <span className="text-sm text-muted-foreground ml-1">points</span>
-              </div>
-              <span className="text-sm font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 px-2 py-0.5 rounded">
-                {currentLevel.name}
-              </span>
-            </div>
-            
-            {currentLevelIndex < LEVELS.length - 1 && (
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span>{currentLevel.name}</span>
-                  <span>{nextLevel.name}</span>
-                </div>
-                <Progress value={progressPercent} className="h-2" />
-                <p className="text-xs text-muted-foreground">
-                  {nextLevel.threshold - points} more points to reach {nextLevel.name}
-                </p>
-              </div>
-            )}
-            
-            {currentLevelIndex === LEVELS.length - 1 && (
-              <p className="text-sm text-center font-medium text-betting-green">
-                Maximum level achieved!
-              </p>
-            )}
-          </div>
-        )}
+      <CardContent className="space-y-3">
+        <div>
+          <div className="text-2xl font-bold">{loyaltyPoints.toLocaleString()}</div>
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <Coins className="h-3 w-3" />
+            Worth R{cashValue}
+          </p>
+        </div>
+        
+        <div className="pt-2 border-t">
+          <p className="text-xs text-muted-foreground mb-2">
+            {canClaim 
+              ? "You can claim your BC points now!" 
+              : `Need ${(2500 - loyaltyPoints).toLocaleString()} more points to claim (min: 2500)`}
+          </p>
+          <Button 
+            onClick={handleClaimPoints}
+            disabled={!canClaim || isClaiming}
+            className="w-full"
+            size="sm"
+          >
+            {isClaiming ? "Claiming..." : "Claim as Cash"}
+          </Button>
+        </div>
+        
+        <p className="text-xs text-muted-foreground">
+          Earn 1 BC point per ticket purchase • 1 BC = R0.20
+        </p>
       </CardContent>
     </Card>
   );
