@@ -157,7 +157,7 @@ async function scrapeBetwayFreeCodesAndNotify() {
             const text = (element.textContent || '').trim();
             
             // Match the booking code pattern (we'll remove the # prefix)
-            const codeMatch = text.match(/#(BW[A-Z0-9]{7})\b/i);
+            const codeMatch = text.match(/#(BW[A-Z0-9]{8})\b/i);
             if (!codeMatch) continue;
             
             const code = codeMatch[1].toUpperCase();
@@ -230,8 +230,8 @@ async function scrapeBetwayFreeCodesAndNotify() {
 
         // 1) Regex scan on raw HTML (handles pages rendered with simple templating)
         const normalizedHtml = html.toUpperCase();
-        // Look for BW codes that are exactly 9 characters long (BW + 7 characters)
-        const codeRegex = /\bBW[A-Z0-9]{7}\b/g;
+        // Look for BW codes that are exactly 10 characters long (BW + 8 characters)
+        const codeRegex = /\bBW[A-Z0-9]{8}\b/g;
         const timeWindow = 1200; // Larger window for Facebook posts
 
         const htmlMatches = [...normalizedHtml.matchAll(codeRegex)];
