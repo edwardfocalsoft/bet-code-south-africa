@@ -113,6 +113,10 @@ async function scrapeBetwayFreeCodesAndNotify() {
       {
         name: 'Facebook Group',
         url: 'https://web.facebook.com/groups/424775676342670'
+      },
+      {
+        name: 'Betway Book-a-Bet Results',
+        url: 'https://new.betway.co.za/book-a-bet-results'
       }
     ];
     
@@ -140,6 +144,88 @@ async function scrapeBetwayFreeCodesAndNotify() {
         if (!doc) {
           console.log(`Failed to parse ${source.name} HTML`);
           continue;
+        }
+
+        // Special handling for Betway Book-a-Bet Results page
+        if (source.name === 'Betway Book-a-Bet Results') {
+          console.log('Processing Betway Book-a-Bet Results page...');
+          
+          // Look for betting code elements - they contain "#BW" followed by code
+          const codeElements = doc.querySelectorAll('[class*="booking"], [class*="code"], div, span, p');
+          
+          for (const element of codeElements) {
+            const text = (element.textContent || '').trim();
+            
+            // Match the booking code pattern (we'll remove the # prefix)
+            const codeMatch = text.match(/#(BW[A-Z0-9]{7})\b/i);
+            if (!codeMatch) continue;
+            
+            const code = codeMatch[1].toUpperCase();
+            if (foundSet.has(code)) continue;
+            
+            // Try to find the parent container with all the details
+            let currentElement: any = element;
+            let odds: number | undefined;
+            let events: number | undefined;
+            
+            // Search up to 5 parents and siblings for odds and outcomes
+            for (let i = 0; i < 5 && currentElement; i++) {
+              const containerText = (currentElement.textContent || '').toUpperCase();
+              
+              // Extract Outcomes (number of legs)
+              if (!events) {
+                const outcomesMatch = containerText.match(/OUTCOMES?[:\s]*(\d+)/);
+                if (outcomesMatch) {
+                  events = parseInt(outcomesMatch[1]);
+                }
+              }
+              
+              // Extract Odds
+              if (!odds) {
+                const oddsMatch = containerText.match(/ODDS?[:\s]*(\d+(?:\.\d+)?)/);
+                if (oddsMatch) {
+                  odds = parseFloat(oddsMatch[1]);
+                }
+              }
+              
+              currentElement = currentElement.parentElement;
+            }
+            
+            // Also check siblings
+            let sibling: any = (element as any).nextElementSibling;
+            let siblingChecks = 0;
+            while (sibling && siblingChecks < 5 && (!events || !odds)) {
+              const siblingText = (sibling.textContent || '').toUpperCase();
+              
+              if (!events) {
+                const outcomesMatch = siblingText.match(/OUTCOMES?[:\s]*(\d+)/);
+                if (outcomesMatch) events = parseInt(outcomesMatch[1]);
+              }
+              
+              if (!odds) {
+                const oddsMatch = siblingText.match(/ODDS?[:\s]*(\d+(?:\.\d+)?)/);
+                if (oddsMatch) odds = parseFloat(oddsMatch[1]);
+              }
+              
+              sibling = sibling.nextElementSibling;
+              siblingChecks++;
+            }
+            
+            console.log(`Found code ${code} with ${events || '?'} outcomes and odds ${odds || '?'}`);
+            
+            // These are current/active codes, so set time to 0 (just now)
+            allScrapedCodes.push({
+              code,
+              addedTimeText: 'just now',
+              addedMinutesAgo: 0,
+              events,
+              odds,
+            });
+            foundSet.add(code);
+          }
+          
+          console.log(`Betway Book-a-Bet Results: found ${allScrapedCodes.length} codes`);
+          continue; // Skip the regular regex/DOM scanning for this source
         }
 
         // 1) Regex scan on raw HTML (handles pages rendered with simple templating)
