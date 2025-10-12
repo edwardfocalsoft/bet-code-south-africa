@@ -150,68 +150,56 @@ async function scrapeBetwayFreeCodesAndNotify() {
         if (source.name === 'Betway Book-a-Bet Results') {
           console.log('Processing Betway Book-a-Bet Results page...');
           
-          // Look for betting code elements - they contain "#BW" followed by code
-          const codeElements = doc.querySelectorAll('[class*="booking"], [class*="code"], div, span, p');
+          // First, try to find codes in the entire page text using multiple patterns
+          const pageText = html.toUpperCase();
+          console.log('Searching for BW codes in page...');
           
-          for (const element of codeElements) {
-            const text = (element.textContent || '').trim();
-            
-            // Match the booking code pattern (we'll remove the # prefix)
-            const codeMatch = text.match(/#(BW[A-Z0-9]{8})\b/i);
-            if (!codeMatch) continue;
-            
-            const code = codeMatch[1].toUpperCase();
+          // Pattern 1: #BWxxxxxxxx (with hash)
+          const hashPattern = /#(BW[A-Z0-9]{8})/gi;
+          const hashMatches = [...html.matchAll(hashPattern)];
+          console.log(`Found ${hashMatches.length} codes with # prefix`);
+          
+          // Pattern 2: BWxxxxxxxx (without hash, standalone)
+          const noHashPattern = /\b(BW[A-Z0-9]{8})\b/gi;
+          const noHashMatches = [...html.matchAll(noHashPattern)];
+          console.log(`Found ${noHashMatches.length} codes without # prefix`);
+          
+          // Combine all matches
+          const allMatches = [...hashMatches, ...noHashMatches];
+          
+          for (const match of allMatches) {
+            const code = match[1].toUpperCase();
             if (foundSet.has(code)) continue;
             
-            // Try to find the parent container with all the details
-            let currentElement: any = element;
+            console.log(`Processing code: ${code}`);
+            
+            // Find the code's position in the HTML to search nearby for odds and outcomes
+            const codeIndex = html.toUpperCase().indexOf(code);
+            const windowSize = 500; // characters before and after
+            const start = Math.max(0, codeIndex - windowSize);
+            const end = Math.min(html.length, codeIndex + windowSize);
+            const contextText = html.substring(start, end).toUpperCase();
+            
             let odds: number | undefined;
             let events: number | undefined;
             
-            // Search up to 5 parents and siblings for odds and outcomes
-            for (let i = 0; i < 5 && currentElement; i++) {
-              const containerText = (currentElement.textContent || '').toUpperCase();
-              
-              // Extract Outcomes (number of legs)
-              if (!events) {
-                const outcomesMatch = containerText.match(/OUTCOMES?[:\s]*(\d+)/);
-                if (outcomesMatch) {
-                  events = parseInt(outcomesMatch[1]);
-                }
-              }
-              
-              // Extract Odds
-              if (!odds) {
-                const oddsMatch = containerText.match(/ODDS?[:\s]*(\d+(?:\.\d+)?)/);
-                if (oddsMatch) {
-                  odds = parseFloat(oddsMatch[1]);
-                }
-              }
-              
-              currentElement = currentElement.parentElement;
+            // Extract Outcomes (number of legs)
+            const outcomesMatch = contextText.match(/OUTCOMES?[:\s]*(\d+)/i) ||
+                                 contextText.match(/(\d+)\s*OUTCOMES?/i);
+            if (outcomesMatch) {
+              events = parseInt(outcomesMatch[1]);
+              console.log(`Found ${events} outcomes for ${code}`);
             }
             
-            // Also check siblings
-            let sibling: any = (element as any).nextElementSibling;
-            let siblingChecks = 0;
-            while (sibling && siblingChecks < 5 && (!events || !odds)) {
-              const siblingText = (sibling.textContent || '').toUpperCase();
-              
-              if (!events) {
-                const outcomesMatch = siblingText.match(/OUTCOMES?[:\s]*(\d+)/);
-                if (outcomesMatch) events = parseInt(outcomesMatch[1]);
-              }
-              
-              if (!odds) {
-                const oddsMatch = siblingText.match(/ODDS?[:\s]*(\d+(?:\.\d+)?)/);
-                if (oddsMatch) odds = parseFloat(oddsMatch[1]);
-              }
-              
-              sibling = sibling.nextElementSibling;
-              siblingChecks++;
+            // Extract Odds
+            const oddsMatch = contextText.match(/ODDS?[:\s]*(\d+(?:\.\d+)?)/i) ||
+                             contextText.match(/(\d+(?:\.\d+)?)\s*ODDS?/i);
+            if (oddsMatch) {
+              odds = parseFloat(oddsMatch[1]);
+              console.log(`Found odds ${odds} for ${code}`);
             }
             
-            console.log(`Found code ${code} with ${events || '?'} outcomes and odds ${odds || '?'}`);
+            console.log(`Adding code ${code} - Events: ${events || 'unknown'}, Odds: ${odds || 'unknown'}`);
             
             // These are current/active codes, so set time to 0 (just now)
             allScrapedCodes.push({
@@ -409,10 +397,10 @@ console.log('Total found', allScrapedCodes.length, 'Betway-like codes from all s
     console.log('Found', recentCodes.length, 'codes added within last 2 hours');
     
     if (recentCodes.length === 0) {
-      console.log('No recent BWD codes found');
+      console.log('No recent BW codes found');
       return {
         success: true,
-        message: 'No recent BWD codes found',
+        message: 'No recent BW codes found',
         processed: 0,
         skipped: 0,
         errors: 0
