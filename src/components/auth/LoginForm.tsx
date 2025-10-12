@@ -50,11 +50,13 @@ const LoginForm: React.FC = () => {
         errorMessage={errorMessage} 
       />
       
-      <GoogleAuthButton 
-        mode="login" 
-        isLoading={isLoading}
-        disabled={isFormDisabled}
-      />
+      <div className="flex justify-center">
+        <GoogleAuthButton 
+          mode="login" 
+          isLoading={isLoading}
+          disabled={isFormDisabled}
+        />
+      </div>
       
       <AuthDivider />
       
