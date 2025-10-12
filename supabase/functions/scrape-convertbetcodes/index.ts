@@ -104,16 +104,8 @@ async function scrapeBetwayFreeCodesAndNotify() {
     const allScrapedCodes: EnhancedScrapedCode[] = [];
     const foundSet = new Set<string>();
     
-    // Sources to scrape
+    // Only scrape from Betway Book-a-Bet Results
     const sources = [
-      {
-        name: 'ConvertBetCodes',
-        url: 'https://convertbetcodes.com/c/free-bet-codes-for-today/Betway'
-      },
-      {
-        name: 'Facebook Group',
-        url: 'https://web.facebook.com/groups/424775676342670'
-      },
       {
         name: 'Betway Book-a-Bet Results',
         url: 'https://new.betway.co.za/book-a-bet-results'
@@ -149,23 +141,33 @@ async function scrapeBetwayFreeCodesAndNotify() {
         // Special handling for Betway Book-a-Bet Results page
         if (source.name === 'Betway Book-a-Bet Results') {
           console.log('Processing Betway Book-a-Bet Results page...');
+          console.log('First 1000 chars of HTML:', html.substring(0, 1000));
           
-          // First, try to find codes in the entire page text using multiple patterns
-          const pageText = html.toUpperCase();
-          console.log('Searching for BW codes in page...');
+          // Try multiple strategies to find booking codes
           
-          // Pattern 1: #BWxxxxxxxx (with hash)
+          // Strategy 1: Look for explicit "Booking Code" text followed by the code
+          const bookingCodePattern = /Booking Code[:\s]*#?(BW[A-Z0-9]{8})/gi;
+          const bookingMatches = [...html.matchAll(bookingCodePattern)];
+          console.log(`Strategy 1 - Found ${bookingMatches.length} codes via "Booking Code" pattern`);
+          
+          // Strategy 2: Look for #BW pattern
           const hashPattern = /#(BW[A-Z0-9]{8})/gi;
           const hashMatches = [...html.matchAll(hashPattern)];
-          console.log(`Found ${hashMatches.length} codes with # prefix`);
+          console.log(`Strategy 2 - Found ${hashMatches.length} codes with # prefix`);
           
-          // Pattern 2: BWxxxxxxxx (without hash, standalone)
-          const noHashPattern = /\b(BW[A-Z0-9]{8})\b/gi;
-          const noHashMatches = [...html.matchAll(noHashPattern)];
-          console.log(`Found ${noHashMatches.length} codes without # prefix`);
+          // Strategy 3: Look for BW pattern in quotes or attributes
+          const quotedPattern = /["'](BW[A-Z0-9]{8})["']/gi;
+          const quotedMatches = [...html.matchAll(quotedPattern)];
+          console.log(`Strategy 3 - Found ${quotedMatches.length} codes in quotes`);
+          
+          // Strategy 4: Generic BW pattern
+          const genericPattern = /\b(BW[A-Z0-9]{8})\b/gi;
+          const genericMatches = [...html.matchAll(genericPattern)];
+          console.log(`Strategy 4 - Found ${genericMatches.length} codes via generic pattern`);
           
           // Combine all matches
-          const allMatches = [...hashMatches, ...noHashMatches];
+          const allMatches = [...bookingMatches, ...hashMatches, ...quotedMatches, ...genericMatches];
+          console.log(`Total matches before deduplication: ${allMatches.length}`);
           
           for (const match of allMatches) {
             const code = match[1].toUpperCase();
@@ -174,26 +176,28 @@ async function scrapeBetwayFreeCodesAndNotify() {
             console.log(`Processing code: ${code}`);
             
             // Find the code's position in the HTML to search nearby for odds and outcomes
-            const codeIndex = html.toUpperCase().indexOf(code);
-            const windowSize = 500; // characters before and after
+            const codeIndex = html.indexOf(code);
+            if (codeIndex === -1) continue;
+            
+            const windowSize = 1000; // Larger window for better context
             const start = Math.max(0, codeIndex - windowSize);
             const end = Math.min(html.length, codeIndex + windowSize);
-            const contextText = html.substring(start, end).toUpperCase();
+            const contextText = html.substring(start, end);
             
             let odds: number | undefined;
             let events: number | undefined;
             
-            // Extract Outcomes (number of legs)
-            const outcomesMatch = contextText.match(/OUTCOMES?[:\s]*(\d+)/i) ||
-                                 contextText.match(/(\d+)\s*OUTCOMES?/i);
+            // Extract Outcomes (number of legs) - case insensitive, flexible patterns
+            const outcomesPattern = /Outcomes?[:\s]*(\d+)/i;
+            const outcomesMatch = contextText.match(outcomesPattern);
             if (outcomesMatch) {
               events = parseInt(outcomesMatch[1]);
               console.log(`Found ${events} outcomes for ${code}`);
             }
             
-            // Extract Odds
-            const oddsMatch = contextText.match(/ODDS?[:\s]*(\d+(?:\.\d+)?)/i) ||
-                             contextText.match(/(\d+(?:\.\d+)?)\s*ODDS?/i);
+            // Extract Odds - case insensitive, flexible patterns
+            const oddsPattern = /Odds?[:\s]*(\d+(?:\.\d+)?)/i;
+            const oddsMatch = contextText.match(oddsPattern);
             if (oddsMatch) {
               odds = parseFloat(oddsMatch[1]);
               console.log(`Found odds ${odds} for ${code}`);
@@ -212,174 +216,14 @@ async function scrapeBetwayFreeCodesAndNotify() {
             foundSet.add(code);
           }
           
-          console.log(`Betway Book-a-Bet Results: found ${allScrapedCodes.length} codes`);
+          console.log(`Betway Book-a-Bet Results: found ${allScrapedCodes.length} unique codes`);
           continue; // Skip the regular regex/DOM scanning for this source
         }
 
-        // 1) Regex scan on raw HTML (handles pages rendered with simple templating)
-        const normalizedHtml = html.toUpperCase();
-        // Look for BW codes that are exactly 10 characters long (BW + 8 characters)
-        const codeRegex = /\bBW[A-Z0-9]{8}\b/g;
-        const timeWindow = 1200; // Larger window for Facebook posts
+        // This code is not reached for Betway Book-a-Bet Results anymore
+        console.log(`Skipping regex/DOM scan for ${source.name} - not implemented`);
 
-        const htmlMatches = [...normalizedHtml.matchAll(codeRegex)];
-        console.log(`${source.name} regex scan found`, htmlMatches.length, 'potential Betway codes in HTML');
-
-        for (const match of htmlMatches) {
-          const code = match[0];
-          if (foundSet.has(code)) continue;
-
-          const idx = match.index ?? 0;
-          const start = Math.max(0, idx - timeWindow);
-          const end = Math.min(normalizedHtml.length, idx + timeWindow);
-          const windowText = normalizedHtml.slice(start, end);
-
-          // Look for nearby time context, events, and odds
-          let timeText = '';
-          let minutesAgo = 999;
-          let events: number | undefined;
-          let odds: number | undefined;
-          
-          const timeMatch =
-            windowText.match(/(\d+)\s*(MINUTE|MIN|M|HOUR|HR|H|DAY|D|SECOND|SEC|S)\s*(?:AGO)?/) ||
-            windowText.match(/(\d+)(M|H|D|S)(?:\s|$)/) || // Facebook format
-            windowText.match(/JUST\s*NOW|NOW/);
-
-          if (timeMatch) {
-            timeText = Array.isArray(timeMatch) ? (timeMatch[0] as string) : 'now';
-            minutesAgo = parseTimeText(timeText);
-          }
-
-          // Extract events and odds from the context - improved patterns
-          // Extract events/legs/selections/games near the code
-          let eventsMatch = windowText.match(/(\d+)\s*(EVENTS?|LEGS?|SELECTIONS?|MATCHES?|GAMES?)/);
-          if (!eventsMatch) {
-            eventsMatch = windowText.match(/(EVENTS?|LEGS?|SELECTIONS?|MATCHES?|GAMES?)[:\s]*?(\d+)/);
-          }
-          if (eventsMatch) {
-            const val = eventsMatch[1] && /^\d+$/.test(eventsMatch[1]) ? eventsMatch[1] : eventsMatch[2];
-            if (val && !isNaN(parseInt(val))) events = parseInt(val);
-          }
-
-          // Extract odds including formats like "ODDS: 5.2", "TOTAL ODDS 5.2", or "@5.2"
-          const oddsMatch = windowText.match(/TOTAL\s*ODDS[:\s]*?(\d+(?:\.\d+)?)/) ||
-                            windowText.match(/ODDS[:\s]*?(\d+(?:\.\d+)?)/) ||
-                            windowText.match(/@(\d+(?:\.\d+)?)/) ||
-                            windowText.match(/(\d+(?:\.\d+)?)\s*ODDS?/);
-          if (oddsMatch && !isNaN(parseFloat(oddsMatch[1]))) {
-            odds = parseFloat(oddsMatch[1]);
-          }
-
-          allScrapedCodes.push({
-            code,
-            addedTimeText: timeText || 'unknown',
-            addedMinutesAgo: minutesAgo,
-            events,
-            odds,
-          });
-          foundSet.add(code);
-        }
-
-        // 2) DOM fallback if no codes found in regex scan
-        if (htmlMatches.length === 0) {
-          console.log(`${source.name} - trying DOM scan...`);
-          const allNodes = doc.querySelectorAll('div, span, p, li, article');
-          console.log(`${source.name} DOM scan over`, allNodes.length, 'elements');
-
-  for (const element of allNodes) {
-    const text = (element.textContent || '').toUpperCase().trim();
-    const matches = text.match(codeRegex);
-    if (!matches) continue;
-
-    for (const matchCode of matches) {
-      if (foundSet.has(matchCode)) continue;
-
-      let timeText = '';
-      let minutesAgo = 999;
-      let events: number | undefined;
-      let odds: number | undefined;
-
-      // Check current element and up to 3 parents for time info, events, and odds
-      let currentElement: any = element;
-      for (let i = 0; i < 3 && currentElement; i++) {
-        const t = (currentElement.textContent || '').toUpperCase();
-        const tm = t.match(/(\d+)\s*(MINUTE|MIN|M|HOUR|HR|H|DAY|D|SECOND|SEC|S)\s*(?:AGO)?|JUST\s*NOW|NOW/);
-        if (tm) {
-          timeText = Array.isArray(tm) ? (tm[0] as string) : 'now';
-          minutesAgo = parseTimeText(timeText);
-        }
-        
-        // Extract events and odds - broadened patterns
-        if (!events) {
-          let em = t.match(/(\d+)\s*(EVENTS?|LEGS?|SELECTIONS?|MATCHES?|GAMES?)/) ||
-                   t.match(/(EVENTS?|LEGS?|SELECTIONS?|MATCHES?|GAMES?)[:\s]*?(\d+)/);
-          if (em) {
-            const val = em[1] && /^\d+$/.test(em[1]) ? em[1] : em[2];
-            if (val) events = parseInt(val);
-          }
-        }
-
-        if (!odds) {
-          const om = t.match(/TOTAL\s*ODDS[:\s]*?(\d+(?:\.\d+)?)/) ||
-                     t.match(/ODDS[:\s]*?(\d+(?:\.\d+)?)/) ||
-                     t.match(/@(\d+(?:\.\d+)?)/) ||
-                     t.match(/(\d+(?:\.\d+)?)\s*ODDS?/);
-          if (om) odds = parseFloat(om[1]);
-        }
-        
-        currentElement = currentElement.parentElement;
-      }
-
-      // Also check up to 3 next siblings
-      if (minutesAgo === 999 || !events || !odds) {
-        let sibling: any = (element as any).nextElementSibling;
-        let checks = 0;
-        while (sibling && checks < 3) {
-          const st = (sibling.textContent || '').toUpperCase();
-          
-          if (minutesAgo === 999) {
-            const tm = st.match(/(\d+)\s*(MINUTE|MIN|M|HOUR|HR|H|DAY|D|SECOND|SEC|S)\s*(?:AGO)?|JUST\s*NOW|NOW/);
-            if (tm) {
-              timeText = Array.isArray(tm) ? (tm[0] as string) : 'now';
-              minutesAgo = parseTimeText(timeText);
-            }
-          }
-          
-          if (!events) {
-            const em = st.match(/(\d+)\s*(EVENTS?|LEGS?|SELECTIONS?|MATCHES?|GAMES?)/) ||
-                       st.match(/(EVENTS?|LEGS?|SELECTIONS?|MATCHES?|GAMES?)[:\s]*?(\d+)/);
-            if (em) {
-              const val = em[1] && /^\d+$/.test(em[1]) ? em[1] : em[2];
-              if (val) events = parseInt(val);
-            }
-          }
-
-          if (!odds) {
-            const om = st.match(/TOTAL\s*ODDS[:\s]*?(\d+(?:\.\d+)?)/) || 
-                       st.match(/ODDS[:\s]*?(\d+(?:\.\d+)?)/) ||
-                       st.match(/@(\d+(?:\.\d+)?)/) ||
-                       st.match(/(\d+(?:\.\d+)?)\s*ODDS?/);
-            if (om) {
-              odds = parseFloat(om[1]);
-            }
-          }
-          
-          sibling = sibling.nextElementSibling;
-          checks++;
-        }
-      }
-
-          allScrapedCodes.push({
-            code: matchCode,
-            addedTimeText: timeText || 'unknown',
-            addedMinutesAgo: minutesAgo,
-            events,
-            odds,
-          });
-          foundSet.add(matchCode);
-        }
-      }
-    }
+        // Not needed for Betway Book-a-Bet Results
     
     const sourceCount = allScrapedCodes.length;
     console.log(`${source.name} completed scraping`);
