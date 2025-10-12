@@ -29,11 +29,13 @@ const RegisterForm: React.FC = () => {
 
         {serverError && <ServerError error={serverError} />}
         
-        <GoogleAuthButton 
-          mode="signup" 
-          role={role}
-          isLoading={isLoading}
-        />
+        <div className="flex justify-center">
+          <GoogleAuthButton 
+            mode="signup" 
+            role={role}
+            isLoading={isLoading}
+          />
+        </div>
         
         <AuthDivider />
         
