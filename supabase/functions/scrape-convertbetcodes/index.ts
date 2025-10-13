@@ -1,74 +1,18 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
-import { DOMParser } from 'https://deno.land/x/deno_dom@v0.1.45/deno-dom-wasm.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface ScrapedCode {
+interface BookingCodeData {
   code: string;
-  addedTimeText: string;
-  addedMinutesAgo: number;
-}
-
-// Enhanced code discovery with events and odds extraction
-interface EnhancedScrapedCode extends ScrapedCode {
-  events?: number;
   odds?: number;
+  outcomes?: number;
+  events?: number;
+  legs?: number;
 }
 
-function parseTimeText(timeText: string): number {
-  console.log('Parsing time text:', timeText);
-  // Normalize text
-  const cleanText = (timeText || '').trim().toLowerCase();
-
-  if (!cleanText) return 999;
-
-  // Handle common phrases
-  if (/(just\s*now|now)/i.test(cleanText)) {
-    return 0;
-  }
-
-  // Accept Facebook format (12m, 1h, etc.) and long units
-  const matches = cleanText.match(/(\d+)\s*(minute|min|m|hour|hr|h|day|d|second|sec|s)/) ||
-                  cleanText.match(/(\d+)(m|h|d|s)(?:\s|$)/); // Facebook format like "12m", "1h"
-  if (!matches) {
-    console.log('No time matches found in:', cleanText);
-    return 999; // Return high number for non-matching text
-  }
-
-  const num = parseInt(matches[1]);
-  const unit = matches[2];
-
-  let minutesAgo = 999;
-  switch (unit) {
-    case 'minute':
-    case 'min':
-    case 'm':
-      minutesAgo = num;
-      break;
-    case 'hour':
-    case 'hr':
-    case 'h':
-      minutesAgo = num * 60;
-      break;
-    case 'day':
-    case 'd':
-      minutesAgo = num * 60 * 24;
-      break;
-    case 'second':
-    case 'sec':
-    case 's':
-      minutesAgo = Math.ceil(num / 60);
-      break;
-    default:
-      minutesAgo = 999;
-  }
-
-  console.log(`Parsed "${timeText}" as ${minutesAgo} minutes ago`);
-  return minutesAgo;
-}
 
 function getTicketTitle(events?: number): string {
   if (!events) return 'Standard Ticket';
@@ -98,189 +42,57 @@ function getKickoffTime(): string {
 }
 
 async function scrapeBetwayFreeCodesAndNotify() {
-  console.log('Starting scrape of Betway free codes...');
+  console.log('Starting Betway booking codes API fetch...');
   
   try {
-    const allScrapedCodes: EnhancedScrapedCode[] = [];
-    const foundSet = new Set<string>();
+    // Call the Betway booking codes API directly
+    const apiUrl = 'https://cmsgt1.betwayafrican.com/bookingcode?skip=0&limit=20';
+    console.log('Fetching from API:', apiUrl);
     
-    // Only scrape from Betway Book-a-Bet Results
-    const sources = [
-      {
-        name: 'Betway Book-a-Bet Results',
-        url: 'https://new.betway.co.za/book-a-bet-results'
+    const response = await fetch(apiUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'application/json',
       }
-    ];
+    });
     
-    for (const source of sources) {
-      console.log(`Scraping ${source.name}...`);
-      
-      try {
-        // Fetch the page
-        const response = await fetch(source.url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-          }
-        });
-        
-        if (!response.ok) {
-          console.log(`Failed to fetch ${source.name}: ${response.status}`);
-          continue;
-        }
-        
-        const html = await response.text();
-        console.log(`Fetched ${source.name} HTML, length:`, html.length);
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
     
-        // Parse the HTML
-        const doc = new DOMParser().parseFromString(html, 'text/html');
-        if (!doc) {
-          console.log(`Failed to parse ${source.name} HTML`);
-          continue;
-        }
-
-        // Special handling for Betway Book-a-Bet Results page
-        if (source.name === 'Betway Book-a-Bet Results') {
-          console.log('Processing Betway Book-a-Bet Results page...');
-          console.log('HTML length:', html.length);
-          console.log('Full HTML content (first 5000 chars):', html.substring(0, 5000));
-          
-          // The page is likely JavaScript-rendered, so look for data in multiple places
-          
-          // Strategy 1: Look for JSON data in script tags
-          const scriptDataPattern = /<script[^>]*>(.*?)<\/script>/gis;
-          const scriptMatches = [...html.matchAll(scriptDataPattern)];
-          console.log(`Found ${scriptMatches.length} script tags to analyze`);
-          
-          let foundInScript = false;
-          for (const scriptMatch of scriptMatches) {
-            const scriptContent = scriptMatch[1];
-            
-            // Look for BW codes in script content
-            const codePattern = /BW[A-Z0-9]{8}/gi;
-            const codesInScript = [...scriptContent.matchAll(codePattern)];
-            
-            if (codesInScript.length > 0) {
-              console.log(`Found ${codesInScript.length} potential codes in script tag`);
-              foundInScript = true;
-              
-              for (const match of codesInScript) {
-                const code = match[0].toUpperCase();
-                if (foundSet.has(code)) continue;
-                
-                console.log(`Extracted code from script: ${code}`);
-                
-                // Try to find associated data in the script content
-                const codeIndex = scriptContent.indexOf(code);
-                const contextStart = Math.max(0, codeIndex - 500);
-                const contextEnd = Math.min(scriptContent.length, codeIndex + 500);
-                const context = scriptContent.substring(contextStart, contextEnd);
-                
-                let odds: number | undefined;
-                let events: number | undefined;
-                
-                // Look for odds in context (various formats)
-                const oddsMatch = context.match(/["']?odds?["']?\s*:\s*(\d+(?:\.\d+)?)/i) ||
-                                 context.match(/odds?[:\s]+(\d+(?:\.\d+)?)/i);
-                if (oddsMatch) {
-                  odds = parseFloat(oddsMatch[1]);
-                  console.log(`Found odds ${odds} for ${code}`);
-                }
-                
-                // Look for outcomes/events in context
-                const eventsMatch = context.match(/["']?outcomes?["']?\s*:\s*(\d+)/i) ||
-                                   context.match(/["']?legs?["']?\s*:\s*(\d+)/i) ||
-                                   context.match(/outcomes?[:\s]+(\d+)/i);
-                if (eventsMatch) {
-                  events = parseInt(eventsMatch[1]);
-                  console.log(`Found ${events} outcomes for ${code}`);
-                }
-                
-                allScrapedCodes.push({
-                  code,
-                  addedTimeText: 'just now',
-                  addedMinutesAgo: 0,
-                  events,
-                  odds,
-                });
-                foundSet.add(code);
-              }
-            }
-          }
-          
-          // Strategy 2: Look for codes in the raw HTML text (in case they're rendered)
-          if (!foundInScript) {
-            console.log('No codes found in scripts, trying raw HTML patterns...');
-            
-            const rawCodePattern = /BW[A-Z0-9]{8}/gi;
-            const rawMatches = [...html.matchAll(rawCodePattern)];
-            console.log(`Found ${rawMatches.length} potential codes in raw HTML`);
-            
-            for (const match of rawMatches) {
-              const code = match[0].toUpperCase();
-              if (foundSet.has(code)) continue;
-              
-              console.log(`Extracted code from HTML: ${code}`);
-              
-              const codeIndex = html.indexOf(code);
-              const contextStart = Math.max(0, codeIndex - 1000);
-              const contextEnd = Math.min(html.length, codeIndex + 1000);
-              const context = html.substring(contextStart, contextEnd);
-              
-              let odds: number | undefined;
-              let events: number | undefined;
-              
-              // Look for odds nearby
-              const oddsMatch = context.match(/odds?[:\s]+(\d+(?:\.\d+)?)/i);
-              if (oddsMatch) {
-                odds = parseFloat(oddsMatch[1]);
-              }
-              
-              // Look for outcomes nearby
-              const eventsMatch = context.match(/outcomes?[:\s]+(\d+)/i);
-              if (eventsMatch) {
-                events = parseInt(eventsMatch[1]);
-              }
-              
-              allScrapedCodes.push({
-                code,
-                addedTimeText: 'just now',
-                addedMinutesAgo: 0,
-                events,
-                odds,
-              });
-              foundSet.add(code);
-            }
-          }
-          
-          console.log(`Betway Book-a-Bet Results: found ${allScrapedCodes.length} unique codes`);
-          continue;
-        }
-
-        // This code is not reached for Betway Book-a-Bet Results anymore
-        console.log(`Skipping regex/DOM scan for ${source.name} - not implemented`);
-
-        // Not needed for Betway Book-a-Bet Results
+    const data = await response.json();
+    console.log('API Response:', JSON.stringify(data, null, 2));
     
-    const sourceCount = allScrapedCodes.length;
-    console.log(`${source.name} completed scraping`);
+    // Extract booking codes from the response
+    // The exact structure depends on the API response, so we'll handle multiple possible formats
+    let bookingCodes: BookingCodeData[] = [];
     
-  } catch (sourceError) {
-    console.error(`Error scraping ${source.name}:`, sourceError);
-  }
-}
-
-console.log('Total found', allScrapedCodes.length, 'Betway-like codes from all sources');
-
-    
-    // Filter for codes added within the last 2 hours (120 minutes)
-    const recentCodes = allScrapedCodes.filter(item => item.addedMinutesAgo <= 120);
-    console.log('Found', recentCodes.length, 'codes added within last 2 hours');
-    
-    if (recentCodes.length === 0) {
-      console.log('No recent BW codes found');
+    if (Array.isArray(data)) {
+      bookingCodes = data;
+    } else if (data.data && Array.isArray(data.data)) {
+      bookingCodes = data.data;
+    } else if (data.bookingCodes && Array.isArray(data.bookingCodes)) {
+      bookingCodes = data.bookingCodes;
+    } else if (data.results && Array.isArray(data.results)) {
+      bookingCodes = data.results;
+    } else {
+      console.log('Unexpected API response structure:', data);
       return {
         success: true,
-        message: 'No recent BW codes found',
+        message: 'No booking codes found in API response',
+        processed: 0,
+        skipped: 0,
+        errors: 0
+      };
+    }
+    
+    console.log(`Found ${bookingCodes.length} booking codes from API`);
+    
+    if (bookingCodes.length === 0) {
+      console.log('No booking codes in API response');
+      return {
+        success: true,
+        message: 'No booking codes found',
         processed: 0,
         skipped: 0,
         errors: 0
@@ -332,8 +144,17 @@ console.log('Total found', allScrapedCodes.length, 'Betway-like codes from all s
     const kickoffTime = getKickoffTime();
     console.log('Using kickoff time:', kickoffTime);
     
-    for (const codeItem of recentCodes) {
-      const { code, addedTimeText, events, odds } = codeItem;
+    for (const codeItem of bookingCodes) {
+      // Extract code - handle different possible field names
+      const code = (codeItem.code || codeItem.bookingCode || '').toString().replace(/^#?/, '').toUpperCase();
+      if (!code || !code.startsWith('BW')) {
+        console.log('Skipping invalid code:', code);
+        continue;
+      }
+      
+      // Extract odds and outcomes/legs - handle different possible field names
+      const odds = codeItem.odds || codeItem.totalOdds || undefined;
+      const events = codeItem.outcomes || codeItem.events || codeItem.legs || codeItem.selections || undefined;
       
       try {
         // Check if this code already exists today for the system seller
@@ -399,10 +220,8 @@ console.log('Total found', allScrapedCodes.length, 'Betway-like codes from all s
       processed,
       skipped,
       errors,
-      totalFound: allScrapedCodes.length,
-      recentFound: recentCodes.length,
-      kickoffTime,
-      codes: recentCodes.map(c => ({ code: c.code, timeText: c.addedTimeText, minutesAgo: c.addedMinutesAgo }))
+      totalFound: bookingCodes.length,
+      kickoffTime
     };
     
     console.log('Scraping completed:', result);
