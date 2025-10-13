@@ -141,83 +141,119 @@ async function scrapeBetwayFreeCodesAndNotify() {
         // Special handling for Betway Book-a-Bet Results page
         if (source.name === 'Betway Book-a-Bet Results') {
           console.log('Processing Betway Book-a-Bet Results page...');
-          console.log('First 1000 chars of HTML:', html.substring(0, 1000));
+          console.log('HTML length:', html.length);
+          console.log('Full HTML content (first 5000 chars):', html.substring(0, 5000));
           
-          // Try multiple strategies to find booking codes
+          // The page is likely JavaScript-rendered, so look for data in multiple places
           
-          // Strategy 1: Look for explicit "Booking Code" text followed by the code
-          const bookingCodePattern = /Booking Code[:\s]*#?(BW[A-Z0-9]{8})/gi;
-          const bookingMatches = [...html.matchAll(bookingCodePattern)];
-          console.log(`Strategy 1 - Found ${bookingMatches.length} codes via "Booking Code" pattern`);
+          // Strategy 1: Look for JSON data in script tags
+          const scriptDataPattern = /<script[^>]*>(.*?)<\/script>/gis;
+          const scriptMatches = [...html.matchAll(scriptDataPattern)];
+          console.log(`Found ${scriptMatches.length} script tags to analyze`);
           
-          // Strategy 2: Look for #BW pattern
-          const hashPattern = /#(BW[A-Z0-9]{8})/gi;
-          const hashMatches = [...html.matchAll(hashPattern)];
-          console.log(`Strategy 2 - Found ${hashMatches.length} codes with # prefix`);
-          
-          // Strategy 3: Look for BW pattern in quotes or attributes
-          const quotedPattern = /["'](BW[A-Z0-9]{8})["']/gi;
-          const quotedMatches = [...html.matchAll(quotedPattern)];
-          console.log(`Strategy 3 - Found ${quotedMatches.length} codes in quotes`);
-          
-          // Strategy 4: Generic BW pattern
-          const genericPattern = /\b(BW[A-Z0-9]{8})\b/gi;
-          const genericMatches = [...html.matchAll(genericPattern)];
-          console.log(`Strategy 4 - Found ${genericMatches.length} codes via generic pattern`);
-          
-          // Combine all matches
-          const allMatches = [...bookingMatches, ...hashMatches, ...quotedMatches, ...genericMatches];
-          console.log(`Total matches before deduplication: ${allMatches.length}`);
-          
-          for (const match of allMatches) {
-            const code = match[1].toUpperCase();
-            if (foundSet.has(code)) continue;
+          let foundInScript = false;
+          for (const scriptMatch of scriptMatches) {
+            const scriptContent = scriptMatch[1];
             
-            console.log(`Processing code: ${code}`);
+            // Look for BW codes in script content
+            const codePattern = /BW[A-Z0-9]{8}/gi;
+            const codesInScript = [...scriptContent.matchAll(codePattern)];
             
-            // Find the code's position in the HTML to search nearby for odds and outcomes
-            const codeIndex = html.indexOf(code);
-            if (codeIndex === -1) continue;
-            
-            const windowSize = 1000; // Larger window for better context
-            const start = Math.max(0, codeIndex - windowSize);
-            const end = Math.min(html.length, codeIndex + windowSize);
-            const contextText = html.substring(start, end);
-            
-            let odds: number | undefined;
-            let events: number | undefined;
-            
-            // Extract Outcomes (number of legs) - case insensitive, flexible patterns
-            const outcomesPattern = /Outcomes?[:\s]*(\d+)/i;
-            const outcomesMatch = contextText.match(outcomesPattern);
-            if (outcomesMatch) {
-              events = parseInt(outcomesMatch[1]);
-              console.log(`Found ${events} outcomes for ${code}`);
+            if (codesInScript.length > 0) {
+              console.log(`Found ${codesInScript.length} potential codes in script tag`);
+              foundInScript = true;
+              
+              for (const match of codesInScript) {
+                const code = match[0].toUpperCase();
+                if (foundSet.has(code)) continue;
+                
+                console.log(`Extracted code from script: ${code}`);
+                
+                // Try to find associated data in the script content
+                const codeIndex = scriptContent.indexOf(code);
+                const contextStart = Math.max(0, codeIndex - 500);
+                const contextEnd = Math.min(scriptContent.length, codeIndex + 500);
+                const context = scriptContent.substring(contextStart, contextEnd);
+                
+                let odds: number | undefined;
+                let events: number | undefined;
+                
+                // Look for odds in context (various formats)
+                const oddsMatch = context.match(/["']?odds?["']?\s*:\s*(\d+(?:\.\d+)?)/i) ||
+                                 context.match(/odds?[:\s]+(\d+(?:\.\d+)?)/i);
+                if (oddsMatch) {
+                  odds = parseFloat(oddsMatch[1]);
+                  console.log(`Found odds ${odds} for ${code}`);
+                }
+                
+                // Look for outcomes/events in context
+                const eventsMatch = context.match(/["']?outcomes?["']?\s*:\s*(\d+)/i) ||
+                                   context.match(/["']?legs?["']?\s*:\s*(\d+)/i) ||
+                                   context.match(/outcomes?[:\s]+(\d+)/i);
+                if (eventsMatch) {
+                  events = parseInt(eventsMatch[1]);
+                  console.log(`Found ${events} outcomes for ${code}`);
+                }
+                
+                allScrapedCodes.push({
+                  code,
+                  addedTimeText: 'just now',
+                  addedMinutesAgo: 0,
+                  events,
+                  odds,
+                });
+                foundSet.add(code);
+              }
             }
+          }
+          
+          // Strategy 2: Look for codes in the raw HTML text (in case they're rendered)
+          if (!foundInScript) {
+            console.log('No codes found in scripts, trying raw HTML patterns...');
             
-            // Extract Odds - case insensitive, flexible patterns
-            const oddsPattern = /Odds?[:\s]*(\d+(?:\.\d+)?)/i;
-            const oddsMatch = contextText.match(oddsPattern);
-            if (oddsMatch) {
-              odds = parseFloat(oddsMatch[1]);
-              console.log(`Found odds ${odds} for ${code}`);
+            const rawCodePattern = /BW[A-Z0-9]{8}/gi;
+            const rawMatches = [...html.matchAll(rawCodePattern)];
+            console.log(`Found ${rawMatches.length} potential codes in raw HTML`);
+            
+            for (const match of rawMatches) {
+              const code = match[0].toUpperCase();
+              if (foundSet.has(code)) continue;
+              
+              console.log(`Extracted code from HTML: ${code}`);
+              
+              const codeIndex = html.indexOf(code);
+              const contextStart = Math.max(0, codeIndex - 1000);
+              const contextEnd = Math.min(html.length, codeIndex + 1000);
+              const context = html.substring(contextStart, contextEnd);
+              
+              let odds: number | undefined;
+              let events: number | undefined;
+              
+              // Look for odds nearby
+              const oddsMatch = context.match(/odds?[:\s]+(\d+(?:\.\d+)?)/i);
+              if (oddsMatch) {
+                odds = parseFloat(oddsMatch[1]);
+              }
+              
+              // Look for outcomes nearby
+              const eventsMatch = context.match(/outcomes?[:\s]+(\d+)/i);
+              if (eventsMatch) {
+                events = parseInt(eventsMatch[1]);
+              }
+              
+              allScrapedCodes.push({
+                code,
+                addedTimeText: 'just now',
+                addedMinutesAgo: 0,
+                events,
+                odds,
+              });
+              foundSet.add(code);
             }
-            
-            console.log(`Adding code ${code} - Events: ${events || 'unknown'}, Odds: ${odds || 'unknown'}`);
-            
-            // These are current/active codes, so set time to 0 (just now)
-            allScrapedCodes.push({
-              code,
-              addedTimeText: 'just now',
-              addedMinutesAgo: 0,
-              events,
-              odds,
-            });
-            foundSet.add(code);
           }
           
           console.log(`Betway Book-a-Bet Results: found ${allScrapedCodes.length} unique codes`);
-          continue; // Skip the regular regex/DOM scanning for this source
+          continue;
         }
 
         // This code is not reached for Betway Book-a-Bet Results anymore
