@@ -1,0 +1,16 @@
+-- Update the 11 Betway tickets to October 18, 2025 at 16:00 SAST (14:00 UTC)
+UPDATE tickets 
+SET kickoff_time = '2025-10-18T14:00:00Z'
+WHERE ticket_code IN (
+  'BW18EA9ABC',
+  'BW18EA9EA4',
+  'BW18EA9C09',
+  'BW19037E0D',
+  'BW18EA9B7D',
+  'BW18EA9CA7',
+  'BW18EAA011',
+  'BW18EA9AF2',
+  'BW18EA9B54',
+  'BW19038195C',
+  'BW19037D33'
+);
