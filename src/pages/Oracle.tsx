@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -66,6 +67,9 @@ const LEAGUES = [
   "Women's Super League", "NWSL", "Copa America", "Euros",
 ];
 
+const AUTO_PICK_COST = 2.5;
+const IMAGE_COST = 5;
+
 const Oracle = () => {
   const { currentUser, userRole } = useAuth();
   const [query, setQuery] = useState("");
@@ -74,7 +78,7 @@ const Oracle = () => {
   const [advice, setAdvice] = useState("");
   const [loading, setLoading] = useState(false);
   const [safeOnly, setSafeOnly] = useState(false);
-  const [mode] = useState<"auto_pick">("auto_pick");
+  const [activeTab, setActiveTab] = useState("auto_pick");
   const [legs, setLegs] = useState("5");
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>(["All"]);
   const [goalFilter, setGoalFilter] = useState("any");
@@ -95,7 +99,17 @@ const Oracle = () => {
   // Image prediction state
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageQuery, setImageQuery] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Image filter state
+  const [imgGoalFilter, setImgGoalFilter] = useState("any");
+  const [imgCornerFilter, setImgCornerFilter] = useState("any");
+  const [imgBttsFilter, setImgBttsFilter] = useState("any");
+  const [imgDoubleChanceFilter, setImgDoubleChanceFilter] = useState("any");
+  const [imgSafeOnly, setImgSafeOnly] = useState(false);
+
+  const currentCost = activeTab === "image" ? IMAGE_COST : AUTO_PICK_COST;
 
   const fetchHistory = async () => {
     if (!currentUser) return;
@@ -121,15 +135,15 @@ const Oracle = () => {
     try {
       await supabase.from("oracle_searches" as any).insert({
         user_id: currentUser.id,
-        query: query || (imageMode ? "Image prediction" : null),
-        mode: imageMode ? "image" : mode,
+        query: (imageMode ? imageQuery : query) || (imageMode ? "Image prediction" : null),
+        mode: imageMode ? "image" : "auto_pick",
         legs: parseInt(legs),
         leagues: selectedLeagues.includes("All") ? null : selectedLeagues,
-        goal_filter: goalFilter !== "any" ? goalFilter : null,
-        corner_filter: cornerFilter !== "any" ? cornerFilter : null,
-        btts_filter: bttsFilter !== "any" ? bttsFilter : null,
-        double_chance_filter: doubleChanceFilter !== "any" ? doubleChanceFilter : null,
-        safe_only: safeOnly,
+        goal_filter: (imageMode ? imgGoalFilter : goalFilter) !== "any" ? (imageMode ? imgGoalFilter : goalFilter) : null,
+        corner_filter: (imageMode ? imgCornerFilter : cornerFilter) !== "any" ? (imageMode ? imgCornerFilter : cornerFilter) : null,
+        btts_filter: (imageMode ? imgBttsFilter : bttsFilter) !== "any" ? (imageMode ? imgBttsFilter : bttsFilter) : null,
+        double_chance_filter: (imageMode ? imgDoubleChanceFilter : doubleChanceFilter) !== "any" ? (imageMode ? imgDoubleChanceFilter : doubleChanceFilter) : null,
+        safe_only: imageMode ? imgSafeOnly : safeOnly,
         date_from: dateFrom,
         date_to: dateTo,
         predictions: preds as any,
@@ -161,7 +175,6 @@ const Oracle = () => {
     if (showHistory && currentUser) fetchHistory();
   }, [showHistory, currentUser]);
 
-  // Fetch user balance
   const fetchBalance = async () => {
     if (!currentUser) return;
     const { data } = await supabase.from("profiles").select("credit_balance").eq("id", currentUser.id).single();
@@ -172,18 +185,15 @@ const Oracle = () => {
     if (currentUser) fetchBalance();
   }, [currentUser]);
 
-  const ORACLE_COST = 5;
-
-  const chargeUser = async () => {
+  const chargeUser = async (cost: number) => {
     if (!currentUser) return false;
     try {
       const { error } = await supabase.rpc("charge_oracle_search" as any, {
         p_user_id: currentUser.id,
-        p_cost: ORACLE_COST,
+        p_cost: cost,
       });
       if (error) throw error;
       
-      // Award 1 BC point if user is a punter (buyer)
       if (userRole === "buyer") {
         await supabase
           .from("profiles")
@@ -191,7 +201,7 @@ const Oracle = () => {
           .eq("id", currentUser.id);
       }
       
-      setUserBalance(prev => prev - ORACLE_COST);
+      setUserBalance(prev => prev - cost);
       return true;
     } catch (err: any) {
       console.error("Charge error:", err);
@@ -200,7 +210,6 @@ const Oracle = () => {
     }
   };
 
-  // Handle image file selection
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -224,7 +233,6 @@ const Oracle = () => {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Image-based prediction
   const handleImagePredict = async () => {
     if (!currentUser) {
       toast.error("Please log in to use the Oracle");
@@ -234,8 +242,8 @@ const Oracle = () => {
       toast.error("Please upload an image of upcoming games");
       return;
     }
-    if (userBalance < ORACLE_COST) {
-      toast.error(`Insufficient balance. You need at least R${ORACLE_COST}. Please top up your wallet.`);
+    if (userBalance < IMAGE_COST) {
+      toast.error(`Insufficient balance. You need at least R${IMAGE_COST}. Please top up your wallet.`);
       return;
     }
 
@@ -244,21 +252,20 @@ const Oracle = () => {
     setAdvice("");
 
     try {
-      const charged = await chargeUser();
+      const charged = await chargeUser(IMAGE_COST);
       if (!charged) return;
 
-      // Send image as base64 to edge function
       const { data, error } = await supabase.functions.invoke("oracle-predict", {
         body: {
           mode: "image",
           imageBase64: imagePreview,
-          query,
+          query: imageQuery,
           legs: parseInt(legs),
-          safeOnly,
-          goalFilter,
-          cornerFilter,
-          bttsFilter,
-          doubleChanceFilter,
+          safeOnly: imgSafeOnly,
+          goalFilter: imgGoalFilter,
+          cornerFilter: imgCornerFilter,
+          bttsFilter: imgBttsFilter,
+          doubleChanceFilter: imgDoubleChanceFilter,
         },
       });
 
@@ -292,8 +299,8 @@ const Oracle = () => {
       toast.error("Please log in to use the Oracle");
       return;
     }
-    if (userBalance < ORACLE_COST) {
-      toast.error(`Insufficient balance. You need at least R${ORACLE_COST} to use the Oracle. Please top up your wallet.`);
+    if (userBalance < AUTO_PICK_COST) {
+      toast.error(`Insufficient balance. You need at least R${AUTO_PICK_COST} to use the Oracle. Please top up your wallet.`);
       return;
     }
 
@@ -302,13 +309,13 @@ const Oracle = () => {
     setAdvice("");
 
     try {
-      const charged = await chargeUser();
+      const charged = await chargeUser(AUTO_PICK_COST);
       if (!charged) return;
 
       const { data, error } = await supabase.functions.invoke("oracle-predict", {
         body: {
           query,
-          mode,
+          mode: "auto_pick",
           legs: parseInt(legs),
           safeOnly,
           leagues: selectedLeagues.includes("All") ? [] : selectedLeagues,
@@ -332,7 +339,6 @@ const Oracle = () => {
       setPredictions(preds);
       setAdvice(adviceText);
 
-      // Auto-save to history
       if (preds.length > 0) {
         await saveSearch(preds, adviceText);
       }
@@ -394,7 +400,7 @@ const Oracle = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-foreground">Oracle</h1>
-              <p className="text-sm text-muted-foreground">AI-powered football predictions • R{ORACLE_COST} per search</p>
+              <p className="text-sm text-muted-foreground">AI-powered football predictions</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -425,7 +431,7 @@ const Oracle = () => {
               <Brain className="h-10 w-10 mx-auto mb-3 text-primary" />
               <h3 className="text-lg font-semibold text-foreground mb-2">Log in to use the Oracle</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Get AI-powered predictions for just R{ORACLE_COST} per search. Punters earn 1 BC point per search!
+                Get AI-powered predictions starting from R{AUTO_PICK_COST}. Punters earn 1 BC point per search!
               </p>
               <Link to="/auth/login">
                 <Button className="gap-2">
@@ -499,35 +505,213 @@ const Oracle = () => {
           </Card>
         )}
 
-        {/* Image Prediction Section */}
-        {currentUser && (
-          <Card className="mb-6 border-border bg-card">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Camera className="h-4 w-4 text-primary" />
-                <h3 className="font-semibold text-foreground text-sm">Upload Games Image</h3>
-                <span className="text-xs text-muted-foreground">— Upload a screenshot of upcoming games for AI predictions</span>
-              </div>
+        {/* Tabs: Auto Pick vs Image Upload */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+          <TabsList className="w-full">
+            <TabsTrigger value="auto_pick" className="flex-1 gap-2">
+              <Zap className="h-4 w-4" /> Auto Pick
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">R{AUTO_PICK_COST}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="image" className="flex-1 gap-2">
+              <Camera className="h-4 w-4" /> Image Upload
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">R{IMAGE_COST}</Badge>
+            </TabsTrigger>
+          </TabsList>
 
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageSelect}
-                className="hidden"
-              />
+          {/* Auto Pick Tab */}
+          <TabsContent value="auto_pick">
+            <Card className="border-border bg-card">
+              <CardContent className="p-4 space-y-4">
+                <div className="flex items-center gap-3">
+                  <Label className="text-sm text-muted-foreground whitespace-nowrap">Number of legs:</Label>
+                  <Select value={legs} onValueChange={setLegs}>
+                    <SelectTrigger className="w-24 bg-secondary border-border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20].map(n => (
+                        <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    placeholder="Optional: additional instructions for AI..."
+                    value={query}
+                    onChange={e => setQuery(e.target.value)}
+                    className="bg-secondary border-border flex-1"
+                  />
+                </div>
 
-              {!imagePreview ? (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/40 hover:bg-primary/5 transition-colors cursor-pointer"
-                >
-                  <ImagePlus className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Click to upload a picture of upcoming games</p>
-                  <p className="text-xs text-muted-foreground mt-1">The AI will identify teams, game types, and provide predictions</p>
-                </button>
-              ) : (
-                <div className="space-y-3">
+                {/* Date Range */}
+                <div className="flex flex-wrap gap-3 items-center">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <Label className="text-sm text-muted-foreground">From:</Label>
+                    <Input
+                      type="date"
+                      value={dateFrom}
+                      onChange={e => setDateFrom(e.target.value)}
+                      className="w-[150px] h-9 bg-secondary border-border text-sm"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm text-muted-foreground">To:</Label>
+                    <Input
+                      type="date"
+                      value={dateTo}
+                      onChange={e => setDateTo(e.target.value)}
+                      className="w-[150px] h-9 bg-secondary border-border text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Filters Row */}
+                <div className="flex flex-wrap gap-3 items-center">
+                  <Popover open={leagueOpen} onOpenChange={setLeagueOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-2 h-9 min-w-[160px] justify-between">
+                        <span className="truncate text-left">
+                          {selectedLeagues.includes("All") ? "All Leagues" : `${selectedLeagues.length} league${selectedLeagues.length > 1 ? "s" : ""}`}
+                        </span>
+                        <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-72 p-0 max-h-80 overflow-hidden" align="start">
+                      <div className="p-2 border-b border-border">
+                        <button
+                          onClick={() => { setSelectedLeagues(["All"]); }}
+                          className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${selectedLeagues.includes("All") ? "bg-primary/15 text-primary font-medium" : "hover:bg-secondary text-foreground"}`}
+                        >
+                          All Leagues
+                        </button>
+                      </div>
+                      <div className="overflow-y-auto max-h-60 p-2 space-y-0.5">
+                        {LEAGUES.map(league => (
+                          <label key={league} className="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-secondary cursor-pointer text-sm">
+                            <Checkbox
+                              checked={selectedLeagues.includes(league)}
+                              onCheckedChange={() => toggleLeague(league)}
+                              className="h-4 w-4"
+                            />
+                            <span className="text-foreground">{league}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+
+                  <Select value={goalFilter} onValueChange={setGoalFilter}>
+                    <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm">
+                      <SelectValue placeholder="Goals filter" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any goals</SelectItem>
+                      <SelectItem value="over 0.5 goals">Over 0.5</SelectItem>
+                      <SelectItem value="over 1.5 goals">Over 1.5</SelectItem>
+                      <SelectItem value="over 2.5 goals">Over 2.5</SelectItem>
+                      <SelectItem value="over 3.5 goals">Over 3.5</SelectItem>
+                      <SelectItem value="over 4.5 goals">Over 4.5</SelectItem>
+                      <SelectItem value="under 1.5 goals">Under 1.5</SelectItem>
+                      <SelectItem value="under 2.5 goals">Under 2.5</SelectItem>
+                      <SelectItem value="under 3.5 goals">Under 3.5</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={cornerFilter} onValueChange={setCornerFilter}>
+                    <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm">
+                      <SelectValue placeholder="Corners filter" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any corners</SelectItem>
+                      <SelectItem value="over 7.5 corners">Over 7.5</SelectItem>
+                      <SelectItem value="over 8.5 corners">Over 8.5</SelectItem>
+                      <SelectItem value="over 9.5 corners">Over 9.5</SelectItem>
+                      <SelectItem value="over 10.5 corners">Over 10.5</SelectItem>
+                      <SelectItem value="over 11.5 corners">Over 11.5</SelectItem>
+                      <SelectItem value="under 8.5 corners">Under 8.5</SelectItem>
+                      <SelectItem value="under 9.5 corners">Under 9.5</SelectItem>
+                      <SelectItem value="under 10.5 corners">Under 10.5</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={bttsFilter} onValueChange={setBttsFilter}>
+                    <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm">
+                      <SelectValue placeholder="BTTS filter" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any BTTS</SelectItem>
+                      <SelectItem value="btts yes">BTTS Yes</SelectItem>
+                      <SelectItem value="btts no">BTTS No</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={doubleChanceFilter} onValueChange={setDoubleChanceFilter}>
+                    <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm">
+                      <SelectValue placeholder="Double Chance" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any result</SelectItem>
+                      <SelectItem value="1X">1X (Home or Draw)</SelectItem>
+                      <SelectItem value="X2">X2 (Draw or Away)</SelectItem>
+                      <SelectItem value="12">12 (Home or Away)</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <div className="flex items-center gap-2 ml-auto">
+                    <Shield className="h-4 w-4 text-primary" />
+                    <Label htmlFor="safe" className="text-sm cursor-pointer">Safe bets only</Label>
+                    <Switch id="safe" checked={safeOnly} onCheckedChange={setSafeOnly} />
+                  </div>
+                </div>
+
+                {/* Selected leagues tags */}
+                {!selectedLeagues.includes("All") && selectedLeagues.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {selectedLeagues.map(l => (
+                      <Badge key={l} variant="secondary" className="gap-1 pr-1 text-xs">
+                        {l}
+                        <button onClick={() => removeLeague(l)} className="ml-0.5 hover:text-destructive">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                <Button onClick={handlePredict} disabled={loading} className="w-full gap-2">
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
+                  {loading ? "Oracle is thinking..." : `Auto Pick ${legs} Matches (R${AUTO_PICK_COST})`}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Image Upload Tab */}
+          <TabsContent value="image">
+            <Card className="border-border bg-card">
+              <CardContent className="p-4 space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Upload a screenshot of upcoming games. The AI will identify teams, game types, and provide predictions.
+                </p>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+
+                {!imagePreview ? (
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/40 hover:bg-primary/5 transition-colors cursor-pointer"
+                  >
+                    <ImagePlus className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Click to upload a picture of upcoming games</p>
+                    <p className="text-xs text-muted-foreground mt-1">The AI will identify teams, game types, and provide predictions</p>
+                  </button>
+                ) : (
                   <div className="relative rounded-lg overflow-hidden border border-border">
                     <img src={imagePreview} alt="Uploaded games" className="w-full max-h-64 object-contain bg-secondary" />
                     <Button
@@ -539,195 +723,73 @@ const Oracle = () => {
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
-                  <Button
-                    onClick={handleImagePredict}
-                    disabled={loading}
-                    className="w-full gap-2"
-                  >
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
-                    {loading ? "Oracle is analyzing image..." : `Predict from Image (R${ORACLE_COST})`}
-                  </Button>
+                )}
+
+                <Input
+                  placeholder="Optional: additional instructions for AI..."
+                  value={imageQuery}
+                  onChange={e => setImageQuery(e.target.value)}
+                  className="bg-secondary border-border"
+                />
+
+                {/* Image filters */}
+                <div className="flex flex-wrap gap-3 items-center">
+                  <Select value={imgGoalFilter} onValueChange={setImgGoalFilter}>
+                    <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm">
+                      <SelectValue placeholder="Goals filter" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any goals</SelectItem>
+                      <SelectItem value="over 0.5 goals">Over 0.5</SelectItem>
+                      <SelectItem value="over 1.5 goals">Over 1.5</SelectItem>
+                      <SelectItem value="over 2.5 goals">Over 2.5</SelectItem>
+                      <SelectItem value="over 3.5 goals">Over 3.5</SelectItem>
+                      <SelectItem value="under 2.5 goals">Under 2.5</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={imgBttsFilter} onValueChange={setImgBttsFilter}>
+                    <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm">
+                      <SelectValue placeholder="BTTS filter" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any BTTS</SelectItem>
+                      <SelectItem value="btts yes">BTTS Yes</SelectItem>
+                      <SelectItem value="btts no">BTTS No</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={imgDoubleChanceFilter} onValueChange={setImgDoubleChanceFilter}>
+                    <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm">
+                      <SelectValue placeholder="Double Chance" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="any">Any result</SelectItem>
+                      <SelectItem value="1X">1X (Home or Draw)</SelectItem>
+                      <SelectItem value="X2">X2 (Draw or Away)</SelectItem>
+                      <SelectItem value="12">12 (Home or Away)</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <div className="flex items-center gap-2 ml-auto">
+                    <Shield className="h-4 w-4 text-primary" />
+                    <Label htmlFor="img-safe" className="text-sm cursor-pointer">Safe only</Label>
+                    <Switch id="img-safe" checked={imgSafeOnly} onCheckedChange={setImgSafeOnly} />
+                  </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
 
-        {/* Controls */}
-        <Card className="mb-6 border-border bg-card">
-          <CardContent className="p-4 space-y-4">
-            {/* Auto Pick Controls */}
-            <div className="flex items-center gap-3">
-              <Badge variant="default" className="gap-1 py-1.5 px-3">
-                <Zap className="h-3.5 w-3.5" /> Auto Pick
-              </Badge>
-              <Label className="text-sm text-muted-foreground whitespace-nowrap">Number of legs:</Label>
-              <Select value={legs} onValueChange={setLegs}>
-                <SelectTrigger className="w-24 bg-secondary border-border">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20].map(n => (
-                    <SelectItem key={n} value={String(n)}>{n}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                placeholder="Optional: additional instructions for AI..."
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                className="bg-secondary border-border flex-1"
-              />
-            </div>
-
-            {/* Date Range */}
-            <div className="flex flex-wrap gap-3 items-center">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <Label className="text-sm text-muted-foreground">From:</Label>
-                <Input
-                  type="date"
-                  value={dateFrom}
-                  onChange={e => setDateFrom(e.target.value)}
-                  className="w-[150px] h-9 bg-secondary border-border text-sm"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <Label className="text-sm text-muted-foreground">To:</Label>
-                <Input
-                  type="date"
-                  value={dateTo}
-                  onChange={e => setDateTo(e.target.value)}
-                  className="w-[150px] h-9 bg-secondary border-border text-sm"
-                />
-              </div>
-            </div>
-
-            {/* Filters Row */}
-            <div className="flex flex-wrap gap-3 items-center">
-              {/* League Multi-Select Dropdown */}
-              <Popover open={leagueOpen} onOpenChange={setLeagueOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2 h-9 min-w-[160px] justify-between">
-                    <span className="truncate text-left">
-                      {selectedLeagues.includes("All") ? "All Leagues" : `${selectedLeagues.length} league${selectedLeagues.length > 1 ? "s" : ""}`}
-                    </span>
-                    <ChevronDown className="h-3.5 w-3.5 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-72 p-0 max-h-80 overflow-hidden" align="start">
-                  <div className="p-2 border-b border-border">
-                    <button
-                      onClick={() => { setSelectedLeagues(["All"]); }}
-                      className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${selectedLeagues.includes("All") ? "bg-primary/15 text-primary font-medium" : "hover:bg-secondary text-foreground"}`}
-                    >
-                      All Leagues
-                    </button>
-                  </div>
-                  <div className="overflow-y-auto max-h-60 p-2 space-y-0.5">
-                    {LEAGUES.map(league => (
-                      <label key={league} className="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-secondary cursor-pointer text-sm">
-                        <Checkbox
-                          checked={selectedLeagues.includes(league)}
-                          onCheckedChange={() => toggleLeague(league)}
-                          className="h-4 w-4"
-                        />
-                        <span className="text-foreground">{league}</span>
-                      </label>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
-
-              {/* Goal Filter */}
-              <Select value={goalFilter} onValueChange={setGoalFilter}>
-                <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm">
-                  <SelectValue placeholder="Goals filter" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any goals</SelectItem>
-                  <SelectItem value="over 0.5 goals">Over 0.5</SelectItem>
-                  <SelectItem value="over 1.5 goals">Over 1.5</SelectItem>
-                  <SelectItem value="over 2.5 goals">Over 2.5</SelectItem>
-                  <SelectItem value="over 3.5 goals">Over 3.5</SelectItem>
-                  <SelectItem value="over 4.5 goals">Over 4.5</SelectItem>
-                  <SelectItem value="under 1.5 goals">Under 1.5</SelectItem>
-                  <SelectItem value="under 2.5 goals">Under 2.5</SelectItem>
-                  <SelectItem value="under 3.5 goals">Under 3.5</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Corner Filter */}
-              <Select value={cornerFilter} onValueChange={setCornerFilter}>
-                <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm">
-                  <SelectValue placeholder="Corners filter" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any corners</SelectItem>
-                  <SelectItem value="over 7.5 corners">Over 7.5</SelectItem>
-                  <SelectItem value="over 8.5 corners">Over 8.5</SelectItem>
-                  <SelectItem value="over 9.5 corners">Over 9.5</SelectItem>
-                  <SelectItem value="over 10.5 corners">Over 10.5</SelectItem>
-                  <SelectItem value="over 11.5 corners">Over 11.5</SelectItem>
-                  <SelectItem value="under 8.5 corners">Under 8.5</SelectItem>
-                  <SelectItem value="under 9.5 corners">Under 9.5</SelectItem>
-                  <SelectItem value="under 10.5 corners">Under 10.5</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* BTTS Filter */}
-              <Select value={bttsFilter} onValueChange={setBttsFilter}>
-                <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm">
-                  <SelectValue placeholder="BTTS filter" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any BTTS</SelectItem>
-                  <SelectItem value="btts yes">BTTS Yes</SelectItem>
-                  <SelectItem value="btts no">BTTS No</SelectItem>
-                </SelectContent>
-              </Select>
-
-              {/* Double Chance Filter */}
-              <Select value={doubleChanceFilter} onValueChange={setDoubleChanceFilter}>
-                <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm">
-                  <SelectValue placeholder="Double Chance" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="any">Any result</SelectItem>
-                  <SelectItem value="1X">1X (Home or Draw)</SelectItem>
-                  <SelectItem value="X2">X2 (Draw or Away)</SelectItem>
-                  <SelectItem value="12">12 (Home or Away)</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <div className="flex items-center gap-2 ml-auto">
-                <Shield className="h-4 w-4 text-primary" />
-                <Label htmlFor="safe" className="text-sm cursor-pointer">Safe bets only</Label>
-                <Switch id="safe" checked={safeOnly} onCheckedChange={setSafeOnly} />
-              </div>
-            </div>
-
-            {/* Selected leagues tags */}
-            {!selectedLeagues.includes("All") && selectedLeagues.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {selectedLeagues.map(l => (
-                  <Badge key={l} variant="secondary" className="gap-1 pr-1 text-xs">
-                    {l}
-                    <button onClick={() => removeLeague(l)} className="ml-0.5 hover:text-destructive">
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            )}
-
-            {/* Submit */}
-            <Button onClick={handlePredict} disabled={loading} className="w-full gap-2">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
-              {loading ? "Oracle is thinking..." : `Auto Pick ${legs} Matches`}
-            </Button>
-          </CardContent>
-        </Card>
+                <Button
+                  onClick={handleImagePredict}
+                  disabled={loading || !imagePreview}
+                  className="w-full gap-2"
+                >
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
+                  {loading ? "Oracle is analyzing image..." : `Predict from Image (R${IMAGE_COST})`}
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
         {/* Advice */}
         {advice && (
@@ -745,7 +807,6 @@ const Oracle = () => {
             {predictions.map((p, i) => (
               <Card key={i} className="border-border bg-card overflow-hidden">
                 <CardContent className="p-0">
-                  {/* Top row: league + date + likeliness */}
                   <div className="flex items-center justify-between px-4 py-2 bg-secondary/50 border-b border-border">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span className="font-medium text-foreground/80">{p.league}</span>
@@ -758,7 +819,6 @@ const Oracle = () => {
                   </div>
 
                   <div className="p-4">
-                    {/* Teams + Score */}
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex-1">
                         <p className="font-semibold text-foreground">{p.homeTeam}</p>
@@ -770,7 +830,6 @@ const Oracle = () => {
                       </div>
                     </div>
 
-                    {/* Percentages */}
                     <div className="grid grid-cols-3 gap-2 mb-3">
                       <div className="text-center">
                         <div className="text-xs text-muted-foreground mb-1">Home</div>
@@ -795,7 +854,6 @@ const Oracle = () => {
                       </div>
                     </div>
 
-                    {/* Stats + Prediction */}
                     <div className="flex items-center justify-between text-xs border-t border-border pt-3">
                       <div className="flex gap-4">
                         <span className="text-muted-foreground">Exp. Goals: <span className="text-foreground font-medium">{p.expectedGoals}</span></span>
@@ -807,7 +865,6 @@ const Oracle = () => {
                       </Badge>
                     </div>
 
-                    {/* Reasoning */}
                     <p className="text-xs text-muted-foreground mt-2">{p.reasoning}</p>
                   </div>
                 </CardContent>
