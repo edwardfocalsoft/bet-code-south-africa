@@ -135,20 +135,20 @@ serve(async (req) => {
     const today = new Date().toISOString().split("T")[0];
     const fixturesJson = JSON.stringify(fixtureSubset);
 
-    // Build filter instructions
+    // Build filter instructions - STRICT enforcement
     let filterInstructions = "";
     if (goalFilter && goalFilter !== "any") {
-      filterInstructions += `\nGOAL PREFERENCE: Prioritize and highlight matches likely to have ${goalFilter}. Include the expectedGoals value for all matches. You MUST still return matches even if not all perfectly match this filter — rank them by how likely they are to meet this criteria, with the best matches first.`;
+      filterInstructions += `\nGOAL FILTER (STRICT): You MUST ONLY include matches that are likely to have ${goalFilter}. Do NOT include any match that contradicts this filter. For example, if the filter says "over 3.5 goals", every single prediction must have expectedGoals above 3.5. If the filter says "under 2.5 goals", every prediction must have expectedGoals below 2.5. This is NOT a preference — it is a hard requirement.`;
     }
     if (cornerFilter && cornerFilter !== "any") {
-      filterInstructions += `\nCORNER PREFERENCE: Prioritize and highlight matches likely to have ${cornerFilter}. Include the expectedCorners value for all matches. You MUST still return matches even if not all perfectly match this filter — rank them by how likely they are to meet this criteria, with the best matches first.`;
+      filterInstructions += `\nCORNER FILTER (STRICT): You MUST ONLY include matches that are likely to have ${cornerFilter}. Do NOT include any match that contradicts this filter. For example, if the filter says "over 9.5 corners", every prediction must have expectedCorners above 9.5. This is NOT a preference — it is a hard requirement.`;
     }
     if (bttsFilter && bttsFilter !== "any") {
-      filterInstructions += `\nBTTS PREFERENCE: Prioritize matches where both teams to score is likely "${bttsFilter === "btts yes" ? "Yes" : "No"}". Rank matches by how likely they are to have ${bttsFilter === "btts yes" ? "both teams scoring" : "at least one team keeping a clean sheet"}.`;
+      filterInstructions += `\nBTTS FILTER (STRICT): You MUST ONLY include matches where both teams to score is "${bttsFilter === "btts yes" ? "Yes" : "No"}". ${bttsFilter === "btts yes" ? "Every match must have both teams likely to score at least 1 goal each." : "Every match must have at least one team likely to keep a clean sheet."} This is NOT a preference — it is a hard requirement.`;
     }
     if (doubleChanceFilter && doubleChanceFilter !== "any") {
       const dcMap: Record<string, string> = { "1X": "Home Win or Draw", "X2": "Draw or Away Win", "12": "Home Win or Away Win (no draw)" };
-      filterInstructions += `\nDOUBLE CHANCE PREFERENCE: Prioritize matches where the most likely outcome is ${dcMap[doubleChanceFilter] || doubleChanceFilter}. Rank matches by how well they fit this double chance market.`;
+      filterInstructions += `\nDOUBLE CHANCE FILTER (STRICT): You MUST ONLY include matches where the most likely outcome fits ${dcMap[doubleChanceFilter] || doubleChanceFilter}. Do NOT include matches that contradict this. This is NOT a preference — it is a hard requirement.`;
     }
 
     const systemPrompt = `You are the BetCode Oracle — an elite AI football analyst powered by deep knowledge of football teams, leagues, and historical performance.
@@ -167,7 +167,10 @@ CRITICAL RULES:
 
 ${safeOnly ? "SAFE MODE: Prefer predictions with 70%+ confidence (Very High or High likeliness). Prioritize safe picks but still return results." : ""}
 ${filterInstructions}
-${mode === "auto_pick" ? `AUTO PICK MODE: From the fixtures provided, select exactly ${legs || 5} matches with the HIGHEST winning probability. Pick the safest, most obvious outcomes. Be specific about which team to back and why.` : ""}
+
+LEGS REQUIREMENT (STRICT): You MUST return EXACTLY ${legs || 5} predictions — no more, no less. If there are not enough fixtures matching the filters, return as many as possible but never exceed ${legs || 5}.
+
+From the fixtures provided, select exactly ${legs || 5} matches with the HIGHEST winning probability that match ALL active filters above. Pick the safest, most obvious outcomes. Be specific about which team to back and why.
 
 Response MUST be valid JSON with this exact structure (no markdown, no code blocks):
 {
@@ -192,9 +195,7 @@ Response MUST be valid JSON with this exact structure (no markdown, no code bloc
   "advice": "Overall betting advice summary"
 }`;
 
-    const userMessage = mode === "auto_pick"
-      ? `Here are the real upcoming fixtures. Pick the ${legs || 5} safest bets:\n\n${fixturesJson}\n\n${query || ""}`
-      : `Here are real upcoming fixtures. Analyze them and provide predictions:\n\n${fixturesJson}\n\n${query || "Provide predictions for the most interesting matches."}`;
+    const userMessage = `Here are the real upcoming fixtures. Pick EXACTLY ${legs || 5} safest bets that match ALL the filters specified above:\n\n${fixturesJson}\n\n${query || ""}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
