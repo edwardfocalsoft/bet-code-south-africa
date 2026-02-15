@@ -253,10 +253,12 @@ export type Database = {
       oracle_searches: {
         Row: {
           advice: string | null
+          btts_filter: string | null
           corner_filter: string | null
           created_at: string
           date_from: string | null
           date_to: string | null
+          double_chance_filter: string | null
           goal_filter: string | null
           id: string
           leagues: string[] | null
@@ -269,10 +271,12 @@ export type Database = {
         }
         Insert: {
           advice?: string | null
+          btts_filter?: string | null
           corner_filter?: string | null
           created_at?: string
           date_from?: string | null
           date_to?: string | null
+          double_chance_filter?: string | null
           goal_filter?: string | null
           id?: string
           leagues?: string[] | null
@@ -285,10 +289,12 @@ export type Database = {
         }
         Update: {
           advice?: string | null
+          btts_filter?: string | null
           corner_filter?: string | null
           created_at?: string
           date_from?: string | null
           date_to?: string | null
+          double_chance_filter?: string | null
           goal_filter?: string | null
           id?: string
           leagues?: string[] | null
@@ -941,6 +947,10 @@ export type Database = {
       add_credits: {
         Args: { amount_to_add: number; user_id: string }
         Returns: number
+      }
+      charge_oracle_search: {
+        Args: { p_cost?: number; p_user_id: string }
+        Returns: boolean
       }
       claim_bc_points: {
         Args: { p_points_to_claim: number; p_user_id: string }

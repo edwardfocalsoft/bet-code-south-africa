@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth/useAuth";
-import { Brain, Zap, Search, Loader2, TrendingUp, Shield, Target, ChevronDown, X, Calendar, History, Trash2, Clock, Coins, LogIn } from "lucide-react";
+import { Brain, Zap, Loader2, TrendingUp, Shield, Target, ChevronDown, X, Calendar, History, Trash2, Clock, Coins, LogIn, ImagePlus, Camera } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
@@ -41,6 +41,8 @@ type SearchHistoryItem = {
   leagues: string[] | null;
   goal_filter: string | null;
   corner_filter: string | null;
+  btts_filter: string | null;
+  double_chance_filter: string | null;
   safe_only: boolean;
   date_from: string | null;
   date_to: string | null;
@@ -89,6 +91,11 @@ const Oracle = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [history, setHistory] = useState<SearchHistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  
+  // Image prediction state
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchHistory = async () => {
     if (!currentUser) return;
@@ -109,19 +116,19 @@ const Oracle = () => {
     }
   };
 
-  const saveSearch = async (preds: Prediction[], adviceText: string) => {
+  const saveSearch = async (preds: Prediction[], adviceText: string, imageMode = false) => {
     if (!currentUser) return;
     try {
       await supabase.from("oracle_searches" as any).insert({
         user_id: currentUser.id,
-        query: query || null,
-        mode,
-        legs: mode === "auto_pick" ? parseInt(legs) : null,
+        query: query || (imageMode ? "Image prediction" : null),
+        mode: imageMode ? "image" : mode,
+        legs: parseInt(legs),
         leagues: selectedLeagues.includes("All") ? null : selectedLeagues,
-        goal_filter: goalFilter || null,
-        corner_filter: cornerFilter || null,
-        btts_filter: bttsFilter || null,
-        double_chance_filter: doubleChanceFilter || null,
+        goal_filter: goalFilter !== "any" ? goalFilter : null,
+        corner_filter: cornerFilter !== "any" ? cornerFilter : null,
+        btts_filter: bttsFilter !== "any" ? bttsFilter : null,
+        double_chance_filter: doubleChanceFilter !== "any" ? doubleChanceFilter : null,
         safe_only: safeOnly,
         date_from: dateFrom,
         date_to: dateTo,
@@ -167,6 +174,119 @@ const Oracle = () => {
 
   const ORACLE_COST = 5;
 
+  const chargeUser = async () => {
+    if (!currentUser) return false;
+    try {
+      const { error } = await supabase.rpc("charge_oracle_search" as any, {
+        p_user_id: currentUser.id,
+        p_cost: ORACLE_COST,
+      });
+      if (error) throw error;
+      
+      // Award 1 BC point if user is a punter (buyer)
+      if (userRole === "buyer") {
+        await supabase
+          .from("profiles")
+          .update({ loyalty_points: (currentUser.loyaltyPoints || 0) + 1 })
+          .eq("id", currentUser.id);
+      }
+      
+      setUserBalance(prev => prev - ORACLE_COST);
+      return true;
+    } catch (err: any) {
+      console.error("Charge error:", err);
+      toast.error(err.message || "Failed to charge. Check your balance.");
+      return false;
+    }
+  };
+
+  // Handle image file selection
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be under 5MB");
+      return;
+    }
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setImagePreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const clearImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // Image-based prediction
+  const handleImagePredict = async () => {
+    if (!currentUser) {
+      toast.error("Please log in to use the Oracle");
+      return;
+    }
+    if (!imageFile || !imagePreview) {
+      toast.error("Please upload an image of upcoming games");
+      return;
+    }
+    if (userBalance < ORACLE_COST) {
+      toast.error(`Insufficient balance. You need at least R${ORACLE_COST}. Please top up your wallet.`);
+      return;
+    }
+
+    setLoading(true);
+    setPredictions([]);
+    setAdvice("");
+
+    try {
+      const charged = await chargeUser();
+      if (!charged) return;
+
+      // Send image as base64 to edge function
+      const { data, error } = await supabase.functions.invoke("oracle-predict", {
+        body: {
+          mode: "image",
+          imageBase64: imagePreview,
+          query,
+          legs: parseInt(legs),
+          safeOnly,
+          goalFilter,
+          cornerFilter,
+          bttsFilter,
+          doubleChanceFilter,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
+      const preds = data?.predictions || [];
+      const adviceText = data?.advice || "";
+      setPredictions(preds);
+      setAdvice(adviceText);
+
+      if (preds.length > 0) {
+        await saveSearch(preds, adviceText, true);
+      }
+      
+      clearImage();
+    } catch (err: any) {
+      console.error("Oracle image error:", err);
+      toast.error(err.message || "Failed to get predictions from image");
+      fetchBalance();
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePredict = async () => {
     if (!currentUser) {
       toast.error("Please log in to use the Oracle");
@@ -182,31 +302,8 @@ const Oracle = () => {
     setAdvice("");
 
     try {
-      // Deduct R5 from user balance
-      const { error: deductError } = await supabase
-        .from("profiles")
-        .update({ credit_balance: userBalance - ORACLE_COST })
-        .eq("id", currentUser.id);
-      if (deductError) throw deductError;
-
-      // Create wallet transaction for the charge
-      await supabase.from("wallet_transactions").insert({
-        user_id: currentUser.id,
-        amount: -ORACLE_COST,
-        type: "oracle",
-        description: "Oracle search fee",
-      } as any);
-
-      // Award 1 BC point if user is a punter (buyer)
-      if (userRole === "buyer") {
-        await supabase
-          .from("profiles")
-          .update({ loyalty_points: (currentUser.loyaltyPoints || 0) + 1 })
-          .eq("id", currentUser.id);
-      }
-
-      // Update local balance
-      setUserBalance(prev => prev - ORACLE_COST);
+      const charged = await chargeUser();
+      if (!charged) return;
 
       const { data, error } = await supabase.functions.invoke("oracle-predict", {
         body: {
@@ -242,7 +339,6 @@ const Oracle = () => {
     } catch (err: any) {
       console.error("Oracle error:", err);
       toast.error(err.message || "Failed to get predictions");
-      // Refetch balance in case of error
       fetchBalance();
     } finally {
       setLoading(false);
@@ -364,10 +460,13 @@ const Oracle = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <Badge variant="outline" className="text-xs">
-                            {item.mode === "auto_pick" ? `Auto ${item.legs}` : "Search"}
+                            {item.mode === "image" ? "📷 Image" : `Auto ${item.legs}`}
                           </Badge>
                           {item.goal_filter && item.goal_filter !== "any" && (
                             <Badge variant="secondary" className="text-xs">{item.goal_filter}</Badge>
+                          )}
+                          {item.btts_filter && item.btts_filter !== "any" && (
+                            <Badge variant="secondary" className="text-xs">{item.btts_filter}</Badge>
                           )}
                           {item.corner_filter && item.corner_filter !== "any" && (
                             <Badge variant="secondary" className="text-xs">{item.corner_filter}</Badge>
@@ -377,7 +476,7 @@ const Oracle = () => {
                           </span>
                         </div>
                         <p className="text-sm text-foreground truncate">
-                          {item.query || (item.mode === "auto_pick" ? "Auto Pick" : "General search")}
+                          {item.query || (item.mode === "image" ? "Image prediction" : "Auto Pick")}
                         </p>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {format(new Date(item.created_at), "MMM d, yyyy HH:mm")}
@@ -394,6 +493,60 @@ const Oracle = () => {
                       </Button>
                     </div>
                   ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Image Prediction Section */}
+        {currentUser && (
+          <Card className="mb-6 border-border bg-card">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Camera className="h-4 w-4 text-primary" />
+                <h3 className="font-semibold text-foreground text-sm">Upload Games Image</h3>
+                <span className="text-xs text-muted-foreground">— Upload a screenshot of upcoming games for AI predictions</span>
+              </div>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+
+              {!imagePreview ? (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/40 hover:bg-primary/5 transition-colors cursor-pointer"
+                >
+                  <ImagePlus className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">Click to upload a picture of upcoming games</p>
+                  <p className="text-xs text-muted-foreground mt-1">The AI will identify teams, game types, and provide predictions</p>
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <div className="relative rounded-lg overflow-hidden border border-border">
+                    <img src={imagePreview} alt="Uploaded games" className="w-full max-h-64 object-contain bg-secondary" />
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-7 w-7"
+                      onClick={clearImage}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <Button
+                    onClick={handleImagePredict}
+                    disabled={loading}
+                    className="w-full gap-2"
+                  >
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
+                    {loading ? "Oracle is analyzing image..." : `Predict from Image (R${ORACLE_COST})`}
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -668,7 +821,7 @@ const Oracle = () => {
           <div className="text-center py-16 text-muted-foreground">
             <Brain className="h-12 w-12 mx-auto mb-3 opacity-30" />
             <p className="text-lg font-medium">Ask the Oracle</p>
-            <p className="text-sm mt-1">Let AI auto-pick the safest bets for you</p>
+            <p className="text-sm mt-1">Auto-pick matches or upload a picture of games for AI predictions</p>
           </div>
         )}
       </div>
