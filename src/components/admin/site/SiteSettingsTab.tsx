@@ -22,8 +22,8 @@ interface SiteSettings {
 
 const defaultSettings: SiteSettings = {
   site_name: "CODE",
-  favicon_url: "/lovable-uploads/cc72a31c-e286-4a9e-b900-b6f4839c3296.png",
-  logo_url: "/lovable-uploads/cc72a31c-e286-4a9e-b900-b6f4839c3296.png", 
+  favicon_url: "/lovable-uploads/betcode-logo.png",
+  logo_url: "/lovable-uploads/betcode-logo.png",
   maintenance_mode: false,
   google_ads_code: "",
 };

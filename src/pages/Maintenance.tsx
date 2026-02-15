@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react";
 
 const MaintenancePage: React.FC = () => {
   const [siteName, setSiteName] = useState<string>("CODE");
-  const [logoUrl, setLogoUrl] = useState<string>("/lovable-uploads/cc72a31c-e286-4a9e-b900-b6f4839c3296.png");
+  const [logoUrl, setLogoUrl] = useState<string>("/lovable-uploads/betcode-logo.png");
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
