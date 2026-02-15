@@ -82,11 +82,15 @@ const TransactionHistoryCard: React.FC<TransactionHistoryCardProps> = ({
                       <Badge 
                         variant="outline" 
                         className={
-                          transaction.type === 'topup' 
-                            ? 'bg-green-500/10 text-green-500 border-green-500/20' 
-                            : transaction.type === 'refund'
-                              ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
-                              : 'bg-red-500/10 text-red-500 border-red-500/20'
+                          (() => {
+                            const t = transaction.type as string;
+                            if (t === 'topup' || t === 'sale') return 'bg-green-500/10 text-green-500 border-green-500/20';
+                            if (t === 'refund') return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+                            if (t === 'oracle') return 'bg-purple-500/10 text-purple-500 border-purple-500/20';
+                            if (t === 'bonus') return 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20';
+                            if (t === 'voucher') return 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20';
+                            return 'bg-red-500/10 text-red-500 border-red-500/20';
+                          })()
                         }
                       >
                         {transaction.type}
