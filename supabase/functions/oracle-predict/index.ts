@@ -34,7 +34,7 @@ async function fetchFixtures(rapidApiKey: string, leagues?: string[], days = 3):
   const fixtures = data.response || [];
   console.log(`Fetched ${fixtures.length} fixtures from API-Football`);
 
-  // Map to simplified format
+  const allFixtures: any[] = [];
   for (const f of fixtures) {
     allFixtures.push({
       homeTeam: f.teams?.home?.name || "Unknown",
