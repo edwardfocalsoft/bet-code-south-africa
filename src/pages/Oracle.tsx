@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth/useAuth";
-import { Brain, Zap, Search, Loader2, TrendingUp, Shield, Target, ChevronDown, X } from "lucide-react";
+import { Brain, Zap, Search, Loader2, TrendingUp, Shield, Target, ChevronDown, X, Calendar, History, Trash2, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 type Prediction = {
   homeTeam: string;
@@ -29,6 +30,22 @@ type Prediction = {
   expectedGoals: number;
   expectedCorners: number;
   reasoning: string;
+};
+
+type SearchHistoryItem = {
+  id: string;
+  query: string | null;
+  mode: string;
+  legs: number | null;
+  leagues: string[] | null;
+  goal_filter: string | null;
+  corner_filter: string | null;
+  safe_only: boolean;
+  date_from: string | null;
+  date_to: string | null;
+  predictions: Prediction[] | null;
+  advice: string | null;
+  created_at: string;
 };
 
 const LEAGUES = [
@@ -59,6 +76,77 @@ const Oracle = () => {
   const [goalFilter, setGoalFilter] = useState("");
   const [cornerFilter, setCornerFilter] = useState("");
   const [leagueOpen, setLeagueOpen] = useState(false);
+  const [dateFrom, setDateFrom] = useState(() => format(new Date(), "yyyy-MM-dd"));
+  const [dateTo, setDateTo] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 2);
+    return format(d, "yyyy-MM-dd");
+  });
+  const [showHistory, setShowHistory] = useState(false);
+  const [history, setHistory] = useState<SearchHistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  const fetchHistory = async () => {
+    if (!currentUser) return;
+    setHistoryLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("oracle_searches" as any)
+        .select("*")
+        .eq("user_id", currentUser.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      setHistory((data as any[]) || []);
+    } catch (err) {
+      console.error("Failed to fetch history:", err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const saveSearch = async (preds: Prediction[], adviceText: string) => {
+    if (!currentUser) return;
+    try {
+      await supabase.from("oracle_searches" as any).insert({
+        user_id: currentUser.id,
+        query: query || null,
+        mode,
+        legs: mode === "auto_pick" ? parseInt(legs) : null,
+        leagues: selectedLeagues.includes("All") ? null : selectedLeagues,
+        goal_filter: goalFilter || null,
+        corner_filter: cornerFilter || null,
+        safe_only: safeOnly,
+        date_from: dateFrom,
+        date_to: dateTo,
+        predictions: preds as any,
+        advice: adviceText || null,
+      } as any);
+    } catch (err) {
+      console.error("Failed to save search:", err);
+    }
+  };
+
+  const deleteHistory = async (id: string) => {
+    try {
+      await supabase.from("oracle_searches" as any).delete().eq("id", id);
+      setHistory(prev => prev.filter(h => h.id !== id));
+      toast.success("Search deleted");
+    } catch (err) {
+      console.error("Failed to delete:", err);
+    }
+  };
+
+  const loadFromHistory = (item: SearchHistoryItem) => {
+    setPredictions(item.predictions || []);
+    setAdvice(item.advice || "");
+    setShowHistory(false);
+    toast.success("Loaded from history");
+  };
+
+  useEffect(() => {
+    if (showHistory && currentUser) fetchHistory();
+  }, [showHistory, currentUser]);
 
   const handlePredict = async () => {
     if (mode === "search" && !query.trim()) {
@@ -79,6 +167,8 @@ const Oracle = () => {
           leagues: selectedLeagues.includes("All") ? [] : selectedLeagues,
           goalFilter,
           cornerFilter,
+          dateFrom,
+          dateTo,
         },
       });
 
@@ -88,8 +178,15 @@ const Oracle = () => {
         return;
       }
 
-      setPredictions(data?.predictions || []);
-      setAdvice(data?.advice || "");
+      const preds = data?.predictions || [];
+      const adviceText = data?.advice || "";
+      setPredictions(preds);
+      setAdvice(adviceText);
+
+      // Auto-save to history
+      if (preds.length > 0) {
+        await saveSearch(preds, adviceText);
+      }
     } catch (err: any) {
       console.error("Oracle error:", err);
       toast.error(err.message || "Failed to get predictions");
@@ -140,15 +237,88 @@ const Oracle = () => {
     <Layout>
       <div className="container mx-auto px-4 py-6 max-w-5xl">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20">
-            <Brain className="h-6 w-6 text-primary" />
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20">
+              <Brain className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Oracle</h1>
+              <p className="text-sm text-muted-foreground">AI-powered football predictions across all leagues</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Oracle</h1>
-            <p className="text-sm text-muted-foreground">AI-powered football predictions across all leagues</p>
-          </div>
+          {currentUser && (
+            <Button
+              variant={showHistory ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowHistory(!showHistory)}
+              className="gap-2"
+            >
+              <History className="h-4 w-4" />
+              History
+            </Button>
+          )}
         </div>
+
+        {/* Search History Panel */}
+        {showHistory && (
+          <Card className="mb-6 border-border bg-card">
+            <CardContent className="p-4">
+              <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                <Clock className="h-4 w-4" /> Search History
+              </h3>
+              {historyLoading ? (
+                <div className="flex justify-center py-6">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : history.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No search history yet</p>
+              ) : (
+                <div className="space-y-2 max-h-80 overflow-y-auto">
+                  {history.map(item => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer group"
+                      onClick={() => loadFromHistory(item)}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge variant="outline" className="text-xs">
+                            {item.mode === "auto_pick" ? `Auto ${item.legs}` : "Search"}
+                          </Badge>
+                          {item.goal_filter && item.goal_filter !== "any" && (
+                            <Badge variant="secondary" className="text-xs">{item.goal_filter}</Badge>
+                          )}
+                          {item.corner_filter && item.corner_filter !== "any" && (
+                            <Badge variant="secondary" className="text-xs">{item.corner_filter}</Badge>
+                          )}
+                          <span className="text-xs text-muted-foreground">
+                            {(item.predictions as any)?.length || 0} predictions
+                          </span>
+                        </div>
+                        <p className="text-sm text-foreground truncate">
+                          {item.query || (item.mode === "auto_pick" ? "Auto Pick" : "General search")}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {format(new Date(item.created_at), "MMM d, yyyy HH:mm")}
+                          {item.date_from && ` • ${item.date_from} → ${item.date_to}`}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                        onClick={e => { e.stopPropagation(); deleteHistory(item.id); }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Controls */}
         <Card className="mb-6 border-border bg-card">
@@ -203,6 +373,29 @@ const Oracle = () => {
                 />
               </div>
             )}
+
+            {/* Date Range */}
+            <div className="flex flex-wrap gap-3 items-center">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-sm text-muted-foreground">From:</Label>
+                <Input
+                  type="date"
+                  value={dateFrom}
+                  onChange={e => setDateFrom(e.target.value)}
+                  className="w-[150px] h-9 bg-secondary border-border text-sm"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Label className="text-sm text-muted-foreground">To:</Label>
+                <Input
+                  type="date"
+                  value={dateTo}
+                  onChange={e => setDateTo(e.target.value)}
+                  className="w-[150px] h-9 bg-secondary border-border text-sm"
+                />
+              </div>
+            </div>
 
             {/* Filters Row */}
             <div className="flex flex-wrap gap-3 items-center">
@@ -394,7 +587,7 @@ const Oracle = () => {
         )}
 
         {/* Empty state */}
-        {!loading && predictions.length === 0 && (
+        {!loading && predictions.length === 0 && !showHistory && (
           <div className="text-center py-16 text-muted-foreground">
             <Brain className="h-12 w-12 mx-auto mb-3 opacity-30" />
             <p className="text-lg font-medium">Ask the Oracle</p>
