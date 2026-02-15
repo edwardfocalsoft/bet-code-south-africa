@@ -5,11 +5,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Fetch upcoming fixtures from API-Football
+// Fetch upcoming fixtures from SofaScore API (sportapi7)
 async function fetchFixtures(rapidApiKey: string, dateFrom?: string, dateTo?: string): Promise<any[]> {
   const today = new Date();
   const allFixtures: any[] = [];
-  const baseUrl = "https://v3.football.api-sports.io/fixtures";
+  const baseUrl = "https://sportapi7.p.rapidapi.com/api/v1/sport/football/scheduled-events";
 
   // Determine date range
   const startDate = dateFrom ? new Date(dateFrom) : today;
@@ -25,43 +25,65 @@ async function fetchFixtures(rapidApiKey: string, dateFrom?: string, dateTo?: st
     date.setDate(date.getDate() + d);
     const dateStr = date.toISOString().split("T")[0];
     
-    const url = `${baseUrl}?date=${dateStr}&timezone=Africa/Johannesburg`;
+    const url = `${baseUrl}/${dateStr}`;
     console.log(`Fetching fixtures for ${dateStr}:`, url);
 
-    const resp = await fetch(url, {
-      headers: { "x-apisports-key": rapidApiKey },
-    });
+    try {
+      const resp = await fetch(url, {
+        headers: {
+          "x-rapidapi-host": "sportapi7.p.rapidapi.com",
+          "x-rapidapi-key": rapidApiKey,
+        },
+      });
 
-    if (!resp.ok) {
-      const t = await resp.text();
-      console.error(`API-Football error for ${dateStr}:`, resp.status, t);
-      continue;
-    }
-
-    const data = await resp.json();
-    const fixtures = data.response || [];
-    console.log(`${dateStr}: ${fixtures.length} fixtures, errors: ${JSON.stringify(data.errors)}`);
-
-    for (const f of fixtures) {
-      const status = f.fixture?.status?.short;
-      if (status === "NS" || status === "TBD") {
-        allFixtures.push(f);
+      if (!resp.ok) {
+        const t = await resp.text();
+        console.error(`SofaScore API error for ${dateStr}:`, resp.status, t);
+        continue;
       }
+
+      const data = await resp.json();
+      const events = data.events || [];
+      console.log(`${dateStr}: ${events.length} events found`);
+
+      for (const e of events) {
+        // Only include not-started matches
+        const statusType = e.status?.type;
+        if (statusType === "notstarted") {
+          allFixtures.push(e);
+        }
+      }
+    } catch (err) {
+      console.error(`Error fetching ${dateStr}:`, err);
+      continue;
     }
   }
 
   console.log(`Total upcoming fixtures: ${allFixtures.length}`);
 
+  // Map SofaScore format to our standard format
   const mapped: any[] = [];
-  for (const f of allFixtures) {
+  for (const e of allFixtures) {
+    const startTimestamp = e.startTimestamp;
+    const matchDate = startTimestamp
+      ? new Date(startTimestamp * 1000).toISOString().split("T")[0]
+      : "";
+    const kickoffTime = startTimestamp
+      ? new Date(startTimestamp * 1000).toLocaleTimeString("en-ZA", {
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "Africa/Johannesburg",
+        })
+      : "TBD";
+
     mapped.push({
-      homeTeam: f.teams?.home?.name || "Unknown",
-      awayTeam: f.teams?.away?.name || "Unknown",
-      league: f.league?.name || "Unknown",
-      country: f.league?.country || "Unknown",
-      matchDate: f.fixture?.date?.split("T")[0] || "",
-      kickoffTime: f.fixture?.date ? new Date(f.fixture.date).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Johannesburg" }) : "TBD",
-      fixtureId: f.fixture?.id,
+      homeTeam: e.homeTeam?.name || e.homeTeam?.shortName || "Unknown",
+      awayTeam: e.awayTeam?.name || e.awayTeam?.shortName || "Unknown",
+      league: e.tournament?.name || "Unknown",
+      country: e.tournament?.category?.name || "Unknown",
+      matchDate,
+      kickoffTime,
+      fixtureId: e.id,
     });
   }
 
@@ -91,7 +113,7 @@ serve(async (req) => {
     const RAPIDAPI_KEY = Deno.env.get("RAPIDAPI_KEY");
     if (!RAPIDAPI_KEY) throw new Error("RAPIDAPI_KEY is not configured");
 
-    // Step 1: Fetch REAL upcoming fixtures
+    // Step 1: Fetch REAL upcoming fixtures from SofaScore
     let fixtures = await fetchFixtures(RAPIDAPI_KEY, dateFrom, dateTo);
     
     if (leagues && leagues.length > 0) {
@@ -113,7 +135,7 @@ serve(async (req) => {
     const today = new Date().toISOString().split("T")[0];
     const fixturesJson = JSON.stringify(fixtureSubset);
 
-    // Build filter instructions - SOFTER approach so AI doesn't exclude everything
+    // Build filter instructions
     let filterInstructions = "";
     if (goalFilter && goalFilter !== "any") {
       filterInstructions += `\nGOAL PREFERENCE: Prioritize and highlight matches likely to have ${goalFilter}. Include the expectedGoals value for all matches. You MUST still return matches even if not all perfectly match this filter — rank them by how likely they are to meet this criteria, with the best matches first.`;
