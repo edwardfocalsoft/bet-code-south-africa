@@ -13,19 +13,14 @@ async function fetchFixtures(rapidApiKey: string, leagues?: string[], days = 3):
   toDate.setDate(toDate.getDate() + days);
   const to = toDate.toISOString().split("T")[0];
 
-  const baseUrl = "https://api-football-v1.p.rapidapi.com/v3/fixtures";
-  const allFixtures: any[] = [];
-
-  // If specific leagues requested, we need league IDs - fetch all and filter by name later
-  // For simplicity, fetch by date range which covers all leagues
+  const baseUrl = "https://v3.football.api-sports.io/fixtures";
   const url = `${baseUrl}?from=${from}&to=${to}&status=NS&timezone=Africa/Johannesburg`;
   
   console.log("Fetching fixtures:", url);
 
   const resp = await fetch(url, {
     headers: {
-      "X-RapidAPI-Key": rapidApiKey,
-      "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com",
+      "x-apisports-key": rapidApiKey,
     },
   });
 
