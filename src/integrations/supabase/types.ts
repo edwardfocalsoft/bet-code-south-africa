@@ -250,6 +250,57 @@ export type Database = {
         }
         Relationships: []
       }
+      oracle_searches: {
+        Row: {
+          advice: string | null
+          corner_filter: string | null
+          created_at: string
+          date_from: string | null
+          date_to: string | null
+          goal_filter: string | null
+          id: string
+          leagues: string[] | null
+          legs: number | null
+          mode: string
+          predictions: Json | null
+          query: string | null
+          safe_only: boolean | null
+          user_id: string
+        }
+        Insert: {
+          advice?: string | null
+          corner_filter?: string | null
+          created_at?: string
+          date_from?: string | null
+          date_to?: string | null
+          goal_filter?: string | null
+          id?: string
+          leagues?: string[] | null
+          legs?: number | null
+          mode?: string
+          predictions?: Json | null
+          query?: string | null
+          safe_only?: boolean | null
+          user_id: string
+        }
+        Update: {
+          advice?: string | null
+          corner_filter?: string | null
+          created_at?: string
+          date_from?: string | null
+          date_to?: string | null
+          goal_filter?: string | null
+          id?: string
+          leagues?: string[] | null
+          legs?: number | null
+          mode?: string
+          predictions?: Json | null
+          query?: string | null
+          safe_only?: boolean | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       payment_settings: {
         Row: {
           id: string
