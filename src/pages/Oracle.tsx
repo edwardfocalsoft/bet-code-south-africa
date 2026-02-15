@@ -11,9 +11,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/auth/useAuth";
-import { Brain, Zap, Search, Loader2, TrendingUp, Shield, Target, ChevronDown, X, Calendar, History, Trash2, Clock } from "lucide-react";
+import { Brain, Zap, Search, Loader2, TrendingUp, Shield, Target, ChevronDown, X, Calendar, History, Trash2, Clock, Coins, LogIn } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { Link } from "react-router-dom";
 
 type Prediction = {
   homeTeam: string;
@@ -64,8 +65,9 @@ const LEAGUES = [
 ];
 
 const Oracle = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, userRole } = useAuth();
   const [query, setQuery] = useState("");
+  const [userBalance, setUserBalance] = useState<number>(0);
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [advice, setAdvice] = useState("");
   const [loading, setLoading] = useState(false);
@@ -76,6 +78,7 @@ const Oracle = () => {
   const [goalFilter, setGoalFilter] = useState("");
   const [cornerFilter, setCornerFilter] = useState("");
   const [bttsFilter, setBttsFilter] = useState("");
+  const [doubleChanceFilter, setDoubleChanceFilter] = useState("");
   const [leagueOpen, setLeagueOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(() => {
@@ -118,6 +121,7 @@ const Oracle = () => {
         goal_filter: goalFilter || null,
         corner_filter: cornerFilter || null,
         btts_filter: bttsFilter || null,
+        double_chance_filter: doubleChanceFilter || null,
         safe_only: safeOnly,
         date_from: dateFrom,
         date_to: dateTo,
@@ -150,16 +154,64 @@ const Oracle = () => {
     if (showHistory && currentUser) fetchHistory();
   }, [showHistory, currentUser]);
 
+  // Fetch user balance
+  const fetchBalance = async () => {
+    if (!currentUser) return;
+    const { data } = await supabase.from("profiles").select("credit_balance").eq("id", currentUser.id).single();
+    if (data) setUserBalance(data.credit_balance || 0);
+  };
+
+  useEffect(() => {
+    if (currentUser) fetchBalance();
+  }, [currentUser]);
+
+  const ORACLE_COST = 5;
+
   const handlePredict = async () => {
+    if (!currentUser) {
+      toast.error("Please log in to use the Oracle");
+      return;
+    }
     if (mode === "search" && !query.trim()) {
       toast.error("Please enter a query");
       return;
     }
+    if (userBalance < ORACLE_COST) {
+      toast.error(`Insufficient balance. You need at least R${ORACLE_COST} to use the Oracle. Please top up your wallet.`);
+      return;
+    }
+
     setLoading(true);
     setPredictions([]);
     setAdvice("");
 
     try {
+      // Deduct R5 from user balance
+      const { error: deductError } = await supabase
+        .from("profiles")
+        .update({ credit_balance: userBalance - ORACLE_COST })
+        .eq("id", currentUser.id);
+      if (deductError) throw deductError;
+
+      // Create wallet transaction for the charge
+      await supabase.from("wallet_transactions").insert({
+        user_id: currentUser.id,
+        amount: -ORACLE_COST,
+        type: "oracle",
+        description: "Oracle search fee",
+      } as any);
+
+      // Award 1 BC point if user is a punter (buyer)
+      if (userRole === "buyer") {
+        await supabase
+          .from("profiles")
+          .update({ loyalty_points: (currentUser.loyaltyPoints || 0) + 1 })
+          .eq("id", currentUser.id);
+      }
+
+      // Update local balance
+      setUserBalance(prev => prev - ORACLE_COST);
+
       const { data, error } = await supabase.functions.invoke("oracle-predict", {
         body: {
           query,
@@ -170,6 +222,7 @@ const Oracle = () => {
           goalFilter,
           cornerFilter,
           bttsFilter,
+          doubleChanceFilter,
           dateFrom,
           dateTo,
         },
@@ -193,6 +246,8 @@ const Oracle = () => {
     } catch (err: any) {
       console.error("Oracle error:", err);
       toast.error(err.message || "Failed to get predictions");
+      // Refetch balance in case of error
+      fetchBalance();
     } finally {
       setLoading(false);
     }
@@ -247,21 +302,47 @@ const Oracle = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-foreground">Oracle</h1>
-              <p className="text-sm text-muted-foreground">AI-powered football predictions across all leagues</p>
+              <p className="text-sm text-muted-foreground">AI-powered football predictions • R{ORACLE_COST} per search</p>
             </div>
           </div>
-          {currentUser && (
-            <Button
-              variant={showHistory ? "default" : "outline"}
-              size="sm"
-              onClick={() => setShowHistory(!showHistory)}
-              className="gap-2"
-            >
-              <History className="h-4 w-4" />
-              History
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {currentUser && (
+              <Badge variant="outline" className="gap-1 text-sm py-1.5 px-3">
+                <Coins className="h-3.5 w-3.5" />
+                R{userBalance.toFixed(2)}
+              </Badge>
+            )}
+            {currentUser && (
+              <Button
+                variant={showHistory ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowHistory(!showHistory)}
+                className="gap-2"
+              >
+                <History className="h-4 w-4" />
+                History
+              </Button>
+            )}
+          </div>
         </div>
+
+        {/* Login Gate */}
+        {!currentUser && (
+          <Card className="mb-6 border-primary/20 bg-primary/5">
+            <CardContent className="p-6 text-center">
+              <Brain className="h-10 w-10 mx-auto mb-3 text-primary" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">Log in to use the Oracle</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Get AI-powered predictions for just R{ORACLE_COST} per search. Punters earn 1 BC point per search!
+              </p>
+              <Link to="/auth/login">
+                <Button className="gap-2">
+                  <LogIn className="h-4 w-4" /> Log In
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Search History Panel */}
         {showHistory && (
@@ -481,6 +562,19 @@ const Oracle = () => {
                   <SelectItem value="any">Any BTTS</SelectItem>
                   <SelectItem value="btts yes">BTTS Yes</SelectItem>
                   <SelectItem value="btts no">BTTS No</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {/* Double Chance Filter */}
+              <Select value={doubleChanceFilter} onValueChange={setDoubleChanceFilter}>
+                <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm">
+                  <SelectValue placeholder="Double Chance" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="any">Any result</SelectItem>
+                  <SelectItem value="1X">1X (Home or Draw)</SelectItem>
+                  <SelectItem value="X2">X2 (Draw or Away)</SelectItem>
+                  <SelectItem value="12">12 (Home or Away)</SelectItem>
                 </SelectContent>
               </Select>
 
