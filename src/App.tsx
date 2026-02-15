@@ -68,6 +68,7 @@ import SellerPublicProfile from "@/pages/sellers/SellerPublicProfile";
 
 // Vouchers pages
 import DailyVouchers from "@/pages/vouchers/DailyVouchers";
+import Oracle from "@/pages/Oracle";
 
 // Payment pages
 import PaymentSuccess from "@/pages/payment/Success";
@@ -148,6 +149,9 @@ function App() {
                     <Route path="/sellers" element={<AllSellers />} />
                     <Route path="/sellers/leaderboard" element={<SellersLeaderboard />} />
                     <Route path="/sellers/:username" element={<SellerPublicProfile />} />
+
+                    {/* Oracle */}
+                    <Route path="/oracle" element={<Oracle />} />
 
                     {/* Vouchers routes */}
                     <Route path="/vouchers" element={<DailyVouchers />} />

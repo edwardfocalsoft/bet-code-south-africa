@@ -6,3 +6,6 @@ verify_jwt = false
 
 [functions.scrape-convertbetcodes]
 verify_jwt = false
+
+[functions.oracle-predict]
+verify_jwt = false
