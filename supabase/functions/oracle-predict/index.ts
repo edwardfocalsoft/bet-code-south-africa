@@ -13,10 +13,14 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    const today = new Date().toISOString().split("T")[0];
     const systemPrompt = `You are the BetCode Oracle — an elite AI football analyst. You analyze football matches across ALL leagues worldwide (not just top leagues) and provide data-driven predictions.
+
+TODAY'S DATE IS: ${today}. You MUST only predict UPCOMING matches that have NOT been played yet (on or after ${today}). NEVER return past matches. All match dates must be ${today} or later.
 
 CRITICAL RULES:
 - Never show sources or citations
+- ONLY include matches scheduled on ${today} or in the future — NEVER past matches
 - Always include match date and kickoff time
 - Always include predicted score
 - Always include win/draw/loss percentages
