@@ -1,5 +1,5 @@
 
-import { LayoutDashboard, Wallet, Ticket, ShoppingBag, CreditCard, UserCircle, Receipt, Gift, Trophy, Heart } from 'lucide-react';
+import { LayoutDashboard, Wallet, Ticket, ShoppingBag, CreditCard, UserCircle, Receipt, Gift, Trophy, Heart, Brain } from 'lucide-react';
 import { UserRole } from '@/types';
 
 export const navigationLinks = [
@@ -29,6 +29,7 @@ export const adminLinks: NavigationLink[] = [
 
 export const sellerLinks: NavigationLink[] = [
   { to: "/seller/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/oracle", label: "Oracle", icon: Brain },
   { to: "/feed", label: "Feed", icon: Heart },
   { to: "/seller/profile", label: "Profile", icon: UserCircle },
   { to: "/seller/tickets", label: "My Tickets", icon: Ticket },

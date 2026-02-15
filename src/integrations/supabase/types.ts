@@ -931,27 +931,36 @@ export type Database = {
           username: string
         }[]
       }
-      get_public_seller_stats: {
-        Args: { seller_id: string }
-        Returns: Json
-      }
-      get_seller_leaderboard: {
-        Args:
-          | { end_date: string; result_limit?: number; start_date: string }
-          | { end_date: string; start_date: string }
-        Returns: {
-          avatar_url: string
-          average_rating: number
-          id: string
-          rank: number
-          sales_count: number
-          username: string
-        }[]
-      }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      get_public_seller_stats: { Args: { seller_id: string }; Returns: Json }
+      get_seller_leaderboard:
+        | {
+            Args: { end_date: string; start_date: string }
+            Returns: {
+              avatar_url: string
+              average_rating: number
+              id: string
+              rank: number
+              sales_count: number
+              username: string
+            }[]
+          }
+        | {
+            Args: {
+              end_date: string
+              result_limit?: number
+              start_date: string
+            }
+            Returns: {
+              avatar_url: string
+              average_rating: number
+              id: string
+              rank: number
+              sales_count: number
+              total_sales: number
+              username: string
+            }[]
+          }
+      is_admin: { Args: never; Returns: boolean }
       process_tip: {
         Args: { p_amount: number; p_receiver_id: string; p_sender_id: string }
         Returns: boolean
