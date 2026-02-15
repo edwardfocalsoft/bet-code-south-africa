@@ -34,12 +34,14 @@ export const sellerLinks: NavigationLink[] = [
   { to: "/seller/profile", label: "Profile", icon: UserCircle },
   { to: "/seller/tickets", label: "My Tickets", icon: Ticket },
   { to: "/seller/transactions", label: "Transactions", icon: Receipt },
-  { to: "/seller/withdrawals", label: "Withdrawals", icon: Wallet },
+  { to: "/user/wallet", label: "Wallet", icon: Wallet },
+  { to: "/seller/withdrawals", label: "Withdrawals", icon: CreditCard },
   { to: "/live-scores", label: "Live Scores", icon: Trophy },
 ];
 
 export const buyerLinks: NavigationLink[] = [
   { to: "/buyer/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/oracle", label: "Oracle", icon: Brain },
   { to: "/feed", label: "Feed", icon: Heart },
   { to: "/user/wallet", label: "Wallet", icon: Wallet },
   { to: "/tickets", label: "Browse Tickets", icon: Ticket },
