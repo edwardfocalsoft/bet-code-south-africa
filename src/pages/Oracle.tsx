@@ -72,13 +72,13 @@ const Oracle = () => {
   const [advice, setAdvice] = useState("");
   const [loading, setLoading] = useState(false);
   const [safeOnly, setSafeOnly] = useState(false);
-  const [mode, setMode] = useState<"search" | "auto_pick">("search");
+  const [mode] = useState<"auto_pick">("auto_pick");
   const [legs, setLegs] = useState("5");
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>(["All"]);
-  const [goalFilter, setGoalFilter] = useState("");
-  const [cornerFilter, setCornerFilter] = useState("");
-  const [bttsFilter, setBttsFilter] = useState("");
-  const [doubleChanceFilter, setDoubleChanceFilter] = useState("");
+  const [goalFilter, setGoalFilter] = useState("any");
+  const [cornerFilter, setCornerFilter] = useState("any");
+  const [bttsFilter, setBttsFilter] = useState("any");
+  const [doubleChanceFilter, setDoubleChanceFilter] = useState("any");
   const [leagueOpen, setLeagueOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(() => {
@@ -170,10 +170,6 @@ const Oracle = () => {
   const handlePredict = async () => {
     if (!currentUser) {
       toast.error("Please log in to use the Oracle");
-      return;
-    }
-    if (mode === "search" && !query.trim()) {
-      toast.error("Please enter a query");
       return;
     }
     if (userBalance < ORACLE_COST) {
@@ -407,56 +403,29 @@ const Oracle = () => {
         {/* Controls */}
         <Card className="mb-6 border-border bg-card">
           <CardContent className="p-4 space-y-4">
-            {/* Mode Toggle */}
-            <div className="flex gap-2">
-              <Button
-                variant={mode === "search" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setMode("search")}
-                className="gap-2"
-              >
-                <Search className="h-4 w-4" /> Search Predictions
-              </Button>
-              <Button
-                variant={mode === "auto_pick" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setMode("auto_pick")}
-                className="gap-2"
-              >
-                <Zap className="h-4 w-4" /> Auto Pick
-              </Button>
-            </div>
-
-            {/* Query / Legs */}
-            {mode === "search" ? (
+            {/* Auto Pick Controls */}
+            <div className="flex items-center gap-3">
+              <Badge variant="default" className="gap-1 py-1.5 px-3">
+                <Zap className="h-3.5 w-3.5" /> Auto Pick
+              </Badge>
+              <Label className="text-sm text-muted-foreground whitespace-nowrap">Number of legs:</Label>
+              <Select value={legs} onValueChange={setLegs}>
+                <SelectTrigger className="w-24 bg-secondary border-border">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20].map(n => (
+                    <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Input
-                placeholder="e.g. 'Man City vs Arsenal' or 'Which teams will win this weekend?'"
+                placeholder="Optional: additional instructions for AI..."
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handlePredict()}
-                className="bg-secondary border-border"
+                className="bg-secondary border-border flex-1"
               />
-            ) : (
-              <div className="flex items-center gap-3">
-                <Label className="text-sm text-muted-foreground whitespace-nowrap">Number of legs:</Label>
-                <Select value={legs} onValueChange={setLegs}>
-                  <SelectTrigger className="w-24 bg-secondary border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20].map(n => (
-                      <SelectItem key={n} value={String(n)}>{n}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Input
-                  placeholder="Optional: additional instructions for AI..."
-                  value={query}
-                  onChange={e => setQuery(e.target.value)}
-                  className="bg-secondary border-border flex-1"
-                />
-              </div>
-            )}
+            </div>
 
             {/* Date Range */}
             <div className="flex flex-wrap gap-3 items-center">
@@ -602,7 +571,7 @@ const Oracle = () => {
             {/* Submit */}
             <Button onClick={handlePredict} disabled={loading} className="w-full gap-2">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
-              {loading ? "Oracle is thinking..." : mode === "auto_pick" ? `Auto Pick ${legs} Matches` : "Get Predictions"}
+              {loading ? "Oracle is thinking..." : `Auto Pick ${legs} Matches`}
             </Button>
           </CardContent>
         </Card>
@@ -699,7 +668,7 @@ const Oracle = () => {
           <div className="text-center py-16 text-muted-foreground">
             <Brain className="h-12 w-12 mx-auto mb-3 opacity-30" />
             <p className="text-lg font-medium">Ask the Oracle</p>
-            <p className="text-sm mt-1">Search for matches, or let AI auto-pick the safest bets for you</p>
+            <p className="text-sm mt-1">Let AI auto-pick the safest bets for you</p>
           </div>
         )}
       </div>
