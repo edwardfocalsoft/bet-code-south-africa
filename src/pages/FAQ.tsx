@@ -52,6 +52,26 @@ const FAQ: React.FC = () => {
     {
       question: "What betting sites are supported?",
       answer: "BetCode supports tickets for multiple betting sites including Betway, Hollywoodbets, Supabets, Playa, 10bet, and Easybet."
+    },
+    {
+      question: "What is the Oracle?",
+      answer: "The Oracle is BetCode's AI-powered prediction tool that uses real-time SofaScore fixture data to generate smart betting predictions. It helps punters make data-driven decisions with filters for goals, corners, BTTS, double chance, and more."
+    },
+    {
+      question: "How much does the Oracle cost?",
+      answer: "Auto Pick mode costs R2.50 per search and Image Upload mode costs R5.00 per search. You need sufficient credit in your wallet to use the Oracle. Punters also earn 1 BC loyalty point per search."
+    },
+    {
+      question: "What is Auto Pick mode?",
+      answer: "Auto Pick lets the Oracle's AI automatically select the safest or best-value bets from live fixtures. You can set the number of legs, choose leagues, and apply filters like BTTS, goals, corners, and double chance."
+    },
+    {
+      question: "What is Image Upload mode?",
+      answer: "Image Upload allows you to upload a screenshot of upcoming fixtures or a bet slip. The Oracle will analyse the image and provide AI-powered predictions and advice on the matches shown."
+    },
+    {
+      question: "Does the Oracle guarantee wins?",
+      answer: "No. The Oracle provides data-driven predictions based on live fixture data, but sports betting always carries risk. Predictions are not guarantees. Always gamble responsibly."
     }
   ];
 
