@@ -5,49 +5,111 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Popular league IDs for API-Football (free plan requires league param with date ranges)
+const POPULAR_LEAGUE_IDS = [
+  39,  // Premier League
+  140, // La Liga
+  135, // Serie A
+  78,  // Bundesliga
+  61,  // Ligue 1
+  2,   // Champions League
+  3,   // Europa League
+  848, // Conference League
+  88,  // Eredivisie
+  94,  // Primeira Liga
+  203, // PSL (South Africa)
+  179, // Scottish Premiership
+  40,  // Championship
+  253, // MLS
+  188, // A-League
+  98,  // J-League
+  292, // K-League
+  169, // Chinese Super League
+  307, // Saudi Pro League
+  13,  // Copa Libertadores
+  11,  // Copa Sudamericana
+  71,  // Serie B (Brazil)
+  41,  // League One (England)
+  42,  // League Two (England)
+  136, // Serie B (Italy)
+  79,  // 2. Bundesliga
+  62,  // Ligue 2
+  144, // Belgian Pro League
+  207, // Swiss Super League
+  203, // NFD (South Africa)
+  1,   // World Cup
+  4,   // Euro Championship
+  6,   // Africa Cup of Nations
+  10,  // International Friendlies
+  45,  // FA Cup
+  48,  // League Cup
+  143, // Copa del Rey
+  137, // Coppa Italia
+  81,  // DFB Pokal
+  66,  // Coupe de France
+  528, // Turkish Super Lig
+  197, // Greek Super League
+  235, // Russian Premier League
+  333, // Ukrainian Premier League
+  128, // Argentine Liga Profesional
+  262, // Mexican Liga MX
+];
+
 // Fetch upcoming fixtures from API-Football
 async function fetchFixtures(rapidApiKey: string, leagues?: string[], days = 3): Promise<any[]> {
   const today = new Date();
-  const from = today.toISOString().split("T")[0];
-  const toDate = new Date(today);
-  toDate.setDate(toDate.getDate() + days);
-  const to = toDate.toISOString().split("T")[0];
-
+  const allFixtures: any[] = [];
   const baseUrl = "https://v3.football.api-sports.io/fixtures";
-  const url = `${baseUrl}?from=${from}&to=${to}&status=NS&timezone=Africa/Johannesburg`;
-  
-  console.log("Fetching fixtures:", url);
 
-  const resp = await fetch(url, {
-    headers: {
-      "x-apisports-key": rapidApiKey,
-    },
-  });
+  // Query by date (single day) for multiple days - free plan supports single date queries
+  for (let d = 0; d < Math.min(days, 3); d++) {
+    const date = new Date(today);
+    date.setDate(date.getDate() + d);
+    const dateStr = date.toISOString().split("T")[0];
+    
+    const url = `${baseUrl}?date=${dateStr}&timezone=Africa/Johannesburg`;
+    console.log(`Fetching fixtures for ${dateStr}:`, url);
 
-  if (!resp.ok) {
-    const t = await resp.text();
-    console.error("API-Football error:", resp.status, t);
-    throw new Error(`API-Football error: ${resp.status}`);
+    const resp = await fetch(url, {
+      headers: { "x-apisports-key": rapidApiKey },
+    });
+
+    if (!resp.ok) {
+      const t = await resp.text();
+      console.error(`API-Football error for ${dateStr}:`, resp.status, t);
+      continue;
+    }
+
+    const data = await resp.json();
+    const fixtures = data.response || [];
+    console.log(`${dateStr}: ${fixtures.length} fixtures, errors: ${JSON.stringify(data.errors)}`);
+
+    for (const f of fixtures) {
+      const status = f.fixture?.status?.short;
+      // Only include not-started matches
+      if (status === "NS" || status === "TBD") {
+        allFixtures.push(f);
+      }
+    }
   }
 
-  const data = await resp.json();
-  const fixtures = data.response || [];
-  console.log(`Fetched ${fixtures.length} fixtures from API-Football`);
+  console.log(`Total upcoming fixtures: ${allFixtures.length}`);
 
-  const allFixtures: any[] = [];
-  for (const f of fixtures) {
-    allFixtures.push({
+  // Map to simplified format
+  const mapped: any[] = [];
+  for (const f of allFixtures) {
+    mapped.push({
       homeTeam: f.teams?.home?.name || "Unknown",
       awayTeam: f.teams?.away?.name || "Unknown",
       league: f.league?.name || "Unknown",
       country: f.league?.country || "Unknown",
-      matchDate: f.fixture?.date?.split("T")[0] || from,
+      matchDate: f.fixture?.date?.split("T")[0] || "",
       kickoffTime: f.fixture?.date ? new Date(f.fixture.date).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Johannesburg" }) : "TBD",
       fixtureId: f.fixture?.id,
     });
   }
 
-  return allFixtures;
+  return mapped;
 }
 
 // Filter fixtures by league names if specified
