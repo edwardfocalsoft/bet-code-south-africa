@@ -72,6 +72,7 @@ const IMAGE_COST = 5;
 
 const Oracle = () => {
   const { currentUser, userRole } = useAuth();
+  const [pageLoading, setPageLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [userBalance, setUserBalance] = useState<number>(0);
   const [predictions, setPredictions] = useState<Prediction[]>([]);
@@ -170,6 +171,13 @@ const Oracle = () => {
     setShowHistory(false);
     toast.success("Loaded from history");
   };
+
+  // Scroll to top on mount + preloader
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    const timer = setTimeout(() => setPageLoading(false), 800);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (showHistory && currentUser) fetchHistory();
@@ -388,6 +396,19 @@ const Oracle = () => {
       return next.length === 0 ? ["All"] : next;
     });
   };
+
+  if (pageLoading) {
+    return (
+      <Layout>
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+          <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20 animate-pulse">
+            <Brain className="h-10 w-10 text-primary" />
+          </div>
+          <p className="text-muted-foreground text-sm animate-pulse">Loading Oracle...</p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

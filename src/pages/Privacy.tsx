@@ -48,7 +48,19 @@ const Privacy: React.FC = () => {
               </section>
               
               <section>
-                <Heading as="h2" size="2xl" className="mb-4">3. How We Use Your Information</Heading>
+                <Heading as="h2" size="2xl" className="mb-4">3. Oracle AI Feature Data</Heading>
+                <p>When you use the Oracle AI prediction feature, we additionally collect and process:</p>
+                <ul className="list-disc pl-6 space-y-2">
+                  <li><strong>Search Parameters</strong>: Your selected filters, leagues, leg counts, and date ranges for each Oracle search.</li>
+                  <li><strong>Uploaded Images</strong>: If you use Image Upload mode, images are processed by AI to extract fixture data. Images are not stored permanently.</li>
+                  <li><strong>Prediction History</strong>: Your Oracle search history and generated predictions are stored to allow you to review past searches.</li>
+                  <li><strong>Usage Data</strong>: We track Oracle usage for billing, loyalty point allocation, and service improvement.</li>
+                </ul>
+                <p>Oracle data is processed using third-party AI services. By using the Oracle, you consent to your search data being processed by these services.</p>
+              </section>
+
+              <section>
+                <Heading as="h2" size="2xl" className="mb-4">4. How We Use Your Information</Heading>
                 <p>We use the information we collect to:</p>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Provide, maintain, and improve our Services;</li>
