@@ -33,7 +33,7 @@ export const sellerLinks: NavigationLink[] = [
   { to: "/feed", label: "Feed", icon: Heart },
   { to: "/seller/profile", label: "Profile", icon: UserCircle },
   { to: "/seller/tickets", label: "My Tickets", icon: Ticket },
-  { to: "/seller/transactions", label: "Transactions", icon: Receipt },
+  
   { to: "/user/wallet", label: "Wallet", icon: Wallet },
   { to: "/seller/withdrawals", label: "Withdrawals", icon: CreditCard },
   { to: "/live-scores", label: "Live Scores", icon: Trophy },
