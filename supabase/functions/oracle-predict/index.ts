@@ -83,7 +83,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { query, mode, legs, safeOnly, leagues, goalFilter, cornerFilter, dateFrom, dateTo } = await req.json();
+    const { query, mode, legs, safeOnly, leagues, goalFilter, cornerFilter, bttsFilter, dateFrom, dateTo } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
@@ -120,6 +120,9 @@ serve(async (req) => {
     }
     if (cornerFilter && cornerFilter !== "any") {
       filterInstructions += `\nCORNER PREFERENCE: Prioritize and highlight matches likely to have ${cornerFilter}. Include the expectedCorners value for all matches. You MUST still return matches even if not all perfectly match this filter — rank them by how likely they are to meet this criteria, with the best matches first.`;
+    }
+    if (bttsFilter && bttsFilter !== "any") {
+      filterInstructions += `\nBTTS PREFERENCE: Prioritize matches where both teams to score is likely "${bttsFilter === "btts yes" ? "Yes" : "No"}". Rank matches by how likely they are to have ${bttsFilter === "btts yes" ? "both teams scoring" : "at least one team keeping a clean sheet"}.`;
     }
 
     const systemPrompt = `You are the BetCode Oracle — an elite AI football analyst powered by deep knowledge of football teams, leagues, and historical performance.

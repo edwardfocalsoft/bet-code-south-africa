@@ -75,6 +75,7 @@ const Oracle = () => {
   const [selectedLeagues, setSelectedLeagues] = useState<string[]>(["All"]);
   const [goalFilter, setGoalFilter] = useState("");
   const [cornerFilter, setCornerFilter] = useState("");
+  const [bttsFilter, setBttsFilter] = useState("");
   const [leagueOpen, setLeagueOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(() => {
@@ -116,6 +117,7 @@ const Oracle = () => {
         leagues: selectedLeagues.includes("All") ? null : selectedLeagues,
         goal_filter: goalFilter || null,
         corner_filter: cornerFilter || null,
+        btts_filter: bttsFilter || null,
         safe_only: safeOnly,
         date_from: dateFrom,
         date_to: dateTo,
@@ -167,6 +169,7 @@ const Oracle = () => {
           leagues: selectedLeagues.includes("All") ? [] : selectedLeagues,
           goalFilter,
           cornerFilter,
+          bttsFilter,
           dateFrom,
           dateTo,
         },
@@ -469,7 +472,18 @@ const Oracle = () => {
                 </SelectContent>
               </Select>
 
-              {/* Safe Only Toggle */}
+              {/* BTTS Filter */}
+              <Select value={bttsFilter} onValueChange={setBttsFilter}>
+                <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm">
+                  <SelectValue placeholder="BTTS filter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="any">Any BTTS</SelectItem>
+                  <SelectItem value="btts yes">BTTS Yes</SelectItem>
+                  <SelectItem value="btts no">BTTS No</SelectItem>
+                </SelectContent>
+              </Select>
+
               <div className="flex items-center gap-2 ml-auto">
                 <Shield className="h-4 w-4 text-primary" />
                 <Label htmlFor="safe" className="text-sm cursor-pointer">Safe bets only</Label>
