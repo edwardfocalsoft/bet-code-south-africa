@@ -126,10 +126,11 @@ serve(async (req) => {
 
 TODAY IS: ${today}
 
-The user has uploaded a screenshot/picture showing upcoming football matches. Your job:
+The user has uploaded a screenshot/picture showing football matches. Your job:
 1. READ and IDENTIFY all the teams, leagues, dates, and kickoff times visible in the image.
-2. DETERMINE the game type for each match: Is it a league match, cup match (FA Cup, Champions League, Europa League, etc.), international friendly, qualifier, or other? This is CRITICAL for your analysis.
-3. ANALYZE each match using your deep knowledge of:
+2. EXCLUDE any games that have ALREADY been played. Only predict UPCOMING matches that have NOT kicked off yet. If a match date/time is in the past relative to today (${today}), skip it entirely.
+3. DETERMINE the game type for each remaining match: Is it a league match, cup match (FA Cup, Champions League, Europa League, etc.), international friendly, qualifier, or other? This is CRITICAL for your analysis.
+4. ANALYZE each match using your deep knowledge of:
    - How teams perform differently in league vs cup vs friendly matches
    - Teams that raise their game in knockout/cup competitions
    - Teams that rotate squads for friendlies or less important matches
@@ -147,7 +148,10 @@ GAME TYPE AWARENESS:
 ${safeOnly ? "SAFE MODE: Prefer predictions with 70%+ confidence." : ""}
 ${filterInstructions}
 
-IMPORTANT: Extract ALL visible matches from the image, then provide predictions for ALL of them (or up to ${numLegs} if there are many).
+IMPORTANT: 
+- EXCLUDE any matches that have already been played (past dates/times relative to ${today}).
+- Only predict UPCOMING matches that haven't started yet.
+- Extract all visible upcoming matches, then provide predictions for them (or up to ${numLegs} if there are many).
 
 ${RESPONSE_FORMAT}`;
 
@@ -162,7 +166,7 @@ ${RESPONSE_FORMAT}`;
             },
             {
               type: "text",
-              text: `Analyze ALL the upcoming games visible in this image. Identify each match, determine the game type (league/cup/friendly/qualifier), and provide detailed predictions. ${query || ""}`
+              text: `Analyze ONLY upcoming (not yet played) games visible in this image. Today is ${today}. Skip any matches already played. Identify each match, determine the game type (league/cup/friendly/qualifier), and provide detailed predictions. ${query || ""}`
             },
           ],
         },
