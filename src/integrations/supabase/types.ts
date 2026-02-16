@@ -428,6 +428,7 @@ export type Database = {
         Row: {
           approved: boolean
           avatar_url: string | null
+          bonus_credits: number
           created_at: string
           credit_balance: number
           display_whatsapp: boolean | null
@@ -444,6 +445,7 @@ export type Database = {
         Insert: {
           approved?: boolean
           avatar_url?: string | null
+          bonus_credits?: number
           created_at?: string
           credit_balance?: number
           display_whatsapp?: boolean | null
@@ -460,6 +462,7 @@ export type Database = {
         Update: {
           approved?: boolean
           avatar_url?: string | null
+          bonus_credits?: number
           created_at?: string
           credit_balance?: number
           display_whatsapp?: boolean | null
@@ -944,6 +947,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_bonus_credits: {
+        Args: { p_admin_id: string; p_amount: number; p_user_id: string }
+        Returns: number
+      }
       add_credits: {
         Args: { amount_to_add: number; user_id: string }
         Returns: number

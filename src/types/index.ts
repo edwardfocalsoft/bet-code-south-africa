@@ -28,6 +28,7 @@ export interface User {
   lastActive?: Date;
   purchasesCount?: number;
   creditBalance?: number;
+  bonus_credits?: number;
 }
 
 export interface BankDetails {

@@ -134,6 +134,7 @@ const SellerWithdrawals: React.FC = () => {
     return amount - calculateFee(amount);
   };
 
+  // Only credit_balance (not bonus_credits) is eligible for withdrawal
   const isEligible = (creditBalance || 0) >= minWithdrawalAmount;
   const inputAmount = parseFloat(amount) || 0;
   const feeAmount = calculateFee(inputAmount);

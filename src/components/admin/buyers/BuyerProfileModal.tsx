@@ -48,9 +48,12 @@ export const BuyerProfileModal = ({ isOpen, onClose, buyerId }: BuyerProfileModa
             
             <StatCards 
               creditBalance={buyer.credit_balance || buyer.creditBalance || 0}
+              bonusCredits={buyer.bonus_credits || 0}
               loyaltyPoints={buyer.loyaltyPoints || 0}
               purchases={purchases}
               formatCurrency={formatCurrency}
+              buyerId={buyer.id}
+              onRefresh={() => buyerId && fetchBuyerData(buyerId)}
             />
             
             <UserSummary 
