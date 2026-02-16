@@ -61,8 +61,8 @@ export const useBuyerData = () => {
           lastActive: buyerData.updated_at ? new Date(buyerData.updated_at) : new Date(buyerData.created_at),
           loyaltyPoints: buyerData.loyalty_points || 0,
           credit_balance: buyerData.credit_balance || 0,
-          // Add these aliases for backward compatibility
           creditBalance: buyerData.credit_balance || 0,
+          bonus_credits: (buyerData as any).bonus_credits || 0,
         });
       }
 

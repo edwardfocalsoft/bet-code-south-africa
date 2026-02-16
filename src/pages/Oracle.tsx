@@ -183,10 +183,15 @@ const Oracle = () => {
     if (showHistory && currentUser) fetchHistory();
   }, [showHistory, currentUser]);
 
+  const [bonusBalance, setBonusBalance] = useState<number>(0);
+
   const fetchBalance = async () => {
     if (!currentUser) return;
-    const { data } = await supabase.from("profiles").select("credit_balance").eq("id", currentUser.id).single();
-    if (data) setUserBalance(data.credit_balance || 0);
+    const { data } = await supabase.from("profiles").select("credit_balance, bonus_credits").eq("id", currentUser.id).single();
+    if (data) {
+      setUserBalance(data.credit_balance || 0);
+      setBonusBalance((data as any).bonus_credits || 0);
+    }
   };
 
   useEffect(() => {
@@ -250,8 +255,10 @@ const Oracle = () => {
       toast.error("Please upload an image of upcoming games");
       return;
     }
-    if (userBalance < IMAGE_COST) {
-      toast.error(`Insufficient balance. You need at least R${IMAGE_COST}. Please top up your wallet.`);
+    if ((userBalance + bonusBalance) < IMAGE_COST) {
+      toast.error(`Insufficient balance. You need at least R${IMAGE_COST}.`, {
+        action: { label: "Top Up", onClick: () => window.location.href = "/user/wallet" },
+      });
       return;
     }
 
@@ -307,8 +314,10 @@ const Oracle = () => {
       toast.error("Please log in to use the Oracle");
       return;
     }
-    if (userBalance < AUTO_PICK_COST) {
-      toast.error(`Insufficient balance. You need at least R${AUTO_PICK_COST} to use the Oracle. Please top up your wallet.`);
+    if ((userBalance + bonusBalance) < AUTO_PICK_COST) {
+      toast.error(`Insufficient balance. You need at least R${AUTO_PICK_COST} to use the Oracle.`, {
+        action: { label: "Top Up", onClick: () => window.location.href = "/user/wallet" },
+      });
       return;
     }
 
@@ -426,9 +435,9 @@ const Oracle = () => {
           </div>
           <div className="flex items-center gap-2">
             {currentUser && (
-              <Badge variant="outline" className="gap-1 text-sm py-1.5 px-3">
+              <Badge variant="outline" className="gap-1 text-sm py-1.5 px-3" title={`Balance: R${userBalance.toFixed(2)} + Bonus: R${bonusBalance.toFixed(2)}`}>
                 <Coins className="h-3.5 w-3.5" />
-                R{userBalance.toFixed(2)}
+                R{(userBalance + bonusBalance).toFixed(2)}
               </Badge>
             )}
             {currentUser && (
