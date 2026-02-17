@@ -421,22 +421,22 @@ const Oracle = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-6 max-w-5xl">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-5xl">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-primary/10 border border-primary/20">
-              <Brain className="h-6 w-6 text-primary" />
+        <div className="flex items-center justify-between mb-4 sm:mb-6 gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="p-2 sm:p-2.5 rounded-xl bg-primary/10 border border-primary/20 shrink-0">
+              <Brain className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Oracle</h1>
-              <p className="text-sm text-muted-foreground">AI-powered football predictions</p>
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">Oracle</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground">AI-powered football predictions</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {currentUser && (
-              <Badge variant="outline" className="gap-1 text-sm py-1.5 px-3" title={`Balance: R${userBalance.toFixed(2)} + Bonus: R${bonusBalance.toFixed(2)}`}>
-                <Coins className="h-3.5 w-3.5" />
+              <Badge variant="outline" className="gap-1 text-xs sm:text-sm py-1 sm:py-1.5 px-2 sm:px-3" title={`Balance: R${userBalance.toFixed(2)} + Bonus: R${bonusBalance.toFixed(2)}`}>
+                <Coins className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
                 R{(userBalance + bonusBalance).toFixed(2)}
               </Badge>
             )}
@@ -445,9 +445,9 @@ const Oracle = () => {
                 variant={showHistory ? "default" : "outline"}
                 size="sm"
                 onClick={() => setShowHistory(!showHistory)}
-                className="gap-2"
+                className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3"
               >
-                <History className="h-4 w-4" />
+                <History className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
                 History
               </Button>
             )}
@@ -536,14 +536,14 @@ const Oracle = () => {
         )}
 
         {/* Tabs: Auto Pick vs Image Upload */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4 sm:mb-6">
           <TabsList className="w-full">
-            <TabsTrigger value="auto_pick" className="flex-1 gap-2">
-              <Zap className="h-4 w-4" /> Auto Pick
+            <TabsTrigger value="auto_pick" className="flex-1 gap-1 sm:gap-2 text-xs sm:text-sm">
+              <Zap className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> Auto Pick
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0">R{AUTO_PICK_COST}</Badge>
             </TabsTrigger>
-            <TabsTrigger value="image" className="flex-1 gap-2">
-              <Camera className="h-4 w-4" /> Image Upload
+            <TabsTrigger value="image" className="flex-1 gap-1 sm:gap-2 text-xs sm:text-sm">
+              <Camera className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> Image Upload
               <Badge variant="secondary" className="text-[10px] px-1.5 py-0">R{IMAGE_COST}</Badge>
             </TabsTrigger>
           </TabsList>
@@ -551,19 +551,22 @@ const Oracle = () => {
           {/* Auto Pick Tab */}
           <TabsContent value="auto_pick">
             <Card className="border-border bg-card">
-              <CardContent className="p-4 space-y-4">
-                <div className="flex items-center gap-3">
-                  <Label className="text-sm text-muted-foreground whitespace-nowrap">Number of legs:</Label>
-                  <Select value={legs} onValueChange={setLegs}>
-                    <SelectTrigger className="w-24 bg-secondary border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20].map(n => (
-                        <SelectItem key={n} value={String(n)}>{n}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <CardContent className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+                {/* Legs + Optional query */}
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm text-muted-foreground whitespace-nowrap">Number of legs:</Label>
+                    <Select value={legs} onValueChange={setLegs}>
+                      <SelectTrigger className="w-20 bg-secondary border-border">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20].map(n => (
+                          <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <Input
                     placeholder="Optional: additional instructions for AI..."
                     value={query}
@@ -573,65 +576,66 @@ const Oracle = () => {
                 </div>
 
                 {/* Date Range */}
-                <div className="flex flex-wrap gap-3 items-center">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <Label className="text-sm text-muted-foreground">From:</Label>
+                    <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <Label className="text-sm text-muted-foreground shrink-0">From:</Label>
                     <Input
                       type="date"
                       value={dateFrom}
                       onChange={e => setDateFrom(e.target.value)}
-                      className="w-[150px] h-9 bg-secondary border-border text-sm"
+                      className="h-9 bg-secondary border-border text-sm flex-1"
                     />
                   </div>
                   <div className="flex items-center gap-2">
-                    <Label className="text-sm text-muted-foreground">To:</Label>
+                    <Label className="text-sm text-muted-foreground shrink-0 ml-6 sm:ml-0">To:</Label>
                     <Input
                       type="date"
                       value={dateTo}
                       onChange={e => setDateTo(e.target.value)}
-                      className="w-[150px] h-9 bg-secondary border-border text-sm"
+                      className="h-9 bg-secondary border-border text-sm flex-1"
                     />
                   </div>
                 </div>
 
-                {/* Filters Row */}
-                <div className="flex flex-wrap gap-3 items-center">
-                  <Popover open={leagueOpen} onOpenChange={setLeagueOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm" className="gap-2 h-9 min-w-[160px] justify-between">
-                        <span className="truncate text-left">
-                          {selectedLeagues.includes("All") ? "All Leagues" : `${selectedLeagues.length} league${selectedLeagues.length > 1 ? "s" : ""}`}
-                        </span>
-                        <ChevronDown className="h-3.5 w-3.5 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-72 p-0 max-h-80 overflow-hidden" align="start">
-                      <div className="p-2 border-b border-border">
-                        <button
-                          onClick={() => { setSelectedLeagues(["All"]); }}
-                          className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${selectedLeagues.includes("All") ? "bg-primary/15 text-primary font-medium" : "hover:bg-secondary text-foreground"}`}
-                        >
-                          All Leagues
-                        </button>
-                      </div>
-                      <div className="overflow-y-auto max-h-60 p-2 space-y-0.5">
-                        {LEAGUES.map(league => (
-                          <label key={league} className="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-secondary cursor-pointer text-sm">
-                            <Checkbox
-                              checked={selectedLeagues.includes(league)}
-                              onCheckedChange={() => toggleLeague(league)}
-                              className="h-4 w-4"
-                            />
-                            <span className="text-foreground">{league}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
+                {/* Leagues */}
+                <Popover open={leagueOpen} onOpenChange={setLeagueOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-2 h-9 w-full justify-between">
+                      <span className="truncate text-left">
+                        {selectedLeagues.includes("All") ? "All Leagues" : `${selectedLeagues.length} league${selectedLeagues.length > 1 ? "s" : ""}`}
+                      </span>
+                      <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 p-0 max-h-80 overflow-hidden" align="start">
+                    <div className="p-2 border-b border-border">
+                      <button
+                        onClick={() => { setSelectedLeagues(["All"]); }}
+                        className={`w-full text-left px-3 py-2 rounded text-sm transition-colors ${selectedLeagues.includes("All") ? "bg-primary/15 text-primary font-medium" : "hover:bg-secondary text-foreground"}`}
+                      >
+                        All Leagues
+                      </button>
+                    </div>
+                    <div className="overflow-y-auto max-h-60 p-2 space-y-0.5">
+                      {LEAGUES.map(league => (
+                        <label key={league} className="flex items-center gap-2 px-3 py-1.5 rounded hover:bg-secondary cursor-pointer text-sm">
+                          <Checkbox
+                            checked={selectedLeagues.includes(league)}
+                            onCheckedChange={() => toggleLeague(league)}
+                            className="h-4 w-4"
+                          />
+                          <span className="text-foreground">{league}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
 
+                {/* Filters Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <Select value={goalFilter} onValueChange={setGoalFilter}>
-                    <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm">
+                    <SelectTrigger className="h-9 bg-secondary border-border text-sm w-full">
                       <SelectValue placeholder="Goals filter" />
                     </SelectTrigger>
                     <SelectContent>
@@ -648,7 +652,7 @@ const Oracle = () => {
                   </Select>
 
                   <Select value={cornerFilter} onValueChange={setCornerFilter}>
-                    <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm">
+                    <SelectTrigger className="h-9 bg-secondary border-border text-sm w-full">
                       <SelectValue placeholder="Corners filter" />
                     </SelectTrigger>
                     <SelectContent>
@@ -665,7 +669,7 @@ const Oracle = () => {
                   </Select>
 
                   <Select value={bttsFilter} onValueChange={setBttsFilter}>
-                    <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm">
+                    <SelectTrigger className="h-9 bg-secondary border-border text-sm w-full">
                       <SelectValue placeholder="BTTS filter" />
                     </SelectTrigger>
                     <SelectContent>
@@ -676,7 +680,7 @@ const Oracle = () => {
                   </Select>
 
                   <Select value={doubleChanceFilter} onValueChange={setDoubleChanceFilter}>
-                    <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm">
+                    <SelectTrigger className="h-9 bg-secondary border-border text-sm w-full">
                       <SelectValue placeholder="Double Chance" />
                     </SelectTrigger>
                     <SelectContent>
@@ -686,12 +690,13 @@ const Oracle = () => {
                       <SelectItem value="12">12 (Home or Away)</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
 
-                  <div className="flex items-center gap-2 ml-auto">
-                    <Shield className="h-4 w-4 text-primary" />
-                    <Label htmlFor="safe" className="text-sm cursor-pointer">Safe bets only</Label>
-                    <Switch id="safe" checked={safeOnly} onCheckedChange={setSafeOnly} />
-                  </div>
+                {/* Safe bets toggle */}
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-primary" />
+                  <Label htmlFor="safe" className="text-sm cursor-pointer">Safe bets only</Label>
+                  <Switch id="safe" checked={safeOnly} onCheckedChange={setSafeOnly} />
                 </div>
 
                 {/* Selected leagues tags */}
@@ -719,7 +724,7 @@ const Oracle = () => {
           {/* Image Upload Tab */}
           <TabsContent value="image">
             <Card className="border-border bg-card">
-              <CardContent className="p-4 space-y-4">
+              <CardContent className="p-3 sm:p-4 space-y-3 sm:space-y-4">
                 <p className="text-sm text-muted-foreground">
                   Upload a screenshot of upcoming games. The AI will identify teams, game types, and provide predictions.
                 </p>
@@ -763,9 +768,9 @@ const Oracle = () => {
                 />
 
                 {/* Image filters */}
-                <div className="flex flex-wrap gap-3 items-center">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   <Select value={imgGoalFilter} onValueChange={setImgGoalFilter}>
-                    <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm">
+                    <SelectTrigger className="h-9 bg-secondary border-border text-sm w-full">
                       <SelectValue placeholder="Goals filter" />
                     </SelectTrigger>
                     <SelectContent>
@@ -779,7 +784,7 @@ const Oracle = () => {
                   </Select>
 
                   <Select value={imgBttsFilter} onValueChange={setImgBttsFilter}>
-                    <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm">
+                    <SelectTrigger className="h-9 bg-secondary border-border text-sm w-full">
                       <SelectValue placeholder="BTTS filter" />
                     </SelectTrigger>
                     <SelectContent>
@@ -790,7 +795,7 @@ const Oracle = () => {
                   </Select>
 
                   <Select value={imgDoubleChanceFilter} onValueChange={setImgDoubleChanceFilter}>
-                    <SelectTrigger className="w-[160px] h-9 bg-secondary border-border text-sm">
+                    <SelectTrigger className="h-9 bg-secondary border-border text-sm w-full">
                       <SelectValue placeholder="Double Chance" />
                     </SelectTrigger>
                     <SelectContent>
@@ -800,12 +805,12 @@ const Oracle = () => {
                       <SelectItem value="12">12 (Home or Away)</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
 
-                  <div className="flex items-center gap-2 ml-auto">
-                    <Shield className="h-4 w-4 text-primary" />
-                    <Label htmlFor="img-safe" className="text-sm cursor-pointer">Safe only</Label>
-                    <Switch id="img-safe" checked={imgSafeOnly} onCheckedChange={setImgSafeOnly} />
-                  </div>
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-primary" />
+                  <Label htmlFor="img-safe" className="text-sm cursor-pointer">Safe only</Label>
+                  <Switch id="img-safe" checked={imgSafeOnly} onCheckedChange={setImgSafeOnly} />
                 </div>
 
                 <Button
@@ -884,12 +889,12 @@ const Oracle = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-xs border-t border-border pt-3">
-                      <div className="flex gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs border-t border-border pt-3 gap-2">
+                      <div className="flex gap-3 sm:gap-4 flex-wrap">
                         <span className="text-muted-foreground">Exp. Goals: <span className="text-foreground font-medium">{p.expectedGoals}</span></span>
                         <span className="text-muted-foreground">Exp. Corners: <span className="text-foreground font-medium">{p.expectedCorners}</span></span>
                       </div>
-                      <Badge variant="outline" className="border-primary/30 text-primary text-xs">
+                      <Badge variant="outline" className="border-primary/30 text-primary text-xs w-fit">
                         <TrendingUp className="h-3 w-3 mr-1" />
                         {p.prediction}
                       </Badge>
