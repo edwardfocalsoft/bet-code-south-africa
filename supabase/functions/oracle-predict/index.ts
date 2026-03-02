@@ -5,64 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Fetch upcoming fixtures from SofaScore API (sportapi7)
-async function fetchFixtures(rapidApiKey: string, dateFrom?: string, dateTo?: string): Promise<any[]> {
-  const today = new Date();
-  const allFixtures: any[] = [];
-  const baseUrl = "https://sportapi7.p.rapidapi.com/api/v1/sport/football/scheduled-events";
-
-  const startDate = dateFrom ? new Date(dateFrom) : today;
-  const endDate = dateTo ? new Date(dateTo) : new Date(today);
-  if (!dateTo) endDate.setDate(endDate.getDate() + 2);
-
-  const diffDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-  const daysToFetch = Math.min(diffDays, 7);
-
-  for (let d = 0; d < daysToFetch; d++) {
-    const date = new Date(startDate);
-    date.setDate(date.getDate() + d);
-    const dateStr = date.toISOString().split("T")[0];
-    const url = `${baseUrl}/${dateStr}`;
-
-    try {
-      const resp = await fetch(url, {
-        headers: {
-          "x-rapidapi-host": "sportapi7.p.rapidapi.com",
-          "x-rapidapi-key": rapidApiKey,
-        },
-      });
-      if (!resp.ok) continue;
-      const data = await resp.json();
-      for (const e of (data.events || [])) {
-        if (e.status?.type === "notstarted") allFixtures.push(e);
-      }
-    } catch { continue; }
-  }
-
-  return allFixtures.map(e => {
-    const ts = e.startTimestamp;
-    return {
-      homeTeam: e.homeTeam?.name || "Unknown",
-      awayTeam: e.awayTeam?.name || "Unknown",
-      league: e.tournament?.name || "Unknown",
-      country: e.tournament?.category?.name || "Unknown",
-      matchDate: ts ? new Date(ts * 1000).toISOString().split("T")[0] : "",
-      kickoffTime: ts ? new Date(ts * 1000).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Johannesburg" }) : "TBD",
-      fixtureId: e.id,
-    };
-  });
-}
-
-function filterByLeagues(fixtures: any[], leagues?: string[]): any[] {
-  if (!leagues || leagues.length === 0) return fixtures;
-  const lowerLeagues = leagues.map(l => l.toLowerCase());
-  return fixtures.filter(f => {
-    const name = (f.league || "").toLowerCase();
-    const country = (f.country || "").toLowerCase();
-    return lowerLeagues.some(l => name.includes(l) || l.includes(name) || country.includes(l));
-  });
-}
-
 function buildFilterInstructions(goalFilter?: string, cornerFilter?: string, bttsFilter?: string, doubleChanceFilter?: string): string {
   let instructions = "";
   if (goalFilter && goalFilter !== "any") {
@@ -118,11 +60,16 @@ serve(async (req) => {
     const filterInstructions = buildFilterInstructions(goalFilter, cornerFilter, bttsFilter, doubleChanceFilter);
     const numLegs = legs || 5;
 
+    const safeThreshold = 80;
+    const safeInstruction = safeOnly
+      ? `SAFE MODE (STRICT): ONLY include predictions where your confidence (the highest of homeWinPct, drawPct, awayWinPct) is ${safeThreshold}% or above. Do NOT include any prediction below ${safeThreshold}% confidence.`
+      : "";
+
     // ===== IMAGE MODE =====
     if (mode === "image" && imageBase64) {
       console.log("Image mode: analyzing uploaded image");
 
-      const imageSystemPrompt = `You are the BetCode Oracle — an elite AI football analyst.
+      const imageSystemPrompt = `You are the BetCode Oracle — an elite AI football analyst with deep knowledge of all football leagues worldwide.
 
 TODAY IS: ${today}
 
@@ -134,22 +81,22 @@ The user has uploaded a screenshot/picture showing football matches. Your job:
    - How teams perform differently in league vs cup vs friendly matches
    - Teams that raise their game in knockout/cup competitions
    - Teams that rotate squads for friendlies or less important matches
-   - Historical performance in specific competitions (e.g., teams with strong Champions League records)
+   - Historical performance in specific competitions
    - Home/away form in different competition types
-4. PROVIDE clear, confident predictions with reasoning that explains the game type context.
+5. PROVIDE clear, confident predictions with reasoning that explains the game type context.
 
 GAME TYPE AWARENESS:
-- CUP MATCHES: Teams often play more cautiously, fewer goals, upsets more common. Consider the round (early vs final).
-- CHAMPIONS LEAGUE: Elite teams raise performance, home advantage is amplified. Group stage vs knockout matters.
+- CUP MATCHES: Teams often play more cautiously, fewer goals, upsets more common.
+- CHAMPIONS LEAGUE: Elite teams raise performance, home advantage is amplified.
 - LEAGUE MATCHES: Most predictable, form and table position matter most.
 - FRIENDLIES: Experimental lineups, results less predictable, often more goals.
-- QUALIFIERS: National pride factor, underdogs can surprise, consider travel fatigue.
+- QUALIFIERS: National pride factor, underdogs can surprise.
 
-${safeOnly ? "SAFE MODE: Prefer predictions with 70%+ confidence." : ""}
+${safeInstruction}
 ${filterInstructions}
 
 IMPORTANT: 
-- EXCLUDE any matches that have already been played (past dates/times relative to ${today}).
+- EXCLUDE any matches that have already been played.
 - Only predict UPCOMING matches that haven't started yet.
 - Extract all visible upcoming matches, then provide predictions for them (or up to ${numLegs} if there are many).
 
@@ -187,6 +134,16 @@ ${RESPONSE_FORMAT}`;
       if (!response.ok) {
         const t = await response.text();
         console.error("AI gateway error (image):", response.status, t);
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Try again shortly." }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (response.status === 402) {
+          return new Response(JSON.stringify({ error: "AI service payment required. Please contact support." }), {
+            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
         return new Response(JSON.stringify({ error: "AI gateway error" }), {
           status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -209,29 +166,31 @@ ${RESPONSE_FORMAT}`;
       });
     }
 
-    // ===== AUTO PICK MODE =====
-    const RAPIDAPI_KEY = Deno.env.get("RAPIDAPI_KEY");
-    if (!RAPIDAPI_KEY) throw new Error("RAPIDAPI_KEY is not configured");
+    // ===== AUTO PICK MODE (AI-powered, no external API) =====
+    const leagueInstruction = leagues && leagues.length > 0
+      ? `LEAGUE FILTER (STRICT): ONLY include matches from these leagues/competitions: ${leagues.join(", ")}. Do NOT include matches from other leagues.`
+      : "You may pick matches from any major football league worldwide.";
 
-    let fixtures = await fetchFixtures(RAPIDAPI_KEY, dateFrom, dateTo);
-    if (leagues && leagues.length > 0) fixtures = filterByLeagues(fixtures, leagues);
+    const dateInstruction = dateFrom && dateTo
+      ? `DATE RANGE: Only include matches scheduled between ${dateFrom} and ${dateTo} (inclusive).`
+      : dateFrom
+        ? `DATE RANGE: Only include matches from ${dateFrom} onwards (up to 3 days ahead).`
+        : `DATE RANGE: Only include matches from ${today} to the next 2-3 days.`;
 
-    const fixtureSubset = fixtures.slice(0, 150);
-
-    if (fixtureSubset.length === 0) {
-      return new Response(JSON.stringify({
-        predictions: [],
-        advice: "No upcoming fixtures found. Try different leagues or expand the date range.",
-      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
-    console.log(`Sending ${fixtureSubset.length} fixtures to Gemini`);
-
-    const systemPrompt = `You are the BetCode Oracle — an elite AI football analyst.
+    const systemPrompt = `You are the BetCode Oracle — an elite AI football analyst with comprehensive, up-to-date knowledge of football worldwide.
 
 TODAY IS: ${today}
 
-You have REAL upcoming fixtures from a live API. Analyze each match using your knowledge of teams' form, head-to-head, league standings, and playing styles.
+Your task: Using your extensive knowledge of football schedules, team form, head-to-head records, league standings, injuries, and playing styles, identify REAL upcoming fixtures and provide expert predictions.
+
+CRITICAL RULES:
+1. Only predict REAL matches that are actually scheduled to be played. Do NOT invent or fabricate fixtures.
+2. Use accurate team names, league names, and realistic kickoff times.
+3. Base predictions on current team form, historical data, home/away records, and tactical analysis.
+4. Include the game type context in your reasoning (league, cup, friendly, qualifier, etc.).
+
+${leagueInstruction}
+${dateInstruction}
 
 GAME TYPE AWARENESS (CRITICAL):
 - Identify whether each match is a league match, cup match, Champions League, Europa League, friendly, or qualifier
@@ -240,22 +199,18 @@ GAME TYPE AWARENESS (CRITICAL):
 - League matches: most predictable, form matters most
 - Friendlies: experimental lineups, less predictable
 
-RULES:
-- ONLY analyze fixtures provided — do NOT invent matches
-- Use EXACT team names, leagues, dates, kickoff times from the data
-- Never show sources or citations
-- Include game type context in your reasoning
-
-${safeOnly ? "SAFE MODE: Prefer 70%+ confidence predictions." : ""}
+${safeInstruction}
 ${filterInstructions}
 
 LEGS REQUIREMENT (STRICT): Return EXACTLY ${numLegs} predictions — no more, no less.
 
-Pick ${numLegs} matches with the HIGHEST winning probability matching ALL active filters.
+Pick the ${numLegs} matches where you have the HIGHEST confidence, matching ALL active filters.
 
 ${RESPONSE_FORMAT}`;
 
-    const userMessage = `Pick EXACTLY ${numLegs} safest bets from these fixtures:\n\n${JSON.stringify(fixtureSubset)}\n\n${query || ""}`;
+    const userMessage = `Find EXACTLY ${numLegs} real upcoming football matches${leagues && leagues.length > 0 ? ` from: ${leagues.join(", ")}` : ""} between ${dateFrom || today} and ${dateTo || "the next 2-3 days"}, and provide your best predictions.${safeOnly ? ` Only include predictions with ${safeThreshold}%+ confidence.` : ""}${query ? `\n\nAdditional instructions: ${query}` : ""}`;
+
+    console.log(`Auto pick mode: AI generating ${numLegs} predictions`);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -276,6 +231,11 @@ ${RESPONSE_FORMAT}`;
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Try again shortly." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "AI service payment required. Please contact support." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const t = await response.text();
