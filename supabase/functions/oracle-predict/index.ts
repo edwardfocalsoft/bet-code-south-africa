@@ -46,6 +46,64 @@ const RESPONSE_FORMAT = `Response MUST be valid JSON (no markdown, no code block
   "advice": "Overall betting advice summary"
 }`;
 
+async function fetchRealFixtures(leagues: string[] | null, dateFrom: string, dateTo: string): Promise<string> {
+  const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!FIRECRAWL_API_KEY) {
+    console.warn("FIRECRAWL_API_KEY not configured, falling back to AI-only mode");
+    return "";
+  }
+
+  try {
+    const leagueQuery = leagues && leagues.length > 0 
+      ? leagues.join(" OR ") 
+      : "Premier League OR La Liga OR Serie A OR Bundesliga OR Ligue 1 OR Champions League";
+    
+    const searchQuery = `football fixtures schedule ${leagueQuery} ${dateFrom} to ${dateTo}`;
+    console.log("Firecrawl search query:", searchQuery);
+
+    const response = await fetch("https://api.firecrawl.dev/v1/search", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: searchQuery,
+        limit: 5,
+        scrapeOptions: { formats: ["markdown"] },
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("Firecrawl search error:", response.status, errText);
+      return "";
+    }
+
+    const data = await response.json();
+    
+    if (!data.success || !data.data || data.data.length === 0) {
+      console.warn("No Firecrawl results found");
+      return "";
+    }
+
+    // Combine markdown content from search results
+    let fixturesText = "";
+    for (const result of data.data) {
+      if (result.markdown) {
+        fixturesText += `\n--- Source: ${result.url || "unknown"} ---\n`;
+        fixturesText += result.markdown.substring(0, 3000); // Limit per source
+      }
+    }
+
+    console.log(`Fetched ${data.data.length} fixture sources, total chars: ${fixturesText.length}`);
+    return fixturesText.substring(0, 12000); // Total limit
+  } catch (error) {
+    console.error("Error fetching real fixtures:", error);
+    return "";
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -69,36 +127,19 @@ serve(async (req) => {
     if (mode === "image" && imageBase64) {
       console.log("Image mode: analyzing uploaded image");
 
-      const imageSystemPrompt = `You are the BetCode Oracle — an elite AI football analyst with deep knowledge of all football leagues worldwide.
+      const imageSystemPrompt = `You are the BetCode Oracle — an elite AI football analyst.
 
 TODAY IS: ${today}
 
-The user has uploaded a screenshot/picture showing football matches. Your job:
-1. READ and IDENTIFY all the teams, leagues, dates, and kickoff times visible in the image.
-2. EXCLUDE any games that have ALREADY been played. Only predict UPCOMING matches that have NOT kicked off yet. If a match date/time is in the past relative to today (${today}), skip it entirely.
-3. DETERMINE the game type for each remaining match: Is it a league match, cup match (FA Cup, Champions League, Europa League, etc.), international friendly, qualifier, or other? This is CRITICAL for your analysis.
-4. ANALYZE each match using your deep knowledge of:
-   - How teams perform differently in league vs cup vs friendly matches
-   - Teams that raise their game in knockout/cup competitions
-   - Teams that rotate squads for friendlies or less important matches
-   - Historical performance in specific competitions
-   - Home/away form in different competition types
-5. PROVIDE clear, confident predictions with reasoning that explains the game type context.
-
-GAME TYPE AWARENESS:
-- CUP MATCHES: Teams often play more cautiously, fewer goals, upsets more common.
-- CHAMPIONS LEAGUE: Elite teams raise performance, home advantage is amplified.
-- LEAGUE MATCHES: Most predictable, form and table position matter most.
-- FRIENDLIES: Experimental lineups, results less predictable, often more goals.
-- QUALIFIERS: National pride factor, underdogs can surprise.
+The user uploaded a screenshot showing football matches. Your job:
+1. READ and IDENTIFY all teams, leagues, dates, and kickoff times visible.
+2. EXCLUDE any games already played (before ${today}).
+3. ANALYZE each upcoming match and provide predictions.
 
 ${safeInstruction}
 ${filterInstructions}
 
-IMPORTANT: 
-- EXCLUDE any matches that have already been played.
-- Only predict UPCOMING matches that haven't started yet.
-- Extract all visible upcoming matches, then provide predictions for them (or up to ${numLegs} if there are many).
+IMPORTANT: Only predict UPCOMING matches. Extract all visible upcoming matches, then provide predictions for up to ${numLegs}.
 
 ${RESPONSE_FORMAT}`;
 
@@ -107,14 +148,8 @@ ${RESPONSE_FORMAT}`;
         {
           role: "user",
           content: [
-            {
-              type: "image_url",
-              image_url: { url: imageBase64 },
-            },
-            {
-              type: "text",
-              text: `Analyze ONLY upcoming (not yet played) games visible in this image. Today is ${today}. Skip any matches already played. Identify each match, determine the game type (league/cup/friendly/qualifier), and provide detailed predictions. ${query || ""}`
-            },
+            { type: "image_url", image_url: { url: imageBase64 } },
+            { type: "text", text: `Analyze ONLY upcoming games visible in this image. Today is ${today}. ${query || ""}` },
           ],
         },
       ];
@@ -125,92 +160,70 @@ ${RESPONSE_FORMAT}`;
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages,
-        }),
+        body: JSON.stringify({ model: "google/gemini-3-flash-preview", messages }),
       });
 
       if (!response.ok) {
         const t = await response.text();
         console.error("AI gateway error (image):", response.status, t);
-        if (response.status === 429) {
-          return new Response(JSON.stringify({ error: "Rate limit exceeded. Try again shortly." }), {
-            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        if (response.status === 402) {
-          return new Response(JSON.stringify({ error: "AI service payment required. Please contact support." }), {
-            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
-        return new Response(JSON.stringify({ error: "AI gateway error" }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded. Try again shortly." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        if (response.status === 402) return new Response(JSON.stringify({ error: "AI service payment required." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        return new Response(JSON.stringify({ error: "AI gateway error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       const aiData = await response.json();
       const content = aiData.choices?.[0]?.message?.content || "";
-
       let parsed;
       try {
-        const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-        parsed = JSON.parse(cleaned);
+        parsed = JSON.parse(content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim());
       } catch {
         console.error("Failed to parse AI image response:", content);
-        parsed = { predictions: [], advice: "Failed to parse predictions from image. Please try a clearer image." };
+        parsed = { predictions: [], advice: "Failed to parse predictions from image." };
       }
 
-      return new Response(JSON.stringify(parsed), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(JSON.stringify(parsed), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // ===== AUTO PICK MODE (AI-powered, no external API) =====
+    // ===== AUTO PICK MODE — scrape real fixtures, then AI analyzes =====
+    const effectiveDateFrom = dateFrom || today;
+    const effectiveDateTo = dateTo || new Date(Date.now() + 3 * 86400000).toISOString().split("T")[0];
+
+    console.log(`Auto pick: fetching real fixtures from ${effectiveDateFrom} to ${effectiveDateTo}`);
+    const realFixtures = await fetchRealFixtures(leagues, effectiveDateFrom, effectiveDateTo);
+
     const leagueInstruction = leagues && leagues.length > 0
-      ? `LEAGUE FILTER (STRICT): ONLY include matches from these leagues/competitions: ${leagues.join(", ")}. Do NOT include matches from other leagues.`
-      : "You may pick matches from any major football league worldwide.";
+      ? `LEAGUE FILTER (STRICT): ONLY include matches from: ${leagues.join(", ")}.`
+      : "You may pick matches from any major football league.";
 
-    const dateInstruction = dateFrom && dateTo
-      ? `DATE RANGE: Only include matches scheduled between ${dateFrom} and ${dateTo} (inclusive).`
-      : dateFrom
-        ? `DATE RANGE: Only include matches from ${dateFrom} onwards (up to 3 days ahead).`
-        : `DATE RANGE: Only include matches from ${today} to the next 2-3 days.`;
+    const fixturesContext = realFixtures
+      ? `\n\nBELOW IS REAL FIXTURE DATA SCRAPED FROM THE WEB. You MUST use ONLY these real matches for your predictions. Do NOT invent or fabricate any fixtures. If a match appears in the data below, use the exact team names, dates, and kickoff times shown.\n\n--- REAL FIXTURE DATA ---\n${realFixtures}\n--- END FIXTURE DATA ---\n\nIMPORTANT: Only predict matches that appear in the fixture data above. Use the exact team names and dates from the data. Do NOT make up matches.`
+      : "\n\nNote: Could not fetch live fixture data. Use your best knowledge of currently scheduled real matches. Be as accurate as possible with team names, dates, and kickoff times.";
 
-    const systemPrompt = `You are the BetCode Oracle — an elite AI football analyst with comprehensive, up-to-date knowledge of football worldwide.
+    const systemPrompt = `You are the BetCode Oracle — an elite AI football analyst.
 
 TODAY IS: ${today}
 
-Your task: Using your extensive knowledge of football schedules, team form, head-to-head records, league standings, injuries, and playing styles, identify REAL upcoming fixtures and provide expert predictions.
-
-CRITICAL RULES:
-1. Only predict REAL matches that are actually scheduled to be played. Do NOT invent or fabricate fixtures.
-2. Use accurate team names, league names, and realistic kickoff times.
-3. Base predictions on current team form, historical data, home/away records, and tactical analysis.
-4. Include the game type context in your reasoning (league, cup, friendly, qualifier, etc.).
+Your task: Analyze REAL upcoming football fixtures and provide expert predictions.
+${fixturesContext}
 
 ${leagueInstruction}
-${dateInstruction}
+DATE RANGE: Only matches between ${effectiveDateFrom} and ${effectiveDateTo}.
 
-GAME TYPE AWARENESS (CRITICAL):
-- Identify whether each match is a league match, cup match, Champions League, Europa League, friendly, or qualifier
-- Cup/knockout matches: teams play more cautiously, upsets more common
-- Champions League: elite teams raise performance, home advantage amplified
-- League matches: most predictable, form matters most
-- Friendlies: experimental lineups, less predictable
+CRITICAL RULES:
+1. ONLY predict matches from the real fixture data provided above. Do NOT invent fixtures.
+2. Use EXACT team names, league names, dates and kickoff times from the data.
+3. Base predictions on team form, historical data, home/away records, and tactical analysis.
 
 ${safeInstruction}
 ${filterInstructions}
 
-LEGS REQUIREMENT (STRICT): Return EXACTLY ${numLegs} predictions — no more, no less.
-
-Pick the ${numLegs} matches where you have the HIGHEST confidence, matching ALL active filters.
+LEGS REQUIREMENT (STRICT): Return EXACTLY ${numLegs} predictions — no more, no less. Pick the ${numLegs} matches where you have the HIGHEST confidence.
 
 ${RESPONSE_FORMAT}`;
 
-    const userMessage = `Find EXACTLY ${numLegs} real upcoming football matches${leagues && leagues.length > 0 ? ` from: ${leagues.join(", ")}` : ""} between ${dateFrom || today} and ${dateTo || "the next 2-3 days"}, and provide your best predictions.${safeOnly ? ` Only include predictions with ${safeThreshold}%+ confidence.` : ""}${query ? `\n\nAdditional instructions: ${query}` : ""}`;
+    const userMessage = `From the real fixture data provided, select EXACTLY ${numLegs} upcoming football matches and provide your best predictions.${safeOnly ? ` Only include predictions with ${safeThreshold}%+ confidence.` : ""}${query ? `\n\nAdditional: ${query}` : ""}`;
 
-    console.log(`Auto pick mode: AI generating ${numLegs} predictions`);
+    console.log(`Auto pick mode: AI analyzing real fixtures for ${numLegs} predictions`);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -228,21 +241,11 @@ ${RESPONSE_FORMAT}`;
     });
 
     if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Try again shortly." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI service payment required. Please contact support." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded. Try again shortly." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (response.status === 402) return new Response(JSON.stringify({ error: "AI service payment required." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
-      return new Response(JSON.stringify({ error: "AI gateway error" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(JSON.stringify({ error: "AI gateway error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const aiData = await response.json();
@@ -250,16 +253,13 @@ ${RESPONSE_FORMAT}`;
 
     let parsed;
     try {
-      const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      parsed = JSON.parse(cleaned);
+      parsed = JSON.parse(content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim());
     } catch {
       console.error("Failed to parse AI response:", content);
       parsed = { predictions: [], advice: "Failed to parse predictions. Please try again." };
     }
 
-    return new Response(JSON.stringify(parsed), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(JSON.stringify(parsed), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("Oracle error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
