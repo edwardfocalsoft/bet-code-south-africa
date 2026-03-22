@@ -58,8 +58,8 @@ const FAQ: React.FC = () => {
       answer: "The Oracle is BetCode's AI-powered prediction tool that uses real-time SofaScore fixture data to generate smart betting predictions. It helps punters make data-driven decisions with filters for goals, corners, BTTS, double chance, and more."
     },
     {
-      question: "How much does the Oracle cost?",
-      answer: "Auto Pick mode costs R2.50 per search and Image Upload mode costs R5.00 per search. You need sufficient credit in your wallet to use the Oracle. Punters also earn 1 BC loyalty point per search."
+      question: "Is the Oracle free?",
+      answer: "Yes! The Oracle is completely free to use. You just need a registered account to access AI-powered predictions. Punters also earn 1 BC loyalty point per search."
     },
     {
       question: "What is Auto Pick mode?",
