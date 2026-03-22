@@ -198,28 +198,20 @@ const Oracle = () => {
     if (currentUser) fetchBalance();
   }, [currentUser]);
 
-  const chargeUser = async (cost: number) => {
+  const chargeUser = async (_cost: number) => {
     if (!currentUser) return false;
+    // Oracle is now free — no charge needed
     try {
-      const { error } = await supabase.rpc("charge_oracle_search" as any, {
-        p_user_id: currentUser.id,
-        p_cost: cost,
-      });
-      if (error) throw error;
-      
       if (userRole === "buyer") {
         await supabase
           .from("profiles")
           .update({ loyalty_points: (currentUser.loyaltyPoints || 0) + 1 })
           .eq("id", currentUser.id);
       }
-      
-      setUserBalance(prev => prev - cost);
       return true;
     } catch (err: any) {
-      console.error("Charge error:", err);
-      toast.error(err.message || "Failed to charge. Check your balance.");
-      return false;
+      console.error("Oracle error:", err);
+      return true; // Don't block on loyalty point failure
     }
   };
 
