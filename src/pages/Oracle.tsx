@@ -67,8 +67,8 @@ const LEAGUES = [
   "Women's Super League", "NWSL", "Copa America", "Euros",
 ];
 
-const AUTO_PICK_COST = 2.5;
-const IMAGE_COST = 5;
+const AUTO_PICK_COST = 0;
+const IMAGE_COST = 0;
 
 const Oracle = () => {
   const { currentUser, userRole } = useAuth();
