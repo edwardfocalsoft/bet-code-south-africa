@@ -247,12 +247,7 @@ const Oracle = () => {
       toast.error("Please upload an image of upcoming games");
       return;
     }
-    if ((userBalance + bonusBalance) < IMAGE_COST) {
-      toast.error(`Insufficient balance. You need at least R${IMAGE_COST}.`, {
-        action: { label: "Top Up", onClick: () => window.location.href = "/user/wallet" },
-      });
-      return;
-    }
+    // Oracle is free — no balance check needed
 
     setLoading(true);
     setPredictions([]);
