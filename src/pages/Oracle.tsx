@@ -417,12 +417,6 @@ const Oracle = () => {
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {currentUser && (
-              <Badge variant="outline" className="gap-1 text-xs sm:text-sm py-1 sm:py-1.5 px-2 sm:px-3" title={`Balance: R${userBalance.toFixed(2)} + Bonus: R${bonusBalance.toFixed(2)}`}>
-                <Coins className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
-                R{(userBalance + bonusBalance).toFixed(2)}
-              </Badge>
-            )}
-            {currentUser && (
               <Button
                 variant={showHistory ? "default" : "outline"}
                 size="sm"
