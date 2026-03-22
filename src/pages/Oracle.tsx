@@ -516,11 +516,11 @@ const Oracle = () => {
           <TabsList className="w-full">
             <TabsTrigger value="auto_pick" className="flex-1 gap-1 sm:gap-2 text-xs sm:text-sm">
               <Zap className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> Auto Pick
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">R{AUTO_PICK_COST}</Badge>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Free</Badge>
             </TabsTrigger>
             <TabsTrigger value="image" className="flex-1 gap-1 sm:gap-2 text-xs sm:text-sm">
               <Camera className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> Image Upload
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">R{IMAGE_COST}</Badge>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Free</Badge>
             </TabsTrigger>
           </TabsList>
 
