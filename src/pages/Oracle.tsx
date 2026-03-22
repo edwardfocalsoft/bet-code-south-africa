@@ -437,7 +437,7 @@ const Oracle = () => {
               <Brain className="h-10 w-10 mx-auto mb-3 text-primary" />
               <h3 className="text-lg font-semibold text-foreground mb-2">Log in to use the Oracle</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Get AI-powered predictions starting from R{AUTO_PICK_COST}. Punters earn 1 BC point per search!
+                Get free AI-powered football predictions. Create an account to get started!
               </p>
               <Link to="/auth/login">
                 <Button className="gap-2">
