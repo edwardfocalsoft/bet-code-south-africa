@@ -795,7 +795,7 @@ const Oracle = () => {
                   className="w-full gap-2"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
-                  {loading ? "Oracle is analyzing image..." : `Predict from Image (R${IMAGE_COST})`}
+                  {loading ? "Oracle is analyzing image..." : "Predict from Image"}
                 </Button>
               </CardContent>
             </Card>
