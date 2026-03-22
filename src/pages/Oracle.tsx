@@ -301,12 +301,7 @@ const Oracle = () => {
       toast.error("Please log in to use the Oracle");
       return;
     }
-    if ((userBalance + bonusBalance) < AUTO_PICK_COST) {
-      toast.error(`Insufficient balance. You need at least R${AUTO_PICK_COST} to use the Oracle.`, {
-        action: { label: "Top Up", onClick: () => window.location.href = "/user/wallet" },
-      });
-      return;
-    }
+    // Oracle is free — no balance check needed
 
     setLoading(true);
     setPredictions([]);
