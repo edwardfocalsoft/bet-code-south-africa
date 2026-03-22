@@ -67,8 +67,8 @@ const LEAGUES = [
   "Women's Super League", "NWSL", "Copa America", "Euros",
 ];
 
-const AUTO_PICK_COST = 2.5;
-const IMAGE_COST = 5;
+const AUTO_PICK_COST = 0;
+const IMAGE_COST = 0;
 
 const Oracle = () => {
   const { currentUser, userRole } = useAuth();
@@ -198,28 +198,20 @@ const Oracle = () => {
     if (currentUser) fetchBalance();
   }, [currentUser]);
 
-  const chargeUser = async (cost: number) => {
+  const chargeUser = async (_cost: number) => {
     if (!currentUser) return false;
+    // Oracle is now free — no charge needed
     try {
-      const { error } = await supabase.rpc("charge_oracle_search" as any, {
-        p_user_id: currentUser.id,
-        p_cost: cost,
-      });
-      if (error) throw error;
-      
       if (userRole === "buyer") {
         await supabase
           .from("profiles")
           .update({ loyalty_points: (currentUser.loyaltyPoints || 0) + 1 })
           .eq("id", currentUser.id);
       }
-      
-      setUserBalance(prev => prev - cost);
       return true;
     } catch (err: any) {
-      console.error("Charge error:", err);
-      toast.error(err.message || "Failed to charge. Check your balance.");
-      return false;
+      console.error("Oracle error:", err);
+      return true; // Don't block on loyalty point failure
     }
   };
 
@@ -255,12 +247,7 @@ const Oracle = () => {
       toast.error("Please upload an image of upcoming games");
       return;
     }
-    if ((userBalance + bonusBalance) < IMAGE_COST) {
-      toast.error(`Insufficient balance. You need at least R${IMAGE_COST}.`, {
-        action: { label: "Top Up", onClick: () => window.location.href = "/user/wallet" },
-      });
-      return;
-    }
+    // Oracle is free — no balance check needed
 
     setLoading(true);
     setPredictions([]);
@@ -314,12 +301,7 @@ const Oracle = () => {
       toast.error("Please log in to use the Oracle");
       return;
     }
-    if ((userBalance + bonusBalance) < AUTO_PICK_COST) {
-      toast.error(`Insufficient balance. You need at least R${AUTO_PICK_COST} to use the Oracle.`, {
-        action: { label: "Top Up", onClick: () => window.location.href = "/user/wallet" },
-      });
-      return;
-    }
+    // Oracle is free — no balance check needed
 
     setLoading(true);
     setPredictions([]);
@@ -435,12 +417,6 @@ const Oracle = () => {
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {currentUser && (
-              <Badge variant="outline" className="gap-1 text-xs sm:text-sm py-1 sm:py-1.5 px-2 sm:px-3" title={`Balance: R${userBalance.toFixed(2)} + Bonus: R${bonusBalance.toFixed(2)}`}>
-                <Coins className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
-                R{(userBalance + bonusBalance).toFixed(2)}
-              </Badge>
-            )}
-            {currentUser && (
               <Button
                 variant={showHistory ? "default" : "outline"}
                 size="sm"
@@ -461,7 +437,7 @@ const Oracle = () => {
               <Brain className="h-10 w-10 mx-auto mb-3 text-primary" />
               <h3 className="text-lg font-semibold text-foreground mb-2">Log in to use the Oracle</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Get AI-powered predictions starting from R{AUTO_PICK_COST}. Punters earn 1 BC point per search!
+                Get free AI-powered football predictions. Create an account to get started!
               </p>
               <Link to="/auth/login">
                 <Button className="gap-2">
@@ -540,11 +516,11 @@ const Oracle = () => {
           <TabsList className="w-full">
             <TabsTrigger value="auto_pick" className="flex-1 gap-1 sm:gap-2 text-xs sm:text-sm">
               <Zap className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> Auto Pick
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">R{AUTO_PICK_COST}</Badge>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Free</Badge>
             </TabsTrigger>
             <TabsTrigger value="image" className="flex-1 gap-1 sm:gap-2 text-xs sm:text-sm">
               <Camera className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> Image Upload
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">R{IMAGE_COST}</Badge>
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Free</Badge>
             </TabsTrigger>
           </TabsList>
 
@@ -715,7 +691,7 @@ const Oracle = () => {
 
                 <Button onClick={handlePredict} disabled={loading} className="w-full gap-2">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
-                  {loading ? "Oracle is thinking..." : `Auto Pick ${legs} Matches (R${AUTO_PICK_COST})`}
+                  {loading ? "Oracle is thinking..." : `Auto Pick ${legs} Matches`}
                 </Button>
               </CardContent>
             </Card>
@@ -819,7 +795,7 @@ const Oracle = () => {
                   className="w-full gap-2"
                 >
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
-                  {loading ? "Oracle is analyzing image..." : `Predict from Image (R${IMAGE_COST})`}
+                  {loading ? "Oracle is analyzing image..." : "Predict from Image"}
                 </Button>
               </CardContent>
             </Card>
