@@ -691,7 +691,7 @@ const Oracle = () => {
 
                 <Button onClick={handlePredict} disabled={loading} className="w-full gap-2">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
-                  {loading ? "Oracle is thinking..." : `Auto Pick ${legs} Matches (R${AUTO_PICK_COST})`}
+                  {loading ? "Oracle is thinking..." : `Auto Pick ${legs} Matches`}
                 </Button>
               </CardContent>
             </Card>
