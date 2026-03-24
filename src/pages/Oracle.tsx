@@ -559,6 +559,7 @@ const Oracle = () => {
                     <Input
                       type="date"
                       value={dateFrom}
+                      min={format(new Date(), "yyyy-MM-dd")}
                       onChange={e => setDateFrom(e.target.value)}
                       className="h-9 bg-secondary border-border text-sm flex-1"
                     />
@@ -568,6 +569,7 @@ const Oracle = () => {
                     <Input
                       type="date"
                       value={dateTo}
+                      min={dateFrom || format(new Date(), "yyyy-MM-dd")}
                       onChange={e => setDateTo(e.target.value)}
                       className="h-9 bg-secondary border-border text-sm flex-1"
                     />
