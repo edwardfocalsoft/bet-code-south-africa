@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/ui/theme-provider";
 import { AuthProvider } from "@/contexts/auth";
 import ApplicationWrapper from "@/components/layout/ApplicationWrapper";
 import MaintenanceMiddleware from "@/components/layout/MaintenanceMiddleware";
+import OraclePromoDialog from "@/components/layout/OraclePromoDialog";
 
 // Pages
 import Index from "@/pages/Index";
