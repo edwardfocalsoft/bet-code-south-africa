@@ -114,7 +114,9 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const today = new Date().toISOString().split("T")[0];
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+    const currentTime = now.toISOString().split("T")[1].substring(0, 5); // HH:MM
     const filterInstructions = buildFilterInstructions(goalFilter, cornerFilter, bttsFilter, doubleChanceFilter);
     const numLegs = legs || 5;
 
