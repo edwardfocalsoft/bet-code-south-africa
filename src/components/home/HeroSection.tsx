@@ -62,26 +62,25 @@ const HeroSection: React.FC = () => {
     <section className="bg-gradient-to-br from-betting-black via-betting-dark-gray to-betting-black pt-16 pb-24 px-4 relative overflow-hidden">
       <div className="absolute inset-0 bg-[url('/bg-pattern.svg')] opacity-5"></div>
       <div className="container mx-auto text-center relative z-10">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6 animate-fade-in">
-          <Brain className="h-5 w-5 text-primary" />
-          <span className="text-sm font-medium text-primary">AI-Powered Predictions</span>
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-betting-green/10 border border-betting-green/20 mb-6 animate-fade-in">
+          <Brain className="h-5 w-5 text-betting-green" />
+          <span className="text-sm font-medium text-betting-green">🎉 Now FREE for All Users!</span>
         </div>
 
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 animate-fade-in">
-          Make{" "}
           <span className="text-betting-green bg-clip-text text-transparent bg-gradient-to-r from-betting-green to-teal-500">
-            Smarter Bets
+            Free AI Predictions
           </span>{" "}
           with the Oracle
         </h1>
         <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8 animate-fade-in">
-          South Africa's first AI-powered betting assistant. Get data-driven predictions on goals, corners, BTTS, double chance and more — using live fixture data.
+          South Africa's first AI-powered betting assistant — now <span className="text-betting-green font-semibold">100% free</span>. Get data-driven predictions on goals, corners, BTTS, double chance and more. Just sign up and start winning!
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12 animate-fade-in">
           <Link to="/oracle">
             <Button className="bg-betting-green hover:bg-betting-green-dark text-white px-8 py-6 text-lg gap-2 w-full">
-              <Brain className="h-5 w-5" /> Try the Oracle
+              <Brain className="h-5 w-5" /> Use Oracle — It's Free
             </Button>
           </Link>
           <Link to="/tickets">

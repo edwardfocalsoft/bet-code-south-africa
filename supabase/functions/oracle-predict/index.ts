@@ -114,7 +114,9 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const today = new Date().toISOString().split("T")[0];
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+    const currentTime = now.toISOString().split("T")[1].substring(0, 5); // HH:MM
     const filterInstructions = buildFilterInstructions(goalFilter, cornerFilter, bttsFilter, doubleChanceFilter);
     const numLegs = legs || 5;
 
@@ -129,17 +131,18 @@ serve(async (req) => {
 
       const imageSystemPrompt = `You are the BetCode Oracle — an elite AI football analyst.
 
-TODAY IS: ${today}
+TODAY IS: ${today} and current time is ${currentTime} UTC.
 
 The user uploaded a screenshot showing football matches. Your job:
 1. READ and IDENTIFY all teams, leagues, dates, and kickoff times visible.
-2. EXCLUDE any games already played (before ${today}).
-3. ANALYZE each upcoming match and provide predictions.
+2. STRICTLY EXCLUDE any games that have ALREADY PLAYED or ALREADY STARTED. A game has started if its date is before ${today}, OR if its date is ${today} and its kickoff time is at or before ${currentTime}.
+3. ONLY predict matches that have NOT YET kicked off.
+4. ANALYZE each upcoming match and provide predictions.
 
 ${safeInstruction}
 ${filterInstructions}
 
-IMPORTANT: Only predict UPCOMING matches. Extract all visible upcoming matches, then provide predictions for up to ${numLegs}.
+IMPORTANT: Only predict UPCOMING matches that have NOT started yet. Extract all visible upcoming matches, then provide predictions for up to ${numLegs}.
 
 ${RESPONSE_FORMAT}`;
 
@@ -201,7 +204,7 @@ ${RESPONSE_FORMAT}`;
 
     const systemPrompt = `You are the BetCode Oracle — an elite AI football analyst.
 
-TODAY IS: ${today}
+TODAY IS: ${today} and current time is ${currentTime} UTC.
 
 Your task: Analyze REAL upcoming football fixtures and provide expert predictions.
 ${fixturesContext}
@@ -213,11 +216,12 @@ CRITICAL RULES:
 1. ONLY predict matches from the real fixture data provided above. Do NOT invent fixtures.
 2. Use EXACT team names, league names, dates and kickoff times from the data.
 3. Base predictions on team form, historical data, home/away records, and tactical analysis.
+4. STRICTLY EXCLUDE games that have ALREADY PLAYED or ALREADY STARTED. A game has started if its date is before ${today}, OR if its date is ${today} and its kickoff time is at or before ${currentTime} UTC. Only include games that have NOT YET kicked off.
 
 ${safeInstruction}
 ${filterInstructions}
 
-LEGS REQUIREMENT (STRICT): Return EXACTLY ${numLegs} predictions — no more, no less. Pick the ${numLegs} matches where you have the HIGHEST confidence.
+LEGS REQUIREMENT (STRICT): Return EXACTLY ${numLegs} predictions — no more, no less. Pick the ${numLegs} matches where you have the HIGHEST confidence. All must be future games that have NOT started.
 
 ${RESPONSE_FORMAT}`;
 
