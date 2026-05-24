@@ -7,7 +7,11 @@ import { useAuth } from "@/contexts/auth";
 interface SystemSettings {
   id?: string;
   min_withdrawal_amount: number;
-  require_seller_approval: boolean;
+  require_seller_approval?: boolean;
+  oracle_price_per_scan?: number;
+  oracle_free_daily_limit?: number;
+  oracle_auto_pick_enabled?: boolean;
+  oracle_image_enabled?: boolean;
   created_at?: string;
   updated_at?: string;
   updated_by?: string;
@@ -19,6 +23,10 @@ export const useSystemSettings = () => {
   const [settings, setSettings] = useState<SystemSettings>({
     min_withdrawal_amount: 1000, // Default value
     require_seller_approval: false, // Default to auto-approve sellers
+    oracle_price_per_scan: 5,
+    oracle_free_daily_limit: 3,
+    oracle_auto_pick_enabled: false,
+    oracle_image_enabled: true,
   });
   const { currentUser } = useAuth();
 
@@ -33,21 +41,20 @@ export const useSystemSettings = () => {
       if (error) throw error;
       
       if (data) {
-        setSettings(data as SystemSettings);
+        setSettings(data as unknown as SystemSettings);
       } else {
         // If no settings exist, create default ones
         const { data: newSettings, error: insertError } = await supabase
           .from("system_settings")
           .insert({
             min_withdrawal_amount: 1000,
-            require_seller_approval: false
           })
           .select()
           .single();
 
         if (insertError) throw insertError;
         if (newSettings) {
-          setSettings(newSettings as SystemSettings);
+          setSettings(newSettings as unknown as SystemSettings);
         }
       }
     } catch (error: any) {
