@@ -598,15 +598,41 @@ const Oracle = () => {
         {/* Tabs: Auto Pick vs Image Upload */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4 sm:mb-6">
           <TabsList className="w-full">
-            <TabsTrigger value="auto_pick" className="flex-1 gap-1 sm:gap-2 text-xs sm:text-sm">
-              <Zap className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> Auto Pick
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Free</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="image" className="flex-1 gap-1 sm:gap-2 text-xs sm:text-sm">
-              <Camera className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> Image Upload
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Free</Badge>
-            </TabsTrigger>
+            {autoPickEnabled && (
+              <TabsTrigger value="auto_pick" className="flex-1 gap-1 sm:gap-2 text-xs sm:text-sm">
+                <Zap className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> Auto Pick
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  {isCurrentlyFree ? "Free" : `R${pricePerScan}`}
+                </Badge>
+              </TabsTrigger>
+            )}
+            {imageEnabled && (
+              <TabsTrigger value="image" className="flex-1 gap-1 sm:gap-2 text-xs sm:text-sm">
+                <Camera className="h-3.5 sm:h-4 w-3.5 sm:w-4" /> Image Upload
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  {isCurrentlyFree ? "Free" : `R${pricePerScan}`}
+                </Badge>
+              </TabsTrigger>
+            )}
           </TabsList>
+
+          {currentUser && (autoPickEnabled || imageEnabled) && (
+            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
+              <Coins className="h-3.5 w-3.5" />
+              {freeRemaining > 0
+                ? `${freeRemaining}/${freeDailyLimit} free Oracle scans left today — additional scans R${pricePerScan} each.`
+                : `You've used your ${freeDailyLimit} free scans for today. Additional scans cost R${pricePerScan} each.`}
+              <span className="ml-1">Balance: R{(userBalance + bonusBalance).toFixed(2)}</span>
+            </p>
+          )}
+
+          {!autoPickEnabled && !imageEnabled && (
+            <Card className="mt-3 border-border bg-card">
+              <CardContent className="p-4 text-sm text-muted-foreground text-center">
+                Oracle is temporarily unavailable. Please check back later.
+              </CardContent>
+            </Card>
+          )}
 
           {/* Auto Pick Tab */}
           <TabsContent value="auto_pick">
