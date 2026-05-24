@@ -59,7 +59,7 @@ const FAQ: React.FC = () => {
     },
     {
       question: "Is the Oracle free?",
-      answer: "Yes! The Oracle is completely free to use. You just need a registered account to access AI-powered predictions. Punters also earn 1 BC loyalty point per search."
+      answer: "Registered users get a few free Oracle predictions every day (the exact number is set by the admin). Once your free daily scans are used, additional predictions are charged at a small per-scan fee set by the admin. Punters earn 1 BC loyalty point per scan."
     },
     {
       question: "What is Auto Pick mode?",
