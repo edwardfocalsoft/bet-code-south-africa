@@ -64,27 +64,7 @@ export const useAuthentication = (
 
       if (data?.user) {
         console.log("Login successful for:", data.user.id);
-        
-        // Special handling for admin via email
-        if (isAdminLogin) {
-          console.log("Admin login successful via email check!");
-          const adminUser: UserType = {
-            id: data.user.id,
-            email: data.user.email || email,
-            role: 'admin',
-            createdAt: new Date(),
-            approved: true
-          };
-          
-          setCurrentUser(adminUser);
-          setUserRole('admin');
-          setIsAdmin(true);
-          
-          toast.success("Admin logged in successfully.");
-          navigate('/admin/dashboard');
-          return adminUser;
-        }
-        
+
         // Fetch user profile for non-admin users
         try {
           const userProfile = await fetchUserProfile(data.user.id);
