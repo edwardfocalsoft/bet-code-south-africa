@@ -116,7 +116,7 @@ const CreatePostDialog: React.FC<CreatePostDialogProps> = ({ onCreatePost }) => 
         <div className="space-y-4">
           <div className="space-y-2">
             <Textarea
-              placeholder="What's on your mind? Share your thoughts, tips, or predictions! 😊"
+              placeholder="What's on your mind? Share your thoughts, tips, or predictions."
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="min-h-[100px]"

@@ -535,7 +535,7 @@ const Oracle = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <Badge variant="outline" className="text-xs">
-                            {item.mode === "image" ? "📷 Image" : `Auto ${item.legs}`}
+                            {item.mode === "image" ? "Image" : `Auto ${item.legs}`}
                           </Badge>
                           {item.goal_filter && item.goal_filter !== "any" && (
                             <Badge variant="secondary" className="text-xs">{item.goal_filter}</Badge>

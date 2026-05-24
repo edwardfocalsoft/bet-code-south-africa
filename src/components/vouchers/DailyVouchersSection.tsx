@@ -66,7 +66,7 @@ const DailyVouchersSection: React.FC = () => {
             </p>
             <div className="bg-betting-dark-gray rounded-lg p-6 border border-betting-light-gray">
               <p className="text-sm text-muted-foreground">
-                💡 New vouchers drop every day at 12:00 PM - Don't miss out!
+                New vouchers drop every day at 12:00 PM — Don't miss out!
               </p>
             </div>
           </div>
@@ -145,7 +145,7 @@ const DailyVouchersSection: React.FC = () => {
             ) : (
               <div className="inline-flex items-center gap-3 bg-betting-green rounded-2xl px-8 py-4 animate-pulse">
                 <Zap className="h-6 w-6 text-white" />
-                <span className="text-xl font-bold text-white">Drop is LIVE! 🔥</span>
+                <span className="text-xl font-bold text-white">Drop is LIVE</span>
                 <Zap className="h-6 w-6 text-white" />
               </div>
             )}
