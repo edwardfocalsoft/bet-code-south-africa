@@ -716,6 +716,10 @@ export type Database = {
           created_at: string
           id: string
           min_withdrawal_amount: number
+          oracle_auto_pick_enabled: boolean
+          oracle_free_daily_limit: number
+          oracle_image_enabled: boolean
+          oracle_price_per_scan: number
           updated_at: string
           updated_by: string | null
         }
@@ -723,6 +727,10 @@ export type Database = {
           created_at?: string
           id?: string
           min_withdrawal_amount?: number
+          oracle_auto_pick_enabled?: boolean
+          oracle_free_daily_limit?: number
+          oracle_image_enabled?: boolean
+          oracle_price_per_scan?: number
           updated_at?: string
           updated_by?: string | null
         }
@@ -730,6 +738,10 @@ export type Database = {
           created_at?: string
           id?: string
           min_withdrawal_amount?: number
+          oracle_auto_pick_enabled?: boolean
+          oracle_free_daily_limit?: number
+          oracle_image_enabled?: boolean
+          oracle_price_per_scan?: number
           updated_at?: string
           updated_by?: string | null
         }
@@ -987,6 +999,7 @@ export type Database = {
         Args: { p_amount: number; p_description: string; p_user_id: string }
         Returns: string
       }
+      get_oracle_daily_usage: { Args: { p_user_id: string }; Returns: number }
       get_public_leaderboard: {
         Args: { end_date: string; result_limit?: number; start_date: string }
         Returns: {
