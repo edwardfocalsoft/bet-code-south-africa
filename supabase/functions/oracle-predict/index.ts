@@ -130,6 +130,33 @@ serve(async (req) => {
       });
     }
 
+    // Enforce billing server-side (free daily quota + paid scans)
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const { data: settings } = await admin
+      .from("system_settings")
+      .select("oracle_price_per_scan, oracle_free_daily_limit")
+      .maybeSingle();
+    const pricePerScan = Number(settings?.oracle_price_per_scan ?? 5);
+    const freeLimit = Number(settings?.oracle_free_daily_limit ?? 3);
+    const { data: usedToday } = await admin.rpc("get_oracle_daily_usage", {
+      p_user_id: userData.user.id,
+    });
+    const used = Number(usedToday ?? 0);
+    if (used >= freeLimit && pricePerScan > 0) {
+      const { error: chargeErr } = await admin.rpc("charge_oracle_search", {
+        p_user_id: userData.user.id,
+        p_cost: pricePerScan,
+      });
+      if (chargeErr) {
+        return new Response(JSON.stringify({ error: "Insufficient balance" }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const body = await req.json();
     const { query, mode, legs, safeOnly, leagues, goalFilter, cornerFilter, bttsFilter, doubleChanceFilter, dateFrom, dateTo, imageBase64 } = body;
 
