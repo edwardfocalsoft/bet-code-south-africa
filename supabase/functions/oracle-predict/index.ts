@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -108,6 +109,54 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Require authenticated user
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const supabaseAuth = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: userData, error: userErr } = await supabaseAuth.auth.getUser(
+      authHeader.replace("Bearer ", ""),
+    );
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Enforce billing server-side (free daily quota + paid scans)
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const { data: settings } = await admin
+      .from("system_settings")
+      .select("oracle_price_per_scan, oracle_free_daily_limit")
+      .maybeSingle();
+    const pricePerScan = Number(settings?.oracle_price_per_scan ?? 5);
+    const freeLimit = Number(settings?.oracle_free_daily_limit ?? 3);
+    const { data: usedToday } = await admin.rpc("get_oracle_daily_usage", {
+      p_user_id: userData.user.id,
+    });
+    const used = Number(usedToday ?? 0);
+    if (used >= freeLimit && pricePerScan > 0) {
+      const { error: chargeErr } = await admin.rpc("charge_oracle_search", {
+        p_user_id: userData.user.id,
+        p_cost: pricePerScan,
+      });
+      if (chargeErr) {
+        return new Response(JSON.stringify({ error: "Insufficient balance" }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const body = await req.json();
     const { query, mode, legs, safeOnly, leagues, goalFilter, cornerFilter, bttsFilter, doubleChanceFilter, dateFrom, dateTo, imageBase64 } = body;
 

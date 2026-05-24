@@ -250,24 +250,10 @@ const Oracle = () => {
   const chargeUser = async (cost: number) => {
     if (!currentUser) return false;
 
-    // Free scan — just award loyalty point
-    if (cost <= 0) {
-      try {
-        if (userRole === "buyer") {
-          await supabase
-            .from("profiles")
-            .update({ loyalty_points: (currentUser.loyaltyPoints || 0) + 1 })
-            .eq("id", currentUser.id);
-        }
-      } catch (err) {
-        console.error("Loyalty point error:", err);
-      }
-      return true;
-    }
-
-    // Paid scan — charge via RPC
+    // Billing is enforced server-side inside the edge function.
+    // Here we only do a UX pre-check for paid scans and award a loyalty point.
     const totalAvailable = (userBalance || 0) + (bonusBalance || 0);
-    if (totalAvailable < cost) {
+    if (cost > 0 && totalAvailable < cost) {
       toast.error(`Insufficient balance — Oracle scan costs R${cost}.`, {
         action: { label: "Top Up", onClick: () => window.location.assign("/user/wallet") },
       });
@@ -275,23 +261,16 @@ const Oracle = () => {
     }
 
     try {
-      const { error } = await supabase.rpc("charge_oracle_search", {
-        p_user_id: currentUser.id,
-        p_cost: cost,
-      });
-      if (error) throw error;
       if (userRole === "buyer") {
         await supabase
           .from("profiles")
           .update({ loyalty_points: (currentUser.loyaltyPoints || 0) + 1 })
           .eq("id", currentUser.id);
       }
-      return true;
-    } catch (err: any) {
-      console.error("Oracle charge error:", err);
-      toast.error(err.message || "Failed to charge for Oracle scan");
-      return false;
+    } catch (err) {
+      console.error("Loyalty point error:", err);
     }
+    return true;
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
