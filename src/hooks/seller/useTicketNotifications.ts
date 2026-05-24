@@ -61,7 +61,7 @@ export const useTicketNotifications = () => {
       // 4. Prepare notifications
       const notifications = subscriptions.map(sub => ({
         user_id: sub.buyer_id,
-        title: `New ticket from ${seller.username}${seller.verified ? ' ✓' : ''}`,
+        title: `New ticket from ${seller.username}${seller.verified ? ' (verified)' : ''}`,
         message: `${ticketTitle} - ${ticket.is_free ? 'Free' : `R${ticket.price}`}`,
         type: 'ticket',
         related_id: ticketId,
