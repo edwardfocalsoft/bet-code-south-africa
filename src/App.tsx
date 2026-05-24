@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/auth";
 import ApplicationWrapper from "@/components/layout/ApplicationWrapper";
 import MaintenanceMiddleware from "@/components/layout/MaintenanceMiddleware";
 import OraclePromoDialog from "@/components/layout/OraclePromoDialog";
+import TipsterSharePromptDialog from "@/components/layout/TipsterSharePromptDialog";
 
 // Pages
 import Index from "@/pages/Index";
@@ -165,6 +166,7 @@ function App() {
                   </Routes>
                 </Suspense>
                 <OraclePromoDialog />
+                <TipsterSharePromptDialog />
               </ApplicationWrapper>
             </MaintenanceMiddleware>
           </AuthProvider>
