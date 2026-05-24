@@ -23,74 +23,41 @@ export function useSellers(options: UseSellersOptions = { fetchOnMount: true, li
 
       // If sorting by sales, get sellers with sales data including free tickets
       if (options.sortBy === "sales") {
-        // Get all approved sellers
-        const { data: sellersWithStats, error: sellersError } = await supabase
-          .from('profiles')
-          .select(`
-            id,
-            username,
-            avatar_url,
-            verified
-          `)
-          .eq('role', 'seller')
-          .eq('approved', true)
-          .eq('suspended', false);
+        // Use SECURITY DEFINER RPC so anonymous visitors still see aggregated counts.
+        const start = new Date('1970-01-01').toISOString();
+        const end = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+        const { data: rows, error: rpcError } = await supabase.rpc('get_public_leaderboard', {
+          start_date: start,
+          end_date: end,
+          result_limit: options.limit || 10,
+        });
 
-        if (sellersError) throw sellersError;
+        if (rpcError) throw rpcError;
 
-        // Get sales data for each seller including free tickets
-        const sellersWithSalesData = await Promise.all(
-          sellersWithStats.map(async (seller) => {
-            // Count all purchases (including free tickets) for all time
-            const { count: salesCount } = await supabase
-              .from('purchases')
-              .select('*', { count: 'exact', head: true })
-              .eq('seller_id', seller.id)
-              .eq('payment_status', 'completed');
+        // Pull verified flags in one batch
+        const ids = (rows || []).map((r: any) => r.id);
+        let verifiedMap: Record<string, boolean> = {};
+        if (ids.length > 0) {
+          const { data: profs } = await supabase
+            .from('profiles')
+            .select('id, verified')
+            .in('id', ids);
+          verifiedMap = Object.fromEntries((profs || []).map((p: any) => [p.id, !!p.verified]));
+        }
 
-            // Get total sales value (excluding free tickets for monetary calculations)
-            const { data: salesData } = await supabase
-              .from('purchases')
-              .select('price')
-              .eq('seller_id', seller.id)
-              .eq('payment_status', 'completed');
+        const sortedSellers = (rows || []).map((r: any, index: number) => ({
+          id: r.id,
+          username: r.username || 'Anonymous',
+          avatar_url: r.avatar_url,
+          role: 'seller' as const,
+          loyaltyPoints: 0,
+          sales_count: Number(r.sales_count) || 0,
+          average_rating: Number(r.average_rating) || 0,
+          ranking: index + 1,
+          verified: verifiedMap[r.id] || false,
+          total_sales: Number(r.total_sales) || 0,
+        }));
 
-            // Get average rating
-            const { data: ratingsData } = await supabase
-              .from('ratings')
-              .select('score')
-              .eq('seller_id', seller.id);
-
-            const totalSales = salesData?.reduce((sum, sale) => sum + (sale.price || 0), 0) || 0;
-            const averageRating = ratingsData?.length 
-              ? ratingsData.reduce((sum, rating) => sum + rating.score, 0) / ratingsData.length 
-              : 0;
-
-            return {
-              id: seller.id,
-              username: seller.username || "Anonymous",
-              avatar_url: seller.avatar_url,
-              role: "seller" as const,
-              loyaltyPoints: 0,
-              sales_count: salesCount || 0,
-              average_rating: Number(averageRating.toFixed(1)),
-              ranking: 0, // Will be assigned after sorting
-              verified: seller.verified || false,
-              total_sales: totalSales
-            };
-          })
-        );
-
-        // Sort by sales count (including free tickets) and assign ranking
-        const sortedSellers = sellersWithSalesData
-          .sort((a, b) => b.sales_count - a.sales_count)
-          .slice(0, options.limit || 10)
-          .map((seller, index) => ({
-            ...seller,
-            ranking: index + 1
-          }));
-        
-        console.log("Fetched top tipsters (including free tickets):", sortedSellers);
         setSellers(sortedSellers);
       } else {
         // Default query if not sorting by sales
