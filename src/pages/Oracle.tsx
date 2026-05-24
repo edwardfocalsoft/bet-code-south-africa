@@ -67,9 +67,6 @@ const LEAGUES = [
   "Women's Super League", "NWSL", "Copa America", "Euros",
 ];
 
-const AUTO_PICK_COST = 0;
-const IMAGE_COST = 0;
-
 const Oracle = () => {
   const { currentUser, userRole } = useAuth();
   const [pageLoading, setPageLoading] = useState(true);
@@ -110,7 +107,16 @@ const Oracle = () => {
   const [imgDoubleChanceFilter, setImgDoubleChanceFilter] = useState("any");
   const [imgSafeOnly, setImgSafeOnly] = useState(false);
 
-  const currentCost = activeTab === "image" ? IMAGE_COST : AUTO_PICK_COST;
+  // Oracle pricing config (admin-controlled)
+  const [pricePerScan, setPricePerScan] = useState<number>(5);
+  const [freeDailyLimit, setFreeDailyLimit] = useState<number>(3);
+  const [autoPickEnabled, setAutoPickEnabled] = useState<boolean>(false);
+  const [imageEnabled, setImageEnabled] = useState<boolean>(true);
+  const [usedToday, setUsedToday] = useState<number>(0);
+
+  const freeRemaining = Math.max(0, freeDailyLimit - usedToday);
+  const isCurrentlyFree = freeRemaining > 0;
+  const currentCost = isCurrentlyFree ? 0 : pricePerScan;
 
   const fetchHistory = async () => {
     if (!currentUser) return;
@@ -198,10 +204,82 @@ const Oracle = () => {
     if (currentUser) fetchBalance();
   }, [currentUser]);
 
-  const chargeUser = async (_cost: number) => {
-    if (!currentUser) return false;
-    // Oracle is now free — no charge needed
+  const fetchOracleSettings = async () => {
+    const { data } = await supabase
+      .from("system_settings")
+      .select("*")
+      .maybeSingle();
+    if (data) {
+      const s: any = data;
+      setPricePerScan(Number(s.oracle_price_per_scan ?? 5));
+      setFreeDailyLimit(Number(s.oracle_free_daily_limit ?? 3));
+      setAutoPickEnabled(!!s.oracle_auto_pick_enabled);
+      setImageEnabled(s.oracle_image_enabled !== false);
+    }
+  };
+
+  const fetchDailyUsage = async () => {
+    if (!currentUser) return;
     try {
+      const { data, error } = await supabase.rpc("get_oracle_daily_usage" as any, {
+        p_user_id: currentUser.id,
+      });
+      if (!error && typeof data === "number") setUsedToday(data);
+    } catch (err) {
+      console.error("Failed to fetch daily usage:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchOracleSettings();
+  }, []);
+
+  useEffect(() => {
+    if (currentUser) fetchDailyUsage();
+  }, [currentUser]);
+
+  // Switch tab away from a disabled mode
+  useEffect(() => {
+    if (activeTab === "auto_pick" && !autoPickEnabled && imageEnabled) {
+      setActiveTab("image");
+    } else if (activeTab === "image" && !imageEnabled && autoPickEnabled) {
+      setActiveTab("auto_pick");
+    }
+  }, [autoPickEnabled, imageEnabled, activeTab]);
+
+  const chargeUser = async (cost: number) => {
+    if (!currentUser) return false;
+
+    // Free scan — just award loyalty point
+    if (cost <= 0) {
+      try {
+        if (userRole === "buyer") {
+          await supabase
+            .from("profiles")
+            .update({ loyalty_points: (currentUser.loyaltyPoints || 0) + 1 })
+            .eq("id", currentUser.id);
+        }
+      } catch (err) {
+        console.error("Loyalty point error:", err);
+      }
+      return true;
+    }
+
+    // Paid scan — charge via RPC
+    const totalAvailable = (userBalance || 0) + (bonusBalance || 0);
+    if (totalAvailable < cost) {
+      toast.error(`Insufficient balance — Oracle scan costs R${cost}.`, {
+        action: { label: "Top Up", onClick: () => window.location.assign("/user/wallet") },
+      });
+      return false;
+    }
+
+    try {
+      const { error } = await supabase.rpc("charge_oracle_search", {
+        p_user_id: currentUser.id,
+        p_cost: cost,
+      });
+      if (error) throw error;
       if (userRole === "buyer") {
         await supabase
           .from("profiles")
@@ -210,8 +288,9 @@ const Oracle = () => {
       }
       return true;
     } catch (err: any) {
-      console.error("Oracle error:", err);
-      return true; // Don't block on loyalty point failure
+      console.error("Oracle charge error:", err);
+      toast.error(err.message || "Failed to charge for Oracle scan");
+      return false;
     }
   };
 
@@ -254,7 +333,7 @@ const Oracle = () => {
     setAdvice("");
 
     try {
-      const charged = await chargeUser(IMAGE_COST);
+      const charged = await chargeUser(currentCost);
       if (!charged) return;
 
       const { data, error } = await supabase.functions.invoke("oracle-predict", {
@@ -285,7 +364,9 @@ const Oracle = () => {
       if (preds.length > 0) {
         await saveSearch(preds, adviceText, true);
       }
-      
+
+      setUsedToday((n) => n + 1);
+      fetchBalance();
       clearImage();
     } catch (err: any) {
       console.error("Oracle image error:", err);
@@ -308,7 +389,7 @@ const Oracle = () => {
     setAdvice("");
 
     try {
-      const charged = await chargeUser(AUTO_PICK_COST);
+      const charged = await chargeUser(currentCost);
       if (!charged) return;
 
       const { data, error } = await supabase.functions.invoke("oracle-predict", {
@@ -341,6 +422,9 @@ const Oracle = () => {
       if (preds.length > 0) {
         await saveSearch(preds, adviceText);
       }
+
+      setUsedToday((n) => n + 1);
+      fetchBalance();
     } catch (err: any) {
       console.error("Oracle error:", err);
       toast.error(err.message || "Failed to get predictions");
