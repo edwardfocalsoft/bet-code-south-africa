@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Brain, Zap, Shield, TrendingUp } from "lucide-react";
+import { Brain } from "lucide-react";
 
 const HeroSection: React.FC = () => {
   const [stats, setStats] = useState({
@@ -67,43 +67,24 @@ const HeroSection: React.FC = () => {
           <span className="text-sm font-medium text-betting-green">Now FREE for All Users</span>
         </div>
 
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 animate-fade-in">
-          <span className="text-betting-green bg-clip-text text-transparent bg-gradient-to-r from-betting-green to-teal-500">
-            Free AI Predictions
-          </span>{" "}
-          with the Oracle
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 animate-fade-in text-foreground">
+          AI-Powered Predictions, Built for South African Punters
         </h1>
         <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8 animate-fade-in">
-          South Africa's first AI-powered betting assistant — now <span className="text-betting-green font-semibold">100% free</span>. Get data-driven predictions on goals, corners, BTTS, double chance and more. Just sign up and start winning!
+          BetCode's Oracle delivers data-driven insights on goals, corners, BTTS and more. Get your free daily predictions and start making smarter bets today.
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12 animate-fade-in">
-          <Link to="/oracle">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16 animate-fade-in">
+          <Link to="/oracle" className="sm:w-56">
             <Button className="bg-betting-green hover:bg-betting-green-dark text-white px-8 py-6 text-lg gap-2 w-full">
-              <Brain className="h-5 w-5" /> Use Oracle — It's Free
+              <Brain className="h-5 w-5" /> Use Oracle
             </Button>
           </Link>
-          <Link to="/tickets">
+          <Link to="/tickets" className="sm:w-56">
             <Button variant="outline" className="border-betting-green text-betting-green hover:bg-betting-green/10 px-8 py-6 text-lg w-full">
               Browse Bet Codes
             </Button>
           </Link>
-        </div>
-
-        {/* Oracle feature highlights */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto mb-12">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-card/50 border border-border">
-            <Zap className="h-5 w-5 text-primary shrink-0" />
-            <span className="text-sm text-foreground">Auto Pick mode</span>
-          </div>
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-card/50 border border-border">
-            <Shield className="h-5 w-5 text-primary shrink-0" />
-            <span className="text-sm text-foreground">Safe-only filters</span>
-          </div>
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-card/50 border border-border">
-            <TrendingUp className="h-5 w-5 text-primary shrink-0" />
-            <span className="text-sm text-foreground">Live SofaScore data</span>
-          </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
