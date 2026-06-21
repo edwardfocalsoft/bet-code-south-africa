@@ -191,7 +191,11 @@ The user uploaded a screenshot showing football matches. Your job:
 ${safeInstruction}
 ${filterInstructions}
 
-IMPORTANT: Only predict UPCOMING matches that have NOT started yet. Extract all visible upcoming matches, then provide predictions for up to ${numLegs}.
+IMPORTANT: Only predict UPCOMING matches that have NOT started yet.
+- Extract every upcoming match visible on the slip, in the order they appear.
+- Hard cap: return predictions for AT MOST 10 matches (the first 10 upcoming matches on the slip).
+- If the slip has fewer than 10 upcoming matches, return predictions for ALL of them — do not pad, do not invent extra matches.
+- Ignore the requested leg count for image mode; the count of returned predictions must equal min(upcoming_matches_on_slip, 10).
 
 ${RESPONSE_FORMAT}`;
 
