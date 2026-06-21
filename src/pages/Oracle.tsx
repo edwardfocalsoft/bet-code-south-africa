@@ -320,7 +320,7 @@ const Oracle = () => {
           mode: "image",
           imageBase64: imagePreview,
           query: imageQuery,
-          legs: parseInt(legs),
+          legs: 10,
           safeOnly: imgSafeOnly,
           goalFilter: imgGoalFilter,
           cornerFilter: imgCornerFilter,
