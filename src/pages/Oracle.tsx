@@ -320,7 +320,7 @@ const Oracle = () => {
           mode: "image",
           imageBase64: imagePreview,
           query: imageQuery,
-          legs: parseInt(legs),
+          legs: 10,
           safeOnly: imgSafeOnly,
           goalFilter: imgGoalFilter,
           cornerFilter: imgCornerFilter,
@@ -794,6 +794,9 @@ const Oracle = () => {
               <CardContent className="p-3 sm:p-4 space-y-3 sm:space-y-4">
                 <p className="text-sm text-muted-foreground">
                   Upload a screenshot of upcoming games. The AI will identify teams, game types, and provide predictions.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Maximum 10 predictions per slip. If your slip has more than 10 matches, only the first 10 will be analysed. If it has fewer, all of them will be analysed.
                 </p>
 
                 <input
