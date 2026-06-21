@@ -795,6 +795,9 @@ const Oracle = () => {
                 <p className="text-sm text-muted-foreground">
                   Upload a screenshot of upcoming games. The AI will identify teams, game types, and provide predictions.
                 </p>
+                <p className="text-xs text-muted-foreground">
+                  Maximum 10 predictions per slip. If your slip has more than 10 matches, only the first 10 will be analysed. If it has fewer, all of them will be analysed.
+                </p>
 
                 <input
                   ref={fileInputRef}
